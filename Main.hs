@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, TypeFamilies, OverloadedStrings #-}
 import Yesod.Core
 import Yesod.WebSockets
+import Yesod.Static
 import qualified Data.Text.Lazy as TL
 import Control.Monad (forever)
 import Control.Monad.Trans.Reader
@@ -10,12 +11,15 @@ import Conduit
 import Data.Monoid ((<>))
 import Control.Concurrent.STM.Lifted
 import Data.Text (Text)
-data App = App (TChan Text)
+data App = App { chan :: (TChan Text)
+                , getStatic :: Static}
+
 
 instance Yesod App
 
 mkYesod "App" [parseRoutes|
 / HomeR GET
+/static StaticR  Static getStatic
 |]
 
 chatApp :: WebSocketsT Handler ()
@@ -23,7 +27,7 @@ chatApp = do
     sendTextData ("Image comparison service." :: Text)
     name <- receiveData
     sendTextData $ "Welcome, " <> name
-    App writeChan <- getYesod
+    App writeChan _ <- getYesod
     readChan <- atomically $ do
         writeTChan writeChan $ name <> " has joined the chat"
         dupTChan writeChan
@@ -85,4 +89,5 @@ main :: IO ()
 main = do
     putStr "Starting server on port 3000"
     chan <- atomically newBroadcastTChan
-    warp 3000 $ App chan
+    static@(Static settings) <- static "static"
+    warp 3000 $ App chan static
