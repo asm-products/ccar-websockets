@@ -1,0 +1,3 @@
+-cp ./src
+-js mbooks.js
+-main MBooks
