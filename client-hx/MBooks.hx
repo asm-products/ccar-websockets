@@ -77,7 +77,9 @@ class MBooks {
 	}
 
 	private function sendLogin (ev: Event){
-		var l : Login = new Login(loginInput.value, "");
+		var l : Login = new Login(
+			"", "",
+			loginInput.value, "");
 		doSend(Json.stringify(l));
 	}
 

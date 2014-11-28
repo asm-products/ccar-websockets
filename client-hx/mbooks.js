@@ -30,7 +30,7 @@ MBooks.main = function() {
 }
 MBooks.prototype = {
 	sendLogin: function(ev) {
-		var l = new model.Login(this.loginInput.value,"");
+		var l = new model.Login("","",this.loginInput.value,"");
 		this.doSend(haxe.Json.stringify(l));
 	}
 	,createConnectionForm: function() {
@@ -443,13 +443,61 @@ model.Contact.__name__ = true;
 model.Contact.prototype = {
 	__class__: model.Contact
 }
-model.Login = function(n,p) {
-	this.nickName = n;
-	this.password = p;
+model.Login = function(fName,lName,nName,pwd) {
+	this.firstName = fName;
+	this.lastName = lName;
+	this.nickName = nName;
+	this.password = pwd;
 };
 model.Login.__name__ = true;
 model.Login.prototype = {
-	__class__: model.Login
+	createDivTag: function(document) {
+		var div = document.createElement("div");
+		div.className = "Contact.Login";
+		document.body.appendChild(div);
+		return div;
+	}
+	,createPassword: function(document,parent) {
+	}
+	,createNickName: function(document,parent) {
+	}
+	,createLastName: function(document,parent) {
+		var div = document.createElement("div");
+		div.className = "Contact.Login.LastName";
+		var textElement = document.createTextNode("Last Name");
+		this.lastNameInput = document.createElement("input");
+		div.appendChild(textElement);
+		div.appendChild(this.lastNameInput);
+	}
+	,createFirstName: function(document,parent) {
+		var div = document.createElement("div");
+		div.className = "Contact.Login.FirstName";
+		var textElement = document.createTextNode("First Name");
+		this.firstNameInput = document.createElement("input");
+		div.appendChild(textElement);
+		div.appendChild(this.firstNameInput);
+		parent.appendChild(div);
+	}
+	,createFormElements: function(document,parent) {
+		this.createFirstName(document,parent);
+		this.createLastName(document,parent);
+		this.createNickName(document,parent);
+		this.createPassword(document,parent);
+	}
+	,createRegistrationForm: function() {
+		try {
+			console.log("Creating registration formm");
+			var document = js.Browser.document;
+			var div = this.createDivTag(document);
+			this.createFormElements(document,div);
+			document.body.appendChild(div);
+		} catch( msg ) {
+			if( js.Boot.__instanceof(msg,DOMException) ) {
+				console.log("Exception e");
+			} else throw(msg);
+		}
+	}
+	,__class__: model.Login
 }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; };
