@@ -27,6 +27,7 @@ import Data.Text.Lazy as L
 pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
 pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
 
+
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
         Person 
@@ -44,6 +45,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Typeable Data Generic Eq Ord
             |]
 
+
+data LoginStatus = UserExists | UserNotFound | InvalidPassword 
+    deriving(Show, Typeable, Data, Generic, Eq, Ord)
+data Login = Login {
+    person :: Maybe Person
+    , loginStatus :: LoginStatus
+} deriving (Show, Typeable, Data, Generic, Eq, Ord)
+
 data App = App { chan :: (TChan T.Text)
                 , getStatic :: Static}
 
@@ -58,14 +67,21 @@ mkYesod "App" [parseRoutes|
 |]
 
 
+{-- Process the login and return a login status --}
+processLogin :: Maybe Person -> IO Login
+processLogin Nothing = return $ Login {person = Nothing, loginStatus = UserNotFound}
+processLogin (Just x) = return $ Login{person = Just x, loginStatus = UserExists}
+
 checkLoginExists :: String -> IO (Maybe (Entity Person))
 checkLoginExists aLogin = runSqlite ":memory:" $ do getBy $  UniquePerson aLogin
+
 chatApp :: WebSocketsT Handler ()
 chatApp = do
         sendTextData ("Image comparison service." :: T.Text)
         name <- receiveData
         personObject <- liftIO $ (pJSON name :: IO (Maybe Person))
-        sendTextData $ "Welcome, " <> name
+        nickNameExists <- liftIO $ processLogin personObject
+        sendTextData $ J.encode nickNameExists
         App writeChan _ <- getYesod
         readChan <- atomically $ do
             writeTChan writeChan $ name <> " has joined the chat"
@@ -135,3 +151,7 @@ instance J.ToJSON Person
 instance J.FromJSON Person
 instance J.ToJSON TermsAndConditions
 instance J.FromJSON TermsAndConditions
+instance J.ToJSON Login
+instance J.FromJSON Login
+instance J.ToJSON LoginStatus
+instance J.FromJSON LoginStatus
