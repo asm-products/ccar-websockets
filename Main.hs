@@ -6,13 +6,48 @@ import qualified Data.Text.Lazy as TL
 import Control.Monad (forever)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
+import Control.Monad.IO.Class(liftIO)
 import Data.Time
 import Conduit
 import Data.Monoid ((<>))
 import Control.Concurrent.STM.Lifted
-import Data.Text (Text)
-data App = App { chan :: (TChan Text)
+import Data.Text as T
+import Database.Persist
+import Database.Persist.Sqlite
+import Database.Persist.TH
+import Data.Time
+import Data.Typeable
+import GHC.Generics
+import Data.Data
+
+import Data.Aeson as J
+import Data.Text.Lazy.Encoding as E
+import Data.Text.Lazy as L
+
+pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
+pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
+
+share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
+    [persistLowerCase| 
+        Person 
+            firstName String 
+            lastName String 
+            nickName String 
+            created UTCTime 
+            lastLogin UTCTime
+            UniquePerson nickName
+            deriving Show Typeable Data Generic Eq Ord
+        TermsAndConditions
+            title String
+            description String
+            acceptDate UTCTime
+            deriving Show Typeable Data Generic Eq Ord
+            |]
+
+data App = App { chan :: (TChan T.Text)
                 , getStatic :: Static}
+
+
 
 
 instance Yesod App
@@ -22,19 +57,23 @@ mkYesod "App" [parseRoutes|
 /static StaticR  Static getStatic
 |]
 
+
+checkLoginExists :: String -> IO (Maybe (Entity Person))
+checkLoginExists aLogin = runSqlite ":memory:" $ do getBy $  UniquePerson aLogin
 chatApp :: WebSocketsT Handler ()
 chatApp = do
-    sendTextData ("Image comparison service." :: Text)
-    name <- receiveData
-    sendTextData $ "Welcome, " <> name
-    App writeChan _ <- getYesod
-    readChan <- atomically $ do
-        writeTChan writeChan $ name <> " has joined the chat"
-        dupTChan writeChan
-    race_
-        (forever $ atomically (readTChan readChan) >>= sendTextData)
-        (sourceWS $$ mapM_C (\msg ->
-            atomically $ writeTChan writeChan $ name <> ": " <> msg))
+        sendTextData ("Image comparison service." :: T.Text)
+        name <- receiveData
+        personObject <- liftIO $ (pJSON name :: IO (Maybe Person))
+        sendTextData $ "Welcome, " <> name
+        App writeChan _ <- getYesod
+        readChan <- atomically $ do
+            writeTChan writeChan $ name <> " has joined the chat"
+            dupTChan writeChan
+        race_
+            (forever $ atomically (readTChan readChan) >>= sendTextData)
+            (sourceWS $$ mapM_C (\msg ->
+                atomically $ writeTChan writeChan $ name <> ": " <> msg))
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -87,7 +126,12 @@ getHomeR = do
 
 main :: IO ()
 main = do
-    putStr "Starting server on port 3000"
+    runSqlite ":memory:" $ runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
     warp 3000 $ App chan static
+
+instance J.ToJSON Person
+instance J.FromJSON Person
+instance J.ToJSON TermsAndConditions
+instance J.FromJSON TermsAndConditions

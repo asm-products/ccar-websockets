@@ -1,11 +1,12 @@
 
-
-import jspi.html.*;
+import haxe.Json;
 import js.html.Event;
 import js.html.MessageEvent;
 import js.html.WebSocket;
 import js.html.DOMCoreException;
 import model.Contact;
+import model.Login;
+
 import js.Browser;
 import js.html.ButtonElement;
 class MBooks {
@@ -48,14 +49,13 @@ class MBooks {
 	}
 	public  function onMessage(ev: MessageEvent){
 		trace("Received " + ev.data);
-
 	}
 	public  function onError(ev : Event){
 		trace("Error " + ev);
 	}
 	public  function doSend(aMessage : String){
-		trace("Sending " + aMessage);
-		websocket.send(aMessage);
+		trace("Sending " + Json.stringify(aMessage));
+		websocket.send(Json.stringify(aMessage));
 	}
 	private var loginInput : js.html.InputElement;
 	private function createConnectionForm() : Void {
@@ -69,7 +69,7 @@ class MBooks {
 		div.appendChild(login);
 		div.appendChild(loginInput);
 		document.body.appendChild(div);
-
+		initializeConnection();
 		trace("Connection form created");
 		} catch(msg:DOMCoreException){
 			trace("Exception " + msg);
@@ -77,8 +77,8 @@ class MBooks {
 	}
 
 	private function sendLogin (ev: Event){
-		initializeConnection();
-		doSend(loginInput.value);
+		var l : Login = new Login(loginInput.value, "");
+		doSend(Json.stringify(l));
 	}
 
 

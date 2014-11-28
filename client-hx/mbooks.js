@@ -1,4 +1,19 @@
 (function () { "use strict";
+var $estr = function() { return js.Boot.__string_rec(this,''); };
+var HxOverrides = function() { }
+HxOverrides.__name__ = true;
+HxOverrides.cca = function(s,index) {
+	var x = s.charCodeAt(index);
+	if(x != x) return undefined;
+	return x;
+}
+HxOverrides.iter = function(a) {
+	return { cur : 0, arr : a, hasNext : function() {
+		return this.cur < this.arr.length;
+	}, next : function() {
+		return this.arr[this.cur++];
+	}};
+}
 var MBooks = function() {
 	this.portNumber = 3000;
 	this.protocol = "ws";
@@ -15,8 +30,8 @@ MBooks.main = function() {
 }
 MBooks.prototype = {
 	sendLogin: function(ev) {
-		this.initializeConnection();
-		this.doSend(this.loginInput.value);
+		var l = new model.Login(this.loginInput.value,"");
+		this.doSend(haxe.Json.stringify(l));
 	}
 	,createConnectionForm: function() {
 		try {
@@ -29,6 +44,7 @@ MBooks.prototype = {
 			div.appendChild(login);
 			div.appendChild(this.loginInput);
 			document.body.appendChild(div);
+			this.initializeConnection();
 			console.log("Connection form created");
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
@@ -37,8 +53,8 @@ MBooks.prototype = {
 		}
 	}
 	,doSend: function(aMessage) {
-		console.log("Sending " + aMessage);
-		this.websocket.send(aMessage);
+		console.log("Sending " + haxe.Json.stringify(aMessage));
+		this.websocket.send(haxe.Json.stringify(aMessage));
 	}
 	,onError: function(ev) {
 		console.log("Error " + Std.string(ev));
@@ -64,10 +80,244 @@ MBooks.prototype = {
 	}
 	,__class__: MBooks
 }
+var IMap = function() { }
+IMap.__name__ = true;
+var Reflect = function() { }
+Reflect.__name__ = true;
+Reflect.field = function(o,field) {
+	var v = null;
+	try {
+		v = o[field];
+	} catch( e ) {
+	}
+	return v;
+}
+Reflect.fields = function(o) {
+	var a = [];
+	if(o != null) {
+		var hasOwnProperty = Object.prototype.hasOwnProperty;
+		for( var f in o ) {
+		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) a.push(f);
+		}
+	}
+	return a;
+}
+Reflect.isFunction = function(f) {
+	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
+}
 var Std = function() { }
 Std.__name__ = true;
 Std.string = function(s) {
 	return js.Boot.__string_rec(s,"");
+}
+var StringBuf = function() {
+	this.b = "";
+};
+StringBuf.__name__ = true;
+StringBuf.prototype = {
+	__class__: StringBuf
+}
+var ValueType = { __ename__ : true, __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] }
+ValueType.TNull = ["TNull",0];
+ValueType.TNull.toString = $estr;
+ValueType.TNull.__enum__ = ValueType;
+ValueType.TInt = ["TInt",1];
+ValueType.TInt.toString = $estr;
+ValueType.TInt.__enum__ = ValueType;
+ValueType.TFloat = ["TFloat",2];
+ValueType.TFloat.toString = $estr;
+ValueType.TFloat.__enum__ = ValueType;
+ValueType.TBool = ["TBool",3];
+ValueType.TBool.toString = $estr;
+ValueType.TBool.__enum__ = ValueType;
+ValueType.TObject = ["TObject",4];
+ValueType.TObject.toString = $estr;
+ValueType.TObject.__enum__ = ValueType;
+ValueType.TFunction = ["TFunction",5];
+ValueType.TFunction.toString = $estr;
+ValueType.TFunction.__enum__ = ValueType;
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; }
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; }
+ValueType.TUnknown = ["TUnknown",8];
+ValueType.TUnknown.toString = $estr;
+ValueType.TUnknown.__enum__ = ValueType;
+var Type = function() { }
+Type.__name__ = true;
+Type["typeof"] = function(v) {
+	var _g = typeof(v);
+	switch(_g) {
+	case "boolean":
+		return ValueType.TBool;
+	case "string":
+		return ValueType.TClass(String);
+	case "number":
+		if(Math.ceil(v) == v % 2147483648.0) return ValueType.TInt;
+		return ValueType.TFloat;
+	case "object":
+		if(v == null) return ValueType.TNull;
+		var e = v.__enum__;
+		if(e != null) return ValueType.TEnum(e);
+		var c = v.__class__;
+		if(c != null) return ValueType.TClass(c);
+		return ValueType.TObject;
+	case "function":
+		if(v.__name__ || v.__ename__) return ValueType.TObject;
+		return ValueType.TFunction;
+	case "undefined":
+		return ValueType.TNull;
+	default:
+		return ValueType.TUnknown;
+	}
+}
+Type.enumIndex = function(e) {
+	return e[1];
+}
+var haxe = {}
+haxe.Json = function() {
+};
+haxe.Json.__name__ = true;
+haxe.Json.stringify = function(value,replacer) {
+	return new haxe.Json().toString(value,replacer);
+}
+haxe.Json.prototype = {
+	quote: function(s) {
+		this.buf.b += "\"";
+		var i = 0;
+		while(true) {
+			var c = s.charCodeAt(i++);
+			if(c != c) break;
+			switch(c) {
+			case 34:
+				this.buf.b += "\\\"";
+				break;
+			case 92:
+				this.buf.b += "\\\\";
+				break;
+			case 10:
+				this.buf.b += "\\n";
+				break;
+			case 13:
+				this.buf.b += "\\r";
+				break;
+			case 9:
+				this.buf.b += "\\t";
+				break;
+			case 8:
+				this.buf.b += "\\b";
+				break;
+			case 12:
+				this.buf.b += "\\f";
+				break;
+			default:
+				this.buf.b += String.fromCharCode(c);
+			}
+		}
+		this.buf.b += "\"";
+	}
+	,toStringRec: function(k,v) {
+		if(this.replacer != null) v = this.replacer(k,v);
+		var _g = Type["typeof"](v);
+		var $e = (_g);
+		switch( $e[1] ) {
+		case 8:
+			this.buf.b += "\"???\"";
+			break;
+		case 4:
+			this.objString(v);
+			break;
+		case 1:
+			var v1 = v;
+			this.buf.b += Std.string(v1);
+			break;
+		case 2:
+			this.buf.b += Std.string(Math.isFinite(v)?v:"null");
+			break;
+		case 5:
+			this.buf.b += "\"<fun>\"";
+			break;
+		case 6:
+			var c = $e[2];
+			if(c == String) this.quote(v); else if(c == Array) {
+				var v1 = v;
+				this.buf.b += "[";
+				var len = v1.length;
+				if(len > 0) {
+					this.toStringRec(0,v1[0]);
+					var i = 1;
+					while(i < len) {
+						this.buf.b += ",";
+						this.toStringRec(i,v1[i++]);
+					}
+				}
+				this.buf.b += "]";
+			} else if(c == haxe.ds.StringMap) {
+				var v1 = v;
+				var o = { };
+				var $it0 = v1.keys();
+				while( $it0.hasNext() ) {
+					var k1 = $it0.next();
+					o[k1] = v1.get(k1);
+				}
+				this.objString(o);
+			} else this.objString(v);
+			break;
+		case 7:
+			var i = Type.enumIndex(v);
+			var v1 = i;
+			this.buf.b += Std.string(v1);
+			break;
+		case 3:
+			var v1 = v;
+			this.buf.b += Std.string(v1);
+			break;
+		case 0:
+			this.buf.b += "null";
+			break;
+		}
+	}
+	,objString: function(v) {
+		this.fieldsString(v,Reflect.fields(v));
+	}
+	,fieldsString: function(v,fields) {
+		var first = true;
+		this.buf.b += "{";
+		var _g = 0;
+		while(_g < fields.length) {
+			var f = fields[_g];
+			++_g;
+			var value = Reflect.field(v,f);
+			if(Reflect.isFunction(value)) continue;
+			if(first) first = false; else this.buf.b += ",";
+			this.quote(f);
+			this.buf.b += ":";
+			this.toStringRec(f,value);
+		}
+		this.buf.b += "}";
+	}
+	,toString: function(v,replacer) {
+		this.buf = new StringBuf();
+		this.replacer = replacer;
+		this.toStringRec("",v);
+		return this.buf.b;
+	}
+	,__class__: haxe.Json
+}
+haxe.ds = {}
+haxe.ds.StringMap = function() { }
+haxe.ds.StringMap.__name__ = true;
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,__class__: haxe.ds.StringMap
 }
 var js = {}
 js.Boot = function() { }
@@ -193,8 +443,26 @@ model.Contact.__name__ = true;
 model.Contact.prototype = {
 	__class__: model.Contact
 }
+model.Login = function(n,p) {
+	this.nickName = n;
+	this.password = p;
+};
+model.Login.__name__ = true;
+model.Login.prototype = {
+	__class__: model.Login
+}
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; };
+Math.__name__ = ["Math"];
+Math.NaN = Number.NaN;
+Math.NEGATIVE_INFINITY = Number.NEGATIVE_INFINITY;
+Math.POSITIVE_INFINITY = Number.POSITIVE_INFINITY;
+Math.isFinite = function(i) {
+	return isFinite(i);
+};
+Math.isNaN = function(i) {
+	return isNaN(i);
+};
 String.prototype.__class__ = String;
 String.__name__ = true;
 Array.prototype.__class__ = Array;
@@ -207,6 +475,7 @@ var Bool = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = { __name__ : ["Class"]};
 var Enum = { };
+if(typeof(JSON) != "undefined") haxe.Json = JSON;
 js.Browser.document = typeof window != "undefined" ? window.document : null;
 MBooks.main();
 })();
