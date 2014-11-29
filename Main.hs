@@ -21,11 +21,10 @@ import GHC.Generics
 import Data.Data
 
 import Data.Aeson as J
+import Data.Aeson.Encode as En
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L
 
-pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
-pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
 
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
@@ -66,7 +65,15 @@ mkYesod "App" [parseRoutes|
 /static StaticR  Static getStatic
 |]
 
+iParseJSON :: (FromJSON a) => T.Text -> Maybe a
+iParseJSON = J.decode . E.encodeUtf8 . L.fromStrict
 
+pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
+pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
+
+{- Read the message, parse and then send it back. -}
+processIncomingMessage :: T.Text -> T.Text
+processIncomingMessage aText = L.toStrict $ E.decodeUtf8 $ En.encode $ (iParseJSON aText :: Maybe Person)
 {-- Process the login and return a login status --}
 processLogin :: Maybe Person -> IO Login
 processLogin Nothing = return $ Login {person = Nothing, loginStatus = UserNotFound}
@@ -87,7 +94,7 @@ chatApp = do
             writeTChan writeChan $ name <> " has joined the chat"
             dupTChan writeChan
         race_
-            (forever $ atomically (readTChan readChan) >>= sendTextData)
+            (forever $ sourceWS $$ mapC TL.toUpper =$ sinkWSText)
             (sourceWS $$ mapM_C (\msg ->
                 atomically $ writeTChan writeChan $ name <> ": " <> msg))
 
@@ -140,12 +147,14 @@ getHomeR = do
             });
         |]
 
+
 main :: IO ()
 main = do
     runSqlite ":memory:" $ runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
     warp 3000 $ App chan static
+
 
 instance J.ToJSON Person
 instance J.FromJSON Person
