@@ -84,7 +84,7 @@ checkLoginExists aLogin = runSqlite ":memory:" $ do getBy $  UniquePerson aLogin
 
 chatApp :: WebSocketsT Handler ()
 chatApp = do
-        sendTextData ("Image comparison service." :: T.Text)
+        sendTextData ("Small business management tool chain." :: T.Text)
         name <- receiveData
         personObject <- liftIO $ (pJSON name :: IO (Maybe Person))
         nickNameExists <- liftIO $ processLogin personObject
