@@ -38,7 +38,11 @@ MBooks.main = function() {
 	var test = new MBooks();
 }
 MBooks.prototype = {
-	sendLogin: function(ev) {
+	logout: function() {
+		console.log("Logging out ");
+		if(this.websocket != null) this.websocket.close(); else console.log("No valid connection found");
+	}
+	,sendLogin: function(ev) {
 		var p = new model.Person("","",this.loginInput.value,"");
 		var lStatus = model.LoginStatus.Undefined;
 		var l = new model.Login(p,lStatus);
@@ -77,12 +81,12 @@ MBooks.prototype = {
 		console.log("Creating login form");
 		lr.person.createLoginForm();
 	}
-	,createRegistrationForm: function(lr) {
+	,createRegistrationForm: function(books,lr) {
 		console.log("Creating registration form ");
 		if(lr.person == null) {
 			var person = new model.Person("","","","");
-			person.createRegistrationForm();
-		} else lr.person.createRegistrationForm();
+			person.createRegistrationForm(books);
+		} else lr.person.createRegistrationForm(books);
 	}
 	,createUndefined: function() {
 		console.log("Undefined as response..should not happen");
@@ -94,7 +98,7 @@ MBooks.prototype = {
 		console.log("Processing lStatus " + Std.string(lStatus));
 		if(lStatus == model.LoginStatus.UserNotFound) {
 			console.log("User not found. Need to see why enum is not working");
-			this.createRegistrationForm(lR);
+			this.createRegistrationForm(this,lR);
 		}
 		if(lStatus == model.LoginStatus.UserExists) this.createLoginForm(lR);
 		if(lStatus == model.LoginStatus.InvalidPassword) this.createInvalidPassword(lR);
@@ -724,20 +728,35 @@ model.Person.prototype = {
 		return div;
 	}
 	,createPassword: function(document,parent) {
+		var div = document.createElement("div");
+		div.className = "Person.Login.Password";
+		var textElement = document.createTextNode("Password (hidden)");
+		this.passwordInput = document.createElement("input");
+		div.appendChild(textElement);
+		div.appendChild(this.passwordInput);
+		parent.appendChild(div);
 	}
 	,createNickName: function(document,parent) {
+		var div = document.createElement("div");
+		div.className = "Person.Login.NickName";
+		var textElement = document.createTextNode("Nick name (needs to be unique)");
+		this.nickNameInput = document.createElement("input");
+		div.appendChild(textElement);
+		div.appendChild(this.nickNameInput);
+		parent.appendChild(div);
 	}
 	,createLastName: function(document,parent) {
 		var div = document.createElement("div");
-		div.className = "Contact.Login.LastName";
+		div.className = "Person.Login.LastName";
 		var textElement = document.createTextNode("Last Name");
 		this.lastNameInput = document.createElement("input");
 		div.appendChild(textElement);
 		div.appendChild(this.lastNameInput);
+		parent.appendChild(div);
 	}
 	,createFirstName: function(document,parent) {
 		var div = document.createElement("div");
-		div.className = "Contact.Login.FirstName";
+		div.className = "Person.Login.FirstName";
 		var textElement = document.createTextNode("First Name");
 		this.firstNameInput = document.createElement("input");
 		div.appendChild(textElement);
@@ -747,21 +766,45 @@ model.Person.prototype = {
 	,createFormElements: function(document,parent) {
 		this.createFirstName(document,parent);
 		this.createLastName(document,parent);
-		this.createNickName(document,parent);
 		this.createPassword(document,parent);
 	}
-	,createRegistrationForm: function() {
+	,createRegistrationForm: function(books) {
 		try {
 			console.log("Creating registration form");
 			var document = js.Browser.document;
+			this.mbooks = books;
 			var div = this.createDivTag(document,"Person.Registration");
 			this.createFormElements(document,div);
+			this.createRegisterButton(document,div);
+			this.createLogoutButton(document,div);
 			document.body.appendChild(div);
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
 				console.log("Exception e");
 			} else throw(msg);
 		}
+	}
+	,registerUser: function(ev) {
+		console.log("Register user " + Std.string(ev));
+		this.mbooks.doSend(haxe.Json.stringify(this));
+	}
+	,logoutUser: function(ev) {
+		console.log("Logout user " + Std.string(ev));
+		this.mbooks.logout();
+	}
+	,createLogoutButton: function(document,parent) {
+		this.logout = document.createElement("button");
+		this.logout.value = "Logout";
+		this.logout.innerHTML = "Logout";
+		parent.appendChild(this.logout);
+		this.logout.onclick = $bind(this,this.logoutUser);
+	}
+	,createRegisterButton: function(document,parent) {
+		this.register = document.createElement("button");
+		this.register.value = "Register";
+		this.register.innerHTML = "Register";
+		parent.appendChild(this.register);
+		this.register.onclick = $bind(this,this.registerUser);
 	}
 	,createLoginForm: function() {
 		try {

@@ -11,6 +11,7 @@ import js.html.ButtonElement;
 
 
 class Person {
+	private var mbooks : MBooks;
 	public var nickName (null, default) : String;
 	public var password (null, default) : String;
 	public var firstName (null, default): String;
@@ -44,12 +45,41 @@ class Person {
 			trace ("Exception " + msg);
 		}
 	}
-	public function createRegistrationForm() : Void {
+	private function createRegisterButton(document : Document
+		, parent : DivElement) : Void {
+			register = document.createButtonElement();
+			register.value = "Register";
+			register.innerHTML = "Register";
+			parent.appendChild(register);
+			register.onclick = registerUser;			
+		}
+	private function createLogoutButton(document : Document 
+		, parent : DivElement) : Void {
+			logout = document.createButtonElement();
+			logout.value = "Logout";
+			logout.innerHTML = "Logout";
+			parent.appendChild(logout);
+			logout.onclick = logoutUser;
+		}
+
+	private function logoutUser(ev : Event){
+		trace("Logout user " + ev);
+		this.mbooks.logout();
+	}
+	private function registerUser(ev: Event){
+		trace("Register user " + ev);
+		this.mbooks.doSend(haxe.Json.stringify(this));
+	}
+	public function createRegistrationForm(books : MBooks) : Void {
 		try {
 			trace("Creating registration form");
+
 			var document = Browser.document;
+			this.mbooks = books;
 			var div : DivElement = createDivTag(document, "Person.Registration");
 			createFormElements(document, div);
+			createRegisterButton(document, div);
+			createLogoutButton(document, div);
 			document.body.appendChild(div);
 		}catch(msg : DOMCoreException){
 			trace("Exception e");
@@ -59,7 +89,6 @@ class Person {
 		, parent : DivElement) : Void{
 		createFirstName(document, parent);
         createLastName (document, parent);
-        createNickName (document, parent);
         createPassword (document, parent);
 		
 	}
@@ -67,7 +96,7 @@ class Person {
 			, parent : DivElement) : Void{
 
 			var div = document.createDivElement();
-			div.className = "Contact.Login.FirstName";
+			div.className = "Person.Login.FirstName";
 			var textElement = document.createTextNode("First Name");
 			firstNameInput = document.createInputElement();
 			div.appendChild(textElement);
@@ -79,7 +108,7 @@ class Person {
     private function createLastName(document : Document
         , parent : DivElement) : Void {
             var div = document.createDivElement();
-            div.className  = "Contact.Login.LastName";
+            div.className  = "Person.Login.LastName";
             var textElement = document.createTextNode("Last Name");
             lastNameInput = document.createInputElement();
             div.appendChild(textElement);
@@ -90,12 +119,24 @@ class Person {
     private function createNickName(document : Document
         , parent : DivElement): Void {
         var div = document.createDivElement();
-        
+        div.className = "Person.Login.NickName";
+        var textElement = document.createTextNode("Nick name (needs to be unique)");
+     	nickNameInput = document.createInputElement();
+     	div.appendChild(textElement);
+     	div.appendChild(nickNameInput);
+     	parent.appendChild(div);
+
 
     }
     private function createPassword(document : Document
         , parent : DivElement) : Void {
-
+        var div = document.createDivElement();
+        div.className = "Person.Login.Password";
+        var textElement = document.createTextNode ("Password (hidden)");
+        passwordInput = document.createInputElement();
+        div.appendChild(textElement);
+        div.appendChild(passwordInput);
+        parent.appendChild(div);
     }
 	private function createDivTag(document : Document, className : String) : DivElement {
 		var div = document.createDivElement();

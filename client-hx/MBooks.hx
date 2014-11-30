@@ -63,7 +63,7 @@ class MBooks {
 		trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
 			trace("User not found. Need to see why enum is not working");
-			createRegistrationForm(lR);
+			createRegistrationForm(this, lR);
 		}
 		if(lStatus == UserExists){
 			createLoginForm(lR);
@@ -79,13 +79,13 @@ class MBooks {
 	private function createUndefined() : Void {
 		trace("Undefined as response..should not happen");
 	}
-	private function createRegistrationForm(lr : Login) : Void{
+	private function createRegistrationForm(books : MBooks, lr : Login) : Void{
 		trace("Creating registration form ");
 		if(lr.person == null){
 			var person = new Person("", "", "","");
-			person.createRegistrationForm();
+			person.createRegistrationForm(books);
 		}else {
-			lr.person.createRegistrationForm();
+			lr.person.createRegistrationForm(books);
 		}
 	}
 	private function createLoginForm(lr : Login) : Void{
@@ -131,7 +131,14 @@ class MBooks {
 		doSend(Json.stringify(l));
 	}
 
-
+	public function logout() : Void{
+		trace("Logging out ");
+		if(websocket != null){
+			websocket.close();
+		}else {
+			trace("No valid connection found");
+		}
+	}
 
 
 }
