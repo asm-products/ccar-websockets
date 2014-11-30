@@ -6,6 +6,8 @@ import js.html.WebSocket;
 import js.html.DOMCoreException;
 import model.Contact;
 import model.Login;
+import model.Person;
+import model.LoginStatus;
 
 import js.Browser;
 import js.html.ButtonElement;
@@ -47,12 +49,52 @@ class MBooks {
 	public  function onOpen(ev: Event){
 		trace("Connection opened");
 	}
+
 	public  function onMessage(ev: MessageEvent){
 		trace("Received " + ev.data);
+		var incomingMessage  : Login = haxe.Json.parse(ev.data);
+		trace("Processing incoming message " + incomingMessage);
+		processLoginResponse(incomingMessage);
 	}
+	private function processLoginResponse(lR : Login){
+		trace("Processing login response " + lR.loginStatus);
+		switch(lR.loginStatus){
+			case UserExists : createLoginForm(lR);
+			case UserNotFound : 
+				{
+					trace("User not found. Show registration");
+					createRegistrationForm(lR);
+				}
+		
+			case InvalidPassword : createInvalidPassword(lR);
+			case Undefined : createUndefined();
+		}
+	}
+
+	private function createUndefined() : Void {
+		trace("Undefined as response..should not happen");
+	}
+	private function createRegistrationForm(lr : Login) : Void{
+		trace("Creating registration form ");
+		if(lr.person == null){
+			var person = new Person("", "", "","");
+			person.createRegistrationForm();
+		}else {
+			lr.person.createRegistrationForm();
+		}
+	}
+	private function createLoginForm(lr : Login) : Void{
+		trace("Creating login form");
+		lr.person.createLoginForm();
+	}
+	private function createInvalidPassword(lr : Login) : Void{
+		trace("Processing invalid login" + lr);
+	}
+
 	public  function onError(ev : Event){
-		trace("Error " + ev);
+		trace("Error " + haxe.Json.stringify(ev));
 	}
+
 	public  function doSend(aMessage : String){
 		trace("Sending " + Json.stringify(aMessage));
 		websocket.send(Json.stringify(aMessage));
@@ -77,9 +119,10 @@ class MBooks {
 	}
 
 	private function sendLogin (ev: Event){
-		var l : Login = new Login(
-			"", "",
-			loginInput.value, "");
+		var p : Person = new Person ("", "", loginInput.value, "");
+
+		var lStatus : LoginStatus = Undefined;
+		var l : Login = new Login(p, lStatus);
 		doSend(Json.stringify(l));
 	}
 
