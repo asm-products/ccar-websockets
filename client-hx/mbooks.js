@@ -89,21 +89,16 @@ MBooks.prototype = {
 	}
 	,processLoginResponse: function(lR) {
 		console.log("Processing login response " + Std.string(lR.loginStatus));
-		switch( (lR.loginStatus)[1] ) {
-		case 0:
-			this.createLoginForm(lR);
-			break;
-		case 1:
-			console.log("User not found. Show registration");
+		console.log("Processing person object " + Std.string(lR.person));
+		var lStatus = lR.loginStatus;
+		console.log("Processing lStatus " + Std.string(lStatus));
+		if(lStatus == model.LoginStatus.UserNotFound) {
+			console.log("User not found. Need to see why enum is not working");
 			this.createRegistrationForm(lR);
-			break;
-		case 2:
-			this.createInvalidPassword(lR);
-			break;
-		case 3:
-			this.createUndefined();
-			break;
 		}
+		if(lStatus == model.LoginStatus.UserExists) this.createLoginForm(lR);
+		if(lStatus == model.LoginStatus.InvalidPassword) this.createInvalidPassword(lR);
+		if(lStatus == model.LoginStatus.Undefined) this.createUndefined();
 	}
 	,onMessage: function(ev) {
 		console.log("Received " + Std.string(ev.data));

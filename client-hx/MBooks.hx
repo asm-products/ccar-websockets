@@ -58,16 +58,21 @@ class MBooks {
 	}
 	private function processLoginResponse(lR : Login){
 		trace("Processing login response " + lR.loginStatus);
-		switch(lR.loginStatus){
-			case UserExists : createLoginForm(lR);
-			case UserNotFound : 
-				{
-					trace("User not found. Show registration");
-					createRegistrationForm(lR);
-				}
-		
-			case InvalidPassword : createInvalidPassword(lR);
-			case Undefined : createUndefined();
+		trace("Processing person object " + lR.person);
+		var lStatus : LoginStatus = lR.loginStatus;
+		trace("Processing lStatus " + lStatus);
+		if(lStatus == UserNotFound){
+			trace("User not found. Need to see why enum is not working");
+			createRegistrationForm(lR);
+		}
+		if(lStatus == UserExists){
+			createLoginForm(lR);
+		}
+		if(lStatus == InvalidPassword){
+			createInvalidPassword(lR);
+		}
+		if(lStatus == Undefined){
+			createUndefined();
 		}
 	}
 

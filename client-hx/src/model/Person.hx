@@ -84,10 +84,13 @@ class Person {
             lastNameInput = document.createInputElement();
             div.appendChild(textElement);
             div.appendChild(lastNameInput);
+            parent.appendChild(div);
     }
 
     private function createNickName(document : Document
         , parent : DivElement): Void {
+        var div = document.createDivElement();
+        
 
     }
     private function createPassword(document : Document
