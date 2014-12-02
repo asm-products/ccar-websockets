@@ -104,18 +104,12 @@ class MBooks {
 		trace("Sending " + Json.stringify(aMessage));
 		websocket.send(Json.stringify(aMessage));
 	}
-	private var loginInput : js.html.InputElement;
 	private function createConnectionForm() : Void {
 		try {
 		trace("Creating connection form");
 		var document = Browser.document;
-		var div : js.html.DivElement = document.createDivElement();
-		var login : js.html.Text = document.createTextNode("Login");
-		loginInput = document.createInputElement();
-		loginInput.onchange = sendLogin;
-		div.appendChild(login);
-		div.appendChild(loginInput);
-		document.body.appendChild(div);
+		var person : Person = new Person("","","","");
+		person.createNickNameForm(this);
 		initializeConnection();
 		trace("Connection form created");
 		} catch(msg:DOMCoreException){
@@ -123,13 +117,6 @@ class MBooks {
 		} 
 	}
 
-	private function sendLogin (ev: Event){
-		var p : Person = new Person ("", "", loginInput.value, "");
-
-		var lStatus : LoginStatus = Undefined;
-		var l : Login = new Login(p, lStatus);
-		doSend(Json.stringify(l));
-	}
 
 	public function logout() : Void{
 		trace("Logging out ");

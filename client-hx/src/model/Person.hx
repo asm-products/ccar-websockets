@@ -3,6 +3,7 @@ import haxe.Json;
 import js.html.Event;
 import js.Browser;
 import js.html.Text;
+import js.html.Element;
 import js.html.DivElement;
 import js.html.InputElement;
 import js.html.DOMCoreException;
@@ -23,7 +24,7 @@ class Person {
 	private var lastNameInput : InputElement;
 	private var register : ButtonElement;
 	private var logout : ButtonElement;
-
+	private var status : Element;
 	public function new(fName : String
 		, lName : String
 		, nName : String
@@ -34,11 +35,29 @@ class Person {
 		password = pwd;
 	}
 
+	public function createNickNameForm(books : MBooks): Void {
+		try {
+			this.mbooks = books;
+			trace("Creating login form");
+			var document = Browser.document;
+			var div : DivElement = createDivTag(document, "Person.Login");
+			createNickName(document, div);
+			status = cast document.getElementById("status");
+			status.innerHTML = "Welcome.";
+			nickNameInput.onchange = this.sendLogin;
+		}catch(msg : DOMCoreException){
+			trace ("Exception " + msg);
+		}
+
+	}
 	public function createLoginForm() : Void {
 		try {
 			trace("Creating login form");
 			var document = Browser.document;
 			var div : DivElement = createDivTag(document, "Person.Login");
+			div.appendChild(div);
+			status = cast document.getElementById("status");
+			status.innerHTML = "Welcome back. The last time you logged in";
 			createNickName(document, div);
 			createPassword(document, div);
 		}catch(msg : DOMCoreException){
@@ -66,14 +85,18 @@ class Person {
 		trace("Logout user " + ev);
 		this.mbooks.logout();
 	}
+
 	private function registerUser(ev: Event){
 		trace("Register user " + ev);
 		this.mbooks.doSend(haxe.Json.stringify(this));
 	}
+
 	public function createRegistrationForm(books : MBooks) : Void {
 		try {
 			trace("Creating registration form");
-
+			var document = Browser.document;
+			status = cast document.getElementById("status");
+			status.innerHTML = "Let me sign you up";
 			var document = Browser.document;
 			this.mbooks = books;
 			var div : DivElement = createDivTag(document, "Person.Registration");
@@ -143,6 +166,13 @@ class Person {
 		div.className = className;
 		document.body.appendChild(div);
 		return div;
+	}
+	public function sendLogin (ev: Event){
+		var p : Person = new Person ("", "", nickNameInput.value, "");
+		var lStatus : LoginStatus = Undefined;
+		var l : Login = new Login(p, lStatus);
+		var c : Command = new Command(QueryUser, Json.stringify(l));
+		mbooks.doSend(Json.stringify(c));
 	}
 
 }

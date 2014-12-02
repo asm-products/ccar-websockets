@@ -47,10 +47,29 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
 
 data LoginStatus = UserExists | UserNotFound | InvalidPassword 
     deriving(Show, Typeable, Data, Generic, Eq, Ord)
+data CommandType = RegisterUser | QueryUser 
+            | DeleteUser
+            | UpdateUser
+            | CreateUserTerms
+            | UpdateUserTerms
+            | QueryUserTerms
+            | DeleteUserTerms
+            | CreateUserPreferences
+            | UpdateUserPreferences
+            | QueryUserPreferences
+            | DeleteUserPreferences
+            deriving(Show, Typeable, Data, Generic, Eq, Ord)
+
 data Login = Login {
     person :: Maybe Person
     , loginStatus :: LoginStatus
 } deriving (Show, Typeable, Data, Generic, Eq, Ord)
+
+data Command = Command {
+    commandType :: CommandType
+    , payload :: String
+} deriving(Show, Typeable, Data, Generic, Eq, Ord)
+
 
 data App = App { chan :: (TChan T.Text)
                 , getStatic :: Static}
@@ -72,8 +91,11 @@ pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
 pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
 
 {- Read the message, parse and then send it back. -}
-processIncomingMessage :: T.Text -> T.Text
-processIncomingMessage aText = L.toStrict $ E.decodeUtf8 $ En.encode $ (iParseJSON aText :: Maybe Person)
+processCommand :: Maybe Command -> Maybe Command
+processCommand a = a
+
+processIncomingMessage :: Maybe Command-> IO T.Text
+processIncomingMessage aText = return $ L.toStrict $ E.decodeUtf8 $ En.encode $ (processCommand aText)
 {-- Process the login and return a login status --}
 processLogin :: Maybe Person -> IO Login
 processLogin Nothing = return $ Login {person = Nothing, loginStatus = UserNotFound}
@@ -86,8 +108,8 @@ chatApp :: WebSocketsT Handler ()
 chatApp = do
         sendTextData ("Small business management tool chain." :: T.Text)
         name <- receiveData
-        personObject <- liftIO $ (pJSON name :: IO (Maybe Person))
-        nickNameExists <- liftIO $ processLogin personObject
+        incomingCommand <- liftIO $ (pJSON name :: IO (Maybe Command))
+        nickNameExists <- liftIO $ processIncomingMessage incomingCommand
         sendTextData $ J.encode nickNameExists
         App writeChan _ <- getYesod
         readChan <- atomically $ do
@@ -164,3 +186,7 @@ instance J.ToJSON Login
 instance J.FromJSON Login
 instance J.ToJSON LoginStatus
 instance J.FromJSON LoginStatus
+instance J.ToJSON Command
+instance J.FromJSON Command
+instance J.ToJSON CommandType
+instance J.FromJSON CommandType
