@@ -86,4 +86,5 @@ executable ccar-websockets
                         GeneralizedNewtypeDeriving
                         GADTs
                         QuasiQuotes
+                        NamedFieldPuns
 

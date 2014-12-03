@@ -26,7 +26,6 @@ import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L
 
 
-
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
         Person 
@@ -58,6 +57,7 @@ data CommandType = RegisterUser | QueryUser
             | UpdateUserPreferences
             | QueryUserPreferences
             | DeleteUserPreferences
+            | ErrorCommand
             deriving(Show, Typeable, Data, Generic, Eq, Ord)
 
 data Login = Login {
@@ -67,7 +67,7 @@ data Login = Login {
 
 data Command = Command {
     commandType :: CommandType
-    , payload :: String
+    , payload :: T.Text
 } deriving(Show, Typeable, Data, Generic, Eq, Ord)
 
 
@@ -90,19 +90,52 @@ iParseJSON = J.decode . E.encodeUtf8 . L.fromStrict
 pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
 pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
 
+nickName :: Person -> String
+nickName p = nickName p
+
+
+processPayloadI :: Maybe Login -> IO (Maybe Person)
+processPayloadI (Just l) = do 
+    lo <- return l    
+    p <- return $ person lo
+    case p of 
+        Nothing -> return Nothing
+        Just per -> do
+                chk <- checkLoginExists (nickName per) 
+                case chk of
+                    Nothing -> return Nothing
+                    Just (Entity id person) -> return $ Just person
+
+
+processPayloadI Nothing = return Nothing
+
+processPayload :: CommandType -> T.Text -> IO Command
+processPayload RegisterUser aText = do
+    pRet <- processPayloadI payloadObject 
+    return Command {commandType = RegisterUser, 
+        payload = L.toStrict $ E.decodeUtf8 $ En.encode pRet }
+    where 
+        payloadObject = iParseJSON aText :: Maybe Login
+
 {- Read the message, parse and then send it back. -}
-processCommand :: Maybe Command -> Maybe Command
-processCommand a = a
+processCommand :: Maybe Command -> IO Command
+processCommand (Just a) = processPayload (commandType a) (payload a)
+processCommand Nothing = return $ Command{commandType = ErrorCommand, payload = T.pack "Command not found"}
+
 
 processIncomingMessage :: Maybe Command-> IO T.Text
-processIncomingMessage aText = return $ L.toStrict $ E.decodeUtf8 $ En.encode $ (processCommand aText)
+processIncomingMessage aCommand = 
+    do 
+        c <- processCommand aCommand
+        return $ L.toStrict $ E.decodeUtf8 $ En.encode c
 {-- Process the login and return a login status --}
 processLogin :: Maybe Person -> IO Login
 processLogin Nothing = return $ Login {person = Nothing, loginStatus = UserNotFound}
 processLogin (Just x) = return $ Login{person = Just x, loginStatus = UserExists}
 
-checkLoginExists :: String -> IO (Maybe (Entity Person))
-checkLoginExists aLogin = runSqlite ":memory:" $ do getBy $  UniquePerson aLogin
+checkLoginExists :: String  -> IO (Maybe (Entity Person))
+checkLoginExists aPerson = runSqlite ":memory:" $ do getBy $  UniquePerson aPerson
+
 
 chatApp :: WebSocketsT Handler ()
 chatApp = do
