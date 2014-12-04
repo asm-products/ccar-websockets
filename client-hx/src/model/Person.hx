@@ -88,7 +88,7 @@ class Person {
 
 	private function registerUser(ev: Event){
 		trace("Register user " + ev);
-		this.mbooks.doSend(haxe.Json.stringify(this));
+		this.mbooks.doSendJSON(haxe.Json.stringify(this));
 	}
 
 	public function createRegistrationForm(books : MBooks) : Void {
@@ -149,7 +149,6 @@ class Person {
      	div.appendChild(nickNameInput);
      	parent.appendChild(div);
 
-
     }
     private function createPassword(document : Document
         , parent : DivElement) : Void {
@@ -171,8 +170,9 @@ class Person {
 		var p : Person = new Person ("", "", nickNameInput.value, "");
 		var lStatus : LoginStatus = Undefined;
 		var l : Login = new Login(p, lStatus);
-		var c : Command = new Command(QueryUser, Json.stringify(l));
-		mbooks.doSend(Json.stringify(c));
+		var q : CommandType = QueryUser;
+		var c : Command = new Command(Std.string(q), Json.stringify(l));
+		mbooks.doSendJSON(Json.stringify(c));
 	}
 
 }

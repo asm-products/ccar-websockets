@@ -23,7 +23,6 @@ class MBooks {
 		serverHost = "localhost";
 		protocol = "ws";
 		portNumber = 3000;
-		contact = new Contact("test", "test","test");
 		createConnectionForm();
 	}
 
@@ -56,10 +55,16 @@ class MBooks {
 		trace("Processing incoming message " + incomingMessage);
 		processLoginResponse(incomingMessage);
 	}
+
 	private function processLoginResponse(lR : Login){
-		trace("Processing login response " + lR.loginStatus);
+		
 		trace("Processing person object " + lR.person);
-		var lStatus : LoginStatus = lR.loginStatus;
+		trace("Processing lR status " + lR.loginStatus);
+		if(lR.loginStatus == null){
+			trace("Undefined state");
+			return;
+		}
+		var lStatus : LoginStatus = Type.createEnum(LoginStatus, lR.loginStatus);
 		trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
 			trace("User not found. Need to see why enum is not working");
@@ -100,9 +105,13 @@ class MBooks {
 		trace("Error " + haxe.Json.stringify(ev));
 	}
 
-	public  function doSend(aMessage : String){
-		trace("Sending " + Json.stringify(aMessage));
-		websocket.send(Json.stringify(aMessage));
+	/**
+	* This will send the string as is. 
+	* Clients could be sending json 
+	*/
+	public  function doSendJSON(aMessage : String){
+		trace("Sending " + aMessage);
+		websocket.send(aMessage);
 	}
 	private function createConnectionForm() : Void {
 		try {

@@ -30,7 +30,6 @@ var MBooks = function() {
 	this.serverHost = "localhost";
 	this.protocol = "ws";
 	this.portNumber = 3000;
-	this.contact = new model.Contact("test","test","test");
 	this.createConnectionForm();
 };
 MBooks.__name__ = true;
@@ -56,9 +55,9 @@ MBooks.prototype = {
 			} else throw(msg);
 		}
 	}
-	,doSend: function(aMessage) {
-		console.log("Sending " + haxe.Json.stringify(aMessage));
-		this.websocket.send(haxe.Json.stringify(aMessage));
+	,doSendJSON: function(aMessage) {
+		console.log("Sending " + aMessage);
+		this.websocket.send(aMessage);
 	}
 	,onError: function(ev) {
 		console.log("Error " + haxe.Json.stringify(ev));
@@ -81,9 +80,13 @@ MBooks.prototype = {
 		console.log("Undefined as response..should not happen");
 	}
 	,processLoginResponse: function(lR) {
-		console.log("Processing login response " + Std.string(lR.loginStatus));
 		console.log("Processing person object " + Std.string(lR.person));
-		var lStatus = lR.loginStatus;
+		console.log("Processing lR status " + lR.loginStatus);
+		if(lR.loginStatus == null) {
+			console.log("Undefined state");
+			return;
+		}
+		var lStatus = Type.createEnum(model.LoginStatus,lR.loginStatus);
 		console.log("Processing lStatus " + Std.string(lStatus));
 		if(lStatus == model.LoginStatus.UserNotFound) {
 			console.log("User not found. Need to see why enum is not working");
@@ -192,6 +195,16 @@ ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { }
 Type.__name__ = true;
+Type.createEnum = function(e,constr,params) {
+	var f = Reflect.field(e,constr);
+	if(f == null) throw "No such constructor " + constr;
+	if(Reflect.isFunction(f)) {
+		if(params == null) throw "Constructor " + constr + " need parameters";
+		return f.apply(e,params);
+	}
+	if(params != null && params.length != 0) throw "Constructor " + constr + " does not need parameters";
+	return f;
+}
 Type["typeof"] = function(v) {
 	var _g = typeof(v);
 	switch(_g) {
@@ -728,7 +741,7 @@ model.Contact.prototype = {
 }
 model.Login = function(p,s) {
 	this.person = p;
-	this.loginStatus = s;
+	this.loginStatus = Std.string(s);
 };
 model.Login.__name__ = true;
 model.Login.prototype = {
@@ -759,8 +772,9 @@ model.Person.prototype = {
 		var p = new model.Person("","",this.nickNameInput.value,"");
 		var lStatus = model.LoginStatus.Undefined;
 		var l = new model.Login(p,lStatus);
-		var c = new model.Command(model.CommandType.QueryUser,haxe.Json.stringify(l));
-		this.mbooks.doSend(haxe.Json.stringify(c));
+		var q = model.CommandType.QueryUser;
+		var c = new model.Command(Std.string(q),haxe.Json.stringify(l));
+		this.mbooks.doSendJSON(haxe.Json.stringify(c));
 	}
 	,createDivTag: function(document,className) {
 		var div = document.createElement("div");
@@ -830,7 +844,7 @@ model.Person.prototype = {
 	}
 	,registerUser: function(ev) {
 		console.log("Register user " + Std.string(ev));
-		this.mbooks.doSend(haxe.Json.stringify(this));
+		this.mbooks.doSendJSON(haxe.Json.stringify(this));
 	}
 	,logoutUser: function(ev) {
 		console.log("Logout user " + Std.string(ev));
@@ -908,7 +922,6 @@ var Bool = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = { __name__ : ["Class"]};
 var Enum = { };
-if(typeof(JSON) != "undefined") haxe.Json = JSON;
 js.Browser.document = typeof window != "undefined" ? window.document : null;
 MBooks.main();
 })();

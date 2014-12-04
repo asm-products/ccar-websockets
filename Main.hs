@@ -24,7 +24,7 @@ import Data.Aeson as J
 import Data.Aeson.Encode as En
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L
-
+import System.IO
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
@@ -32,8 +32,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             firstName String 
             lastName String 
             nickName String 
-            created UTCTime 
-            lastLogin UTCTime
+            password String
             UniquePerson nickName
             deriving Show Typeable Data Generic Eq Ord
         TermsAndConditions
@@ -44,7 +43,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             |]
 
 
-data LoginStatus = UserExists | UserNotFound | InvalidPassword 
+data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
     deriving(Show, Typeable, Data, Generic, Eq, Ord)
 data CommandType = RegisterUser | QueryUser 
             | DeleteUser
@@ -67,7 +66,7 @@ data Login = Login {
 
 data Command = Command {
     commandType :: CommandType
-    , payload :: T.Text
+    ,payload :: T.Text
 } deriving(Show, Typeable, Data, Generic, Eq, Ord)
 
 
@@ -84,18 +83,20 @@ mkYesod "App" [parseRoutes|
 /static StaticR  Static getStatic
 |]
 
-iParseJSON :: (FromJSON a) => T.Text -> Maybe a
-iParseJSON = J.decode . E.encodeUtf8 . L.fromStrict
+iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
+iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
 
-pJSON :: (FromJSON a) => T.Text -> IO (Maybe a)
-pJSON  aText = return $ J.decode  $ E.encodeUtf8  $ L.fromStrict aText
+pJSON :: (FromJSON a) => T.Text -> IO (Either String (Maybe a))
+pJSON  aText = do
+    putStrLn $ "pJSON " ++ (T.unpack aText)
+    return $ iParseJSON aText
 
 nickName :: Person -> String
 nickName p = nickName p
 
 
-processPayloadI :: Maybe Login -> IO (Maybe Person)
-processPayloadI (Just l) = do 
+processPayloadI :: Either String (Maybe Login) -> IO (Maybe Person)
+processPayloadI (Right (Just l)) = do 
     lo <- return l    
     p <- return $ person lo
     case p of 
@@ -107,7 +108,7 @@ processPayloadI (Just l) = do
                     Just (Entity id person) -> return $ Just person
 
 
-processPayloadI Nothing = return Nothing
+processPayloadI (Left err) = return Nothing
 
 processPayload :: CommandType -> T.Text -> IO Command
 processPayload RegisterUser aText = do
@@ -115,7 +116,15 @@ processPayload RegisterUser aText = do
     return Command {commandType = RegisterUser, 
         payload = L.toStrict $ E.decodeUtf8 $ En.encode pRet }
     where 
-        payloadObject = iParseJSON aText :: Maybe Login
+        payloadObject = iParseJSON aText :: Either String (Maybe Login)
+
+processPayload QueryUser aText = do
+    pRet <- processPayloadI payloadObject
+    return Command {commandType = QueryUser
+        , payload = L.toStrict $ E.decodeUtf8 $ En.encode pRet}
+    where 
+        payloadObject = iParseJSON aText :: Either String (Maybe Login )
+
 
 {- Read the message, parse and then send it back. -}
 processCommand :: Maybe Command -> IO Command
@@ -123,11 +132,15 @@ processCommand (Just a) = processPayload (commandType a) (payload a)
 processCommand Nothing = return $ Command{commandType = ErrorCommand, payload = T.pack "Command not found"}
 
 
-processIncomingMessage :: Maybe Command-> IO T.Text
+processIncomingMessage :: Either String (Maybe Command) -> IO T.Text
 processIncomingMessage aCommand = 
     do 
-        c <- processCommand aCommand
-        return $ L.toStrict $ E.decodeUtf8 $ En.encode c
+        case aCommand of 
+            Left err -> return $ L.toStrict $ E.decodeUtf8 $ En.encode   
+                    (Command {commandType = ErrorCommand, payload = T.pack err})
+            Right a -> do 
+                    processCommand a
+                    return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 {-- Process the login and return a login status --}
 processLogin :: Maybe Person -> IO Login
 processLogin Nothing = return $ Login {person = Nothing, loginStatus = UserNotFound}
@@ -139,19 +152,25 @@ checkLoginExists aPerson = runSqlite ":memory:" $ do getBy $  UniquePerson aPers
 
 chatApp :: WebSocketsT Handler ()
 chatApp = do
-        sendTextData ("Small business management tool chain." :: T.Text)
-        name <- receiveData
-        incomingCommand <- liftIO $ (pJSON name :: IO (Maybe Command))
-        nickNameExists <- liftIO $ processIncomingMessage incomingCommand
+        sendTextData $ L.toStrict $ E.decodeUtf8 $ En.encode $
+            Command {commandType = QueryUser 
+                , payload = ("Small business management tool chain."  :: T.Text)}
+        command <- receiveData
+        incomingCommand <- liftIO $ pJSON command 
+        liftIO $ putStrLn $ "Incoming text " ++ (T.unpack (command :: T.Text))
+        nickNameExists <- liftIO $ processIncomingMessage $ (incomingCommand  :: Either String (Maybe Command))
+        liftIO $ putStrLn $ show nickNameExists
         sendTextData $ J.encode nickNameExists
         App writeChan _ <- getYesod
         readChan <- atomically $ do
-            writeTChan writeChan $ name <> " has joined the chat"
+            writeTChan writeChan $ command <> " has joined the chat"
             dupTChan writeChan
         race_
             (forever $ sourceWS $$ mapC TL.toUpper =$ sinkWSText)
             (sourceWS $$ mapM_C (\msg ->
-                atomically $ writeTChan writeChan $ name <> ": " <> msg))
+                atomically $ writeTChan writeChan $ command <> ": " <> msg))
+        where
+            incomingCommand aText = iParseJSON aText
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -205,6 +224,7 @@ getHomeR = do
 
 main :: IO ()
 main = do
+    hSetBuffering stdout NoBuffering
     runSqlite ":memory:" $ runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
