@@ -169,10 +169,9 @@ class Person {
 	public function sendLogin (ev: Event){
 		var p : Person = new Person ("", "", nickNameInput.value, "");
 		var lStatus : LoginStatus = Undefined;
-		var l : Login = new Login(p, lStatus);
-		var q : CommandType = QueryUser;
-		var c : Command = new Command(Std.string(q), Json.stringify(l));
-		mbooks.doSendJSON(Json.stringify(c));
+		var cType : String = Std.string(CommandType.Login);
+		var l : Login = new Login(cType, p, lStatus);
+		mbooks.doSendJSON(Json.stringify(l));
 	}
 
 }

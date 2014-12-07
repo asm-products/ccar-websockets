@@ -72,7 +72,8 @@ executable ccar-websockets
                      , persistent                     >= 2.1 && < 2.2
                      , persistent-sqlite              >=  2.1 && < 2.2
                      , persistent-template               >= 2.1 && < 2.2
-                     , aeson                          >= 0.7.0.4
+                     , aeson                          >= 0.7.0.4 && < 0.8
+                     , unordered-containers           >= 0.2.3.0 && < 0.3
   -- Directories containing source files.
   -- hs-source-dirs:      
   

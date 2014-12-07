@@ -19,69 +19,164 @@ import Data.Time
 import Data.Typeable
 import GHC.Generics
 import Data.Data
-
 import Data.Aeson as J
+import Control.Applicative as Appl
 import Data.Aeson.Encode as En
+import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L
 import System.IO
-
+import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
-        Person 
+        Person
             firstName String 
             lastName String 
             nickName String 
             password String
-            UniquePerson nickName
-            deriving Show Typeable Data Generic Eq Ord
+            PersonUniqueNickName nickName
+            deriving Show Eq
         TermsAndConditions
             title String
             description String
             acceptDate UTCTime
-            deriving Show Typeable Data Generic Eq Ord
+            deriving Show Eq 
             |]
 
 
+
+
+emptyPerson = Person {personFirstName = "Not known"
+                    , personLastName = "Not known"
+                    , personNickName = "undefined"
+                    , personPassword = "Not known"}
+data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
+                deriving (Show, Eq)
+data UserOperations = UserOperations{operation :: CRUD, person :: Maybe Person} 
+                deriving (Show, Eq)
+data UserTermsOperations = UserTermsOperations {utOperation :: CRUD, terms :: Maybe TermsAndConditions} 
+                deriving(Show, Eq)
+data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
+                deriving (Show, Eq)
+
+data Command = CommandLogin Login 
+                | CommandUO UserOperations 
+                | CommandUTO UserTermsOperations
+                | CommandError ErrorCommand deriving(Show, Eq)
+data CRUD = Create | Update | Query | Delete deriving(Show, Eq, Generic)
+data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
+
+
+genPerson (Person a b c d) = object ["firstName" .= a
+                                       , "lastName" .= b
+                                       , "nickName" .= c
+                                       , "password" .= d]
+genLogin  (Login a b) = object [
+    "commandType" .= (String "Login")
+    , "login" .= Just a, "loginStatus" .= b]
+
+genUserOperations (UserOperations o p) = object ["operation" .= o, "person" .= p]
+genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "terms" .= t]
+genErrorCommand (ErrorCommand e  m) = object ["errorCode" .= e
+                                              , "message" .= m]
+
+genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
+                                            , "description" .= des
+                                            , "acceptDate" .= accept]
+instance ToJSON Person where
+    toJSON  = genPerson 
+
+instance ToJSON Login where
+    toJSON = genLogin 
+instance ToJSON UserOperations where
+    toJSON = genUserOperations
+
+instance ToJSON UserTermsOperations where
+    toJSON = genUserTermsOperations
+
+instance ToJSON TermsAndConditions where
+    toJSON = genTermsAndConditions
+instance ToJSON ErrorCommand where
+    toJSON = genErrorCommand
+
+instance ToJSON Command where
+    toJSON aCommand = 
+        case aCommand of
+            CommandLogin l -> genLogin l 
+            CommandError e -> genErrorCommand e
+            _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
+                        message = T.pack (show aCommand)}
+
+genericErrorCommand errorMessage = ErrorCommand {errorCode = T.pack "Error" 
+                                       , message = T.pack errorMessage}
+parseErrorCommand value= do
+        return $ ErrorCommand {errorCode = T.pack "Error"
+                               , message = T.pack $ show value}
+
+{-        "DeleteUser" -> parseDeleteUser value
+        "UpdateUser" -> parseUpdateUser value
+        "CreateUser" -> parseCreateUser value
+        "QueryUser"  -> parseQueryUser value
+        "CreateUserTerms" -> parseCreateUserTerms value
+        "QueryUserTerms" -> parseQueryUserTerms value
+        "UpdateUserTerms" -> parseUpdateUserTerms value
+        "DeleteUserTerms" -> parseDeleteUserTerms value
+        "CreateUserPreferences" -> parseCreateUserPreferences value
+        "QueryUserPreferences" -> parseQueryUserPreferences value
+        "UpdateUserPreferences" -> parseUpdateUserPreferences value
+        "DeleteUserPreferences" -> parseDeleteUserPreferences value
+-}
+
+commandType = LH.lookup "commandType"
+
+parseCommand value = do
+        case (commandType value) of
+            Nothing -> CommandError <$> parseErrorCommand value
+            Just cType -> 
+                case (cType) of 
+                    "Login"-> CommandLogin <$> parseLogin value
+                    _       -> CommandError <$> parseErrorCommand value
+
+
 data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
-    deriving(Show, Typeable, Data, Generic, Eq, Ord)
-data CommandType = RegisterUser | QueryUser 
-            | DeleteUser
-            | UpdateUser
-            | CreateUserTerms
-            | UpdateUserTerms
-            | QueryUserTerms
-            | DeleteUserTerms
-            | CreateUserPreferences
-            | UpdateUserPreferences
-            | QueryUserPreferences
-            | DeleteUserPreferences
-            | ErrorCommand
-            deriving(Show, Typeable, Data, Generic, Eq, Ord)
-
-data Login = Login {
-    person :: Maybe Person
-    , loginStatus :: LoginStatus
-} deriving (Show, Typeable, Data, Generic, Eq, Ord)
-
-data Command = Command {
-    commandType :: CommandType
-    ,payload :: T.Text
-} deriving(Show, Typeable, Data, Generic, Eq, Ord)
+    deriving(Show, Typeable, Data, Generic, Eq)
 
 
-data App = App { chan :: (TChan T.Text)
-                , getStatic :: Static}
+parsePerson v = Person <$>
+                    v .: "firstName" <*>
+                    v .: "lastName" <*>
+                    v .: "nickName" <*>
+                    v .: "password" 
 
 
 
+parseLogin v = Login <$> 
+                v .: "person" <*>
+                (v .: "loginStatus")
 
-instance Yesod App
 
-mkYesod "App" [parseRoutes|
-/ HomeR GET
-/static StaticR  Static getStatic
-|]
+parseTermsAndConditions v = TermsAndConditions <$>
+                        v .: "title" <*>
+                        v .: "description" <*>
+                        v .: "acceptDate"
+
+instance FromJSON Login where
+    parseJSON (Object v) = parseLogin v
+    parseJSON _          = Appl.empty
+
+instance FromJSON Person where
+    parseJSON (Object v) = parsePerson v
+    parseJSON _          = Appl.empty
+
+instance FromJSON TermsAndConditions where
+    parseJSON (Object v) = parseTermsAndConditions v
+    parseJSON _          = Appl.empty
+
+
+instance FromJSON Command where
+    parseJSON (Object v) = parseCommand v
+    parseJSON _         = Appl.empty
+
 
 iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
 iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
@@ -90,75 +185,89 @@ pJSON :: (FromJSON a) => T.Text -> IO (Either String (Maybe a))
 pJSON  aText = do
     putStrLn $ "pJSON " ++ (T.unpack aText)
     return $ iParseJSON aText
-
-nickName :: Person -> String
-nickName p = nickName p
-
-
-processPayloadI :: Either String (Maybe Login) -> IO (Maybe Person)
-processPayloadI (Right (Just l)) = do 
-    lo <- return l    
-    p <- return $ person lo
-    case p of 
-        Nothing -> return Nothing
-        Just per -> do
-                chk <- checkLoginExists (nickName per) 
-                case chk of
-                    Nothing -> return Nothing
-                    Just (Entity id person) -> return $ Just person
+ 
+decoder = L.toStrict . E.decodeUtf8 . En.encode        
+decoderM a = return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 
 
-processPayloadI (Left err) = return Nothing
-
-processPayload :: CommandType -> T.Text -> IO Command
-processPayload RegisterUser aText = do
-    pRet <- processPayloadI payloadObject 
-    return Command {commandType = RegisterUser, 
-        payload = L.toStrict $ E.decodeUtf8 $ En.encode pRet }
-    where 
-        payloadObject = iParseJSON aText :: Either String (Maybe Login)
-
-processPayload QueryUser aText = do
-    pRet <- processPayloadI payloadObject
-    return Command {commandType = QueryUser
-        , payload = L.toStrict $ E.decodeUtf8 $ En.encode pRet}
-    where 
-        payloadObject = iParseJSON aText :: Either String (Maybe Login )
 
 
-{- Read the message, parse and then send it back. -}
-processCommand :: Maybe Command -> IO Command
-processCommand (Just a) = processPayload (commandType a) (payload a)
-processCommand Nothing = return $ Command{commandType = ErrorCommand, payload = T.pack "Command not found"}
 
 
-processIncomingMessage :: Either String (Maybe Command) -> IO T.Text
-processIncomingMessage aCommand = 
-    do 
-        case aCommand of 
-            Left err -> return $ L.toStrict $ E.decodeUtf8 $ En.encode   
-                    (Command {commandType = ErrorCommand, payload = T.pack err})
-            Right a -> do 
-                    processCommand a
-                    return $ L.toStrict $ E.decodeUtf8 $ En.encode a
-{-- Process the login and return a login status --}
-processLogin :: Maybe Person -> IO Login
-processLogin Nothing = return $ Login {person = Nothing, loginStatus = UserNotFound}
-processLogin (Just x) = return $ Login{person = Just x, loginStatus = UserExists}
+
+data App = App { chan :: (TChan T.Text)
+                , getStatic :: Static}
+
+instance Yesod App
+
+mkYesod "App" [parseRoutes|
+/ HomeR GET
+/static StaticR  Static getStatic
+|]
 
 checkLoginExists :: String  -> IO (Maybe (Entity Person))
-checkLoginExists aPerson = runSqlite ":memory:" $ do getBy $  UniquePerson aPerson
+checkLoginExists aNickName = runSqlite ":memory:" $ do getBy $  PersonUniqueNickName aNickName
+{- Read the message, parse and then send it back. -}
+processCommand :: Maybe Command  -> IO T.Text
+processCommand (Just (CommandLogin aLogin)) = do 
+    chk <- checkLoginExists (personNickName p)
+    putStrLn $ "Login exists " ++ (show chk)
+    case chk of 
+        Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandLogin $ Login {login = Just p, 
+            loginStatus = Just UserNotFound}
+        Just (Entity aid a)  -> 
+            return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandLogin $ 
+                Login {login = Just a, loginStatus = Just UserExists}
+    where
+        p = case (login aLogin) of
+                Nothing -> emptyPerson
+                Just a -> a 
+
+processCommand (Just (CommandError error)) = 
+        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandError error
+processCommand Nothing = return 
+         $ decoder $ genericErrorCommand "Unable to process command"
+
+processCommandWrapper :: Value -> Command 
+processCommandWrapper (Object a)   = 
+    case cType of 
+        Nothing -> CommandError $ genericErrorCommand "Unable to process command"
+        Just aType -> 
+            case aType of 
+                String "Login" -> 
+                        case result of
+                            Success r -> CommandLogin r
+                            Error s -> CommandError $ genericErrorCommand $ "parse login  "++ s
+                _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
+    where 
+        cType =  LH.lookup "commandType" a
+        result = parse parseLogin a
+
+processCommandWrapper _ = CommandError $ genericErrorCommand "Not yet implemented"
+
+processIncomingMessage :: Maybe Value -> IO T.Text
+processIncomingMessage aCommand = 
+    do 
+        putStrLn $ "Processing incoming message " ++ (show aCommand)
+        case aCommand of 
+            Nothing -> do
+                    putStrLn $ "Processing error..."
+                    return $ L.toStrict $ E.decodeUtf8 $ En.encode   
+                        (CommandError $ genericErrorCommand ("Unknown error"))
+            Just (Object a) -> do 
+                    liftIO $ putStrLn $ "Processing command " ++ show a
+                    liftIO $ putStrLn $ "Processing command type " ++ (show (LH.lookup "commandType" a))
+                    c <- return $ processCommandWrapper (Object a)
+                    reply <- processCommand (Just c)
+                    return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
 
 
 chatApp :: WebSocketsT Handler ()
 chatApp = do
-        sendTextData $ L.toStrict $ E.decodeUtf8 $ En.encode $
-            Command {commandType = QueryUser 
-                , payload = ("Small business management tool chain."  :: T.Text)}
         command <- receiveData
-        incomingCommand <- liftIO $ pJSON command 
         liftIO $ putStrLn $ "Incoming text " ++ (T.unpack (command :: T.Text))
-        nickNameExists <- liftIO $ processIncomingMessage $ (incomingCommand  :: Either String (Maybe Command))
+        liftIO $ putStrLn $ show $ incomingDictionary (command :: T.Text)
+        nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
         liftIO $ putStrLn $ show nickNameExists
         sendTextData $ J.encode nickNameExists
         App writeChan _ <- getYesod
@@ -170,8 +279,7 @@ chatApp = do
             (sourceWS $$ mapM_C (\msg ->
                 atomically $ writeTChan writeChan $ command <> ": " <> msg))
         where
-            incomingCommand aText = iParseJSON aText
-
+            incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 getHomeR :: Handler Html
 getHomeR = do
     webSockets chatApp
@@ -205,7 +313,7 @@ getHomeR = do
                 input = document.getElementById("input"),
                 conn;
 
-            url = url.replace("http:", "ws:").replace("https:", "wss:");
+            url = url.`("http:", "ws:").replace("https:", "wss:");
             conn = new WebSocket(url);
 
             conn.onmessage = function(e) {
@@ -224,22 +332,13 @@ getHomeR = do
 
 main :: IO ()
 main = do
-    hSetBuffering stdout NoBuffering
+    --hSetBuffering stdout NoBuffering
     runSqlite ":memory:" $ runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
     warp 3000 $ App chan static
 
-
-instance J.ToJSON Person
-instance J.FromJSON Person
-instance J.ToJSON TermsAndConditions
-instance J.FromJSON TermsAndConditions
-instance J.ToJSON Login
-instance J.FromJSON Login
-instance J.ToJSON LoginStatus
-instance J.FromJSON LoginStatus
-instance J.ToJSON Command
-instance J.FromJSON Command
-instance J.ToJSON CommandType
-instance J.FromJSON CommandType
+instance ToJSON LoginStatus
+instance FromJSON LoginStatus
+instance ToJSON CRUD
+instance FromJSON CRUD

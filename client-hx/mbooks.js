@@ -684,49 +684,44 @@ js.Boot.__instanceof = function(o,cl) {
 js.Browser = function() { }
 js.Browser.__name__ = true;
 var model = {}
-model.Command = function(aCType,payload) {
-	this.commandType = aCType;
-	this.payload = payload;
-};
-model.Command.__name__ = true;
-model.Command.prototype = {
-	__class__: model.Command
-}
-model.CommandType = { __ename__ : true, __constructs__ : ["RegisterUser","QueryUser","DeletUser","UpdateUser","CreateUserTerms","UpdateUserTerms","QueryUserTerms","DeleteUserTerms","CreateUserPreferences","UpdateUserPreferences","QueryUserPreferences","DeleteUserPreferences"] }
+model.CommandType = { __ename__ : true, __constructs__ : ["RegisterUser","Login","QueryUser","DeletUser","UpdateUser","CreateUserTerms","UpdateUserTerms","QueryUserTerms","DeleteUserTerms","CreateUserPreferences","UpdateUserPreferences","QueryUserPreferences","DeleteUserPreferences"] }
 model.CommandType.RegisterUser = ["RegisterUser",0];
 model.CommandType.RegisterUser.toString = $estr;
 model.CommandType.RegisterUser.__enum__ = model.CommandType;
-model.CommandType.QueryUser = ["QueryUser",1];
+model.CommandType.Login = ["Login",1];
+model.CommandType.Login.toString = $estr;
+model.CommandType.Login.__enum__ = model.CommandType;
+model.CommandType.QueryUser = ["QueryUser",2];
 model.CommandType.QueryUser.toString = $estr;
 model.CommandType.QueryUser.__enum__ = model.CommandType;
-model.CommandType.DeletUser = ["DeletUser",2];
+model.CommandType.DeletUser = ["DeletUser",3];
 model.CommandType.DeletUser.toString = $estr;
 model.CommandType.DeletUser.__enum__ = model.CommandType;
-model.CommandType.UpdateUser = ["UpdateUser",3];
+model.CommandType.UpdateUser = ["UpdateUser",4];
 model.CommandType.UpdateUser.toString = $estr;
 model.CommandType.UpdateUser.__enum__ = model.CommandType;
-model.CommandType.CreateUserTerms = ["CreateUserTerms",4];
+model.CommandType.CreateUserTerms = ["CreateUserTerms",5];
 model.CommandType.CreateUserTerms.toString = $estr;
 model.CommandType.CreateUserTerms.__enum__ = model.CommandType;
-model.CommandType.UpdateUserTerms = ["UpdateUserTerms",5];
+model.CommandType.UpdateUserTerms = ["UpdateUserTerms",6];
 model.CommandType.UpdateUserTerms.toString = $estr;
 model.CommandType.UpdateUserTerms.__enum__ = model.CommandType;
-model.CommandType.QueryUserTerms = ["QueryUserTerms",6];
+model.CommandType.QueryUserTerms = ["QueryUserTerms",7];
 model.CommandType.QueryUserTerms.toString = $estr;
 model.CommandType.QueryUserTerms.__enum__ = model.CommandType;
-model.CommandType.DeleteUserTerms = ["DeleteUserTerms",7];
+model.CommandType.DeleteUserTerms = ["DeleteUserTerms",8];
 model.CommandType.DeleteUserTerms.toString = $estr;
 model.CommandType.DeleteUserTerms.__enum__ = model.CommandType;
-model.CommandType.CreateUserPreferences = ["CreateUserPreferences",8];
+model.CommandType.CreateUserPreferences = ["CreateUserPreferences",9];
 model.CommandType.CreateUserPreferences.toString = $estr;
 model.CommandType.CreateUserPreferences.__enum__ = model.CommandType;
-model.CommandType.UpdateUserPreferences = ["UpdateUserPreferences",9];
+model.CommandType.UpdateUserPreferences = ["UpdateUserPreferences",10];
 model.CommandType.UpdateUserPreferences.toString = $estr;
 model.CommandType.UpdateUserPreferences.__enum__ = model.CommandType;
-model.CommandType.QueryUserPreferences = ["QueryUserPreferences",10];
+model.CommandType.QueryUserPreferences = ["QueryUserPreferences",11];
 model.CommandType.QueryUserPreferences.toString = $estr;
 model.CommandType.QueryUserPreferences.__enum__ = model.CommandType;
-model.CommandType.DeleteUserPreferences = ["DeleteUserPreferences",11];
+model.CommandType.DeleteUserPreferences = ["DeleteUserPreferences",12];
 model.CommandType.DeleteUserPreferences.toString = $estr;
 model.CommandType.DeleteUserPreferences.__enum__ = model.CommandType;
 model.Contact = function(aName,lName,aLogin) {
@@ -739,7 +734,8 @@ model.Contact.__name__ = true;
 model.Contact.prototype = {
 	__class__: model.Contact
 }
-model.Login = function(p,s) {
+model.Login = function(commandType,p,s) {
+	this.commandType = commandType;
 	this.person = p;
 	this.loginStatus = Std.string(s);
 };
@@ -771,10 +767,9 @@ model.Person.prototype = {
 	sendLogin: function(ev) {
 		var p = new model.Person("","",this.nickNameInput.value,"");
 		var lStatus = model.LoginStatus.Undefined;
-		var l = new model.Login(p,lStatus);
-		var q = model.CommandType.QueryUser;
-		var c = new model.Command(Std.string(q),haxe.Json.stringify(l));
-		this.mbooks.doSendJSON(haxe.Json.stringify(c));
+		var cType = Std.string(model.CommandType.Login);
+		var l = new model.Login(cType,p,lStatus);
+		this.mbooks.doSendJSON(haxe.Json.stringify(l));
 	}
 	,createDivTag: function(document,className) {
 		var div = document.createElement("div");
