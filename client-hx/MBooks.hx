@@ -1,5 +1,6 @@
 
 import haxe.Json;
+import haxe.Utf8;
 import js.html.Event;
 import js.html.MessageEvent;
 import js.html.WebSocket;
@@ -8,7 +9,8 @@ import model.Contact;
 import model.Login;
 import model.Person;
 import model.LoginStatus;
-
+import model.Command;
+import model.CommandType;
 import js.Browser;
 import js.html.ButtonElement;
 class MBooks {
@@ -49,16 +51,80 @@ class MBooks {
 		trace("Connection opened");
 	}
 
-	public  function onMessage(ev: MessageEvent){
+	private function parseCommandType(commandType : String) : CommandType {
+		trace("Parsing command type " + commandType);
+		try {
+		return Type.createEnum(CommandType, commandType);
+		}catch(e : Dynamic){
+			trace("Error " + e);
+			return Undefined;
+		}
+	}
+	public function parseIncomingMessage(incomingMessage : Dynamic) : Void {
+		var commandType : CommandType = 
+			parseCommandType(incomingMessage.commandType);
+		switch(commandType){
+			case Login : {
+				model.Login.createLoginResponse(incomingMessage);
+				processLoginResponse(incomingMessage);
+			}
+
+			case RegisterUser: {
+				//processRegisterUser(incomingMessage);
+			}
+			case QueryUser : {
+				//processQueryUser(incomingMessage);
+			}
+			case DeleteUser: {
+				//processDeleteUser(incomingMessage);
+			}
+			case UpdateUser : {
+				//processUpdateUser(incomingMessage);
+			}
+			case CreateUserTerms :{
+				//processCreateUserTerms(incomingMessage);
+			}
+			case UpdateUserTerms : {
+				//processUpdateUserTerms(incomingMessage);
+			}
+			case DeleteUserTerms : {
+				//processDeleteUserTerms(incomingMessage);
+			}
+			case QueryUserTerms : {
+				//processQueryUserTerms(incomingMessage);
+			}
+			case CreateUserPreferences : {
+				//processCreateUserPreferences(incomingMessage);
+			}
+			case UpdateUserPreferences : {
+				//processUpdateUserPreferences(incomingMessage);
+			}
+			case QueryUserPreferences : {
+				//processQueryUserPreferences(incomingMessage);
+			}
+			case DeleteUserPreferences : {
+				//processDeleteUserPreferences(incomingMessage);
+			}
+			case Undefined : {
+				//processUndefinedCommandType();
+			}
+
+		}
+
+	}
+	public  function onMessage(ev: MessageEvent) : Void{
 		trace("Received " + ev.data);
-		var incomingMessage  : Login = haxe.Json.parse(ev.data);
-		trace("Processing incoming message " + incomingMessage);
-		processLoginResponse(incomingMessage);
+		var incomingMessage = haxe.Json.parse(ev.data);
+		//XXX: Needed to parse the incoming message twice because
+		// of \",s in the response. This is a bug.
+		incomingMessage = haxe.Json.parse(incomingMessage);
+		trace("Printing incoming message " + incomingMessage);
+		parseIncomingMessage(incomingMessage);
 	}
 
 	private function processLoginResponse(lR : Login){
 		
-		trace("Processing person object " + lR.person);
+		trace("Processing login object " + lR);
 		trace("Processing lR status " + lR.loginStatus);
 		if(lR.loginStatus == null){
 			trace("Undefined state");
@@ -67,7 +133,7 @@ class MBooks {
 		var lStatus : LoginStatus = Type.createEnum(LoginStatus, lR.loginStatus);
 		trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
-			trace("User not found. Need to see why enum is not working");
+			trace("User not found. Need to see why enum is not working " + lR);
 			createRegistrationForm(this, lR);
 		}
 		if(lStatus == UserExists){
@@ -85,17 +151,17 @@ class MBooks {
 		trace("Undefined as response..should not happen");
 	}
 	private function createRegistrationForm(books : MBooks, lr : Login) : Void{
-		trace("Creating registration form ");
-		if(lr.person == null){
+		if(lr.login == null){
 			var person = new Person("", "", "","");
-			person.createRegistrationForm(books);
+			person.registerForm(books);
 		}else {
-			lr.person.createRegistrationForm(books);
+			trace("Login not null : Login  " + lr.login);
+			lr.login.registerForm(books);
 		}
 	}
 	private function createLoginForm(lr : Login) : Void{
 		trace("Creating login form");
-		lr.person.createLoginForm();
+		lr.login.createLoginForm();
 	}
 	private function createInvalidPassword(lr : Login) : Void{
 		trace("Processing invalid login" + lr);
@@ -111,6 +177,8 @@ class MBooks {
 	*/
 	public  function doSendJSON(aMessage : String){
 		trace("Sending " + aMessage);
+		var d : Dynamic = haxe.Json.parse(aMessage);
+		trace("Parsed message should look like so " + d);
 		websocket.send(aMessage);
 	}
 	private function createConnectionForm() : Void {

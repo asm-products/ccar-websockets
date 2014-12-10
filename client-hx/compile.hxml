@@ -1,4 +1,4 @@
 -cp ./src
 -js mbooks.js
 -main MBooks
--D haxeJSON
+

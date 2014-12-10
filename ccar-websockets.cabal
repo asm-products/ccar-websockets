@@ -74,6 +74,9 @@ executable ccar-websockets
                      , persistent-template               >= 2.1 && < 2.2
                      , aeson                          >= 0.7.0.4 && < 0.8
                      , unordered-containers           >= 0.2.3.0 && < 0.3
+                     , esqueleto                      >= 2.1.2.1 && < 2.2
+                     , persistent-postgresql          >= 2.1.1 && < 2.2
+                     , monad-logger                   >= 0.3.8 && < 0.4
   -- Directories containing source files.
   -- hs-source-dirs:      
   

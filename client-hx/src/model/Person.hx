@@ -91,21 +91,25 @@ class Person {
 		this.mbooks.doSendJSON(haxe.Json.stringify(this));
 	}
 
-	public function createRegistrationForm(books : MBooks) : Void {
+	public function registerForm(books : MBooks) : Document{
 		try {
-			trace("Creating registration form");
+			trace("Person :: Creating registration form" + books);
 			var document = Browser.document;
+			trace("Setting status ");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Let me sign you up";
 			var document = Browser.document;
 			this.mbooks = books;
+			trace("Creating the div tags");
 			var div : DivElement = createDivTag(document, "Person.Registration");
 			createFormElements(document, div);
 			createRegisterButton(document, div);
 			createLogoutButton(document, div);
 			document.body.appendChild(div);
+			return document;
 		}catch(msg : DOMCoreException){
-			trace("Exception e");
+			trace("Exception " + msg);
+			return Browser.document;
 		}
 	}
 	private function createFormElements(document : Document
@@ -115,6 +119,7 @@ class Person {
         createPassword (document, parent);
 		
 	}
+
 	private function createFirstName(document : Document
 			, parent : DivElement) : Void{
 

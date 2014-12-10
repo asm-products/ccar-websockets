@@ -7,13 +7,14 @@ import Control.Monad (forever)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class(liftIO)
+import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
 import Conduit
 import Data.Monoid ((<>))
 import Control.Concurrent.STM.Lifted
 import Data.Text as T
 import Database.Persist
-import Database.Persist.Sqlite
+import Database.Persist.Postgresql
 import Database.Persist.TH
 import Data.Time
 import Data.Typeable
@@ -44,7 +45,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             |]
 
 
-
+connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 
 emptyPerson = Person {personFirstName = "Not known"
                     , personLastName = "Not known"
@@ -151,7 +152,7 @@ parsePerson v = Person <$>
 
 
 parseLogin v = Login <$> 
-                v .: "person" <*>
+                v .: "login" <*>
                 (v .: "loginStatus")
 
 
@@ -206,7 +207,11 @@ mkYesod "App" [parseRoutes|
 |]
 
 checkLoginExists :: String  -> IO (Maybe (Entity Person))
-checkLoginExists aNickName = runSqlite ":memory:" $ do getBy $  PersonUniqueNickName aNickName
+checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+        liftIO $ do
+            flip runSqlPersistMPool pool $ do
+                getBy $ PersonUniqueNickName aNickName
+
 {- Read the message, parse and then send it back. -}
 processCommand :: Maybe Command  -> IO T.Text
 processCommand (Just (CommandLogin aLogin)) = do 
@@ -269,7 +274,7 @@ chatApp = do
         liftIO $ putStrLn $ show $ incomingDictionary (command :: T.Text)
         nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
         liftIO $ putStrLn $ show nickNameExists
-        sendTextData $ J.encode nickNameExists
+        sendTextData nickNameExists
         App writeChan _ <- getYesod
         readChan <- atomically $ do
             writeTChan writeChan $ command <> " has joined the chat"
@@ -332,8 +337,11 @@ getHomeR = do
 
 main :: IO ()
 main = do
-    --hSetBuffering stdout NoBuffering
-    runSqlite ":memory:" $ runMigration migrateAll
+    hSetBuffering stdout NoBuffering
+    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+        liftIO $ do
+            flip runSqlPersistMPool pool $ do
+                runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
     warp 3000 $ App chan static

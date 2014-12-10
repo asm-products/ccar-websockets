@@ -4,7 +4,7 @@ enum CommandType {
 	RegisterUser;
 	Login;
 	QueryUser;
-	DeletUser;
+	DeleteUser;
 	UpdateUser;
 	CreateUserTerms;
 	UpdateUserTerms;
@@ -14,4 +14,5 @@ enum CommandType {
 	UpdateUserPreferences;
 	QueryUserPreferences;
 	DeleteUserPreferences;
+	Undefined;
 }

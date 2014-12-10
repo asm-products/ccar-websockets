@@ -57,6 +57,8 @@ MBooks.prototype = {
 	}
 	,doSendJSON: function(aMessage) {
 		console.log("Sending " + aMessage);
+		var d = haxe.Json.parse(aMessage);
+		console.log("Parsed message should look like so " + Std.string(d));
 		this.websocket.send(aMessage);
 	}
 	,onError: function(ev) {
@@ -67,20 +69,22 @@ MBooks.prototype = {
 	}
 	,createLoginForm: function(lr) {
 		console.log("Creating login form");
-		lr.person.createLoginForm();
+		lr.login.createLoginForm();
 	}
 	,createRegistrationForm: function(books,lr) {
-		console.log("Creating registration form ");
-		if(lr.person == null) {
+		if(lr.login == null) {
 			var person = new model.Person("","","","");
-			person.createRegistrationForm(books);
-		} else lr.person.createRegistrationForm(books);
+			person.registerForm(books);
+		} else {
+			console.log("Login not null : Login  " + Std.string(lr.login));
+			lr.login.registerForm(books);
+		}
 	}
 	,createUndefined: function() {
 		console.log("Undefined as response..should not happen");
 	}
 	,processLoginResponse: function(lR) {
-		console.log("Processing person object " + Std.string(lR.person));
+		console.log("Processing login object " + Std.string(lR));
 		console.log("Processing lR status " + lR.loginStatus);
 		if(lR.loginStatus == null) {
 			console.log("Undefined state");
@@ -89,7 +93,7 @@ MBooks.prototype = {
 		var lStatus = Type.createEnum(model.LoginStatus,lR.loginStatus);
 		console.log("Processing lStatus " + Std.string(lStatus));
 		if(lStatus == model.LoginStatus.UserNotFound) {
-			console.log("User not found. Need to see why enum is not working");
+			console.log("User not found. Need to see why enum is not working " + Std.string(lR));
 			this.createRegistrationForm(this,lR);
 		}
 		if(lStatus == model.LoginStatus.UserExists) this.createLoginForm(lR);
@@ -99,8 +103,53 @@ MBooks.prototype = {
 	,onMessage: function(ev) {
 		console.log("Received " + Std.string(ev.data));
 		var incomingMessage = haxe.Json.parse(ev.data);
-		console.log("Processing incoming message " + Std.string(incomingMessage));
-		this.processLoginResponse(incomingMessage);
+		incomingMessage = haxe.Json.parse(incomingMessage);
+		console.log("Printing incoming message " + incomingMessage);
+		this.parseIncomingMessage(incomingMessage);
+	}
+	,parseIncomingMessage: function(incomingMessage) {
+		var commandType = this.parseCommandType(incomingMessage.commandType);
+		switch( (commandType)[1] ) {
+		case 1:
+			model.Login.createLoginResponse(incomingMessage);
+			this.processLoginResponse(incomingMessage);
+			break;
+		case 0:
+			break;
+		case 2:
+			break;
+		case 3:
+			break;
+		case 4:
+			break;
+		case 5:
+			break;
+		case 6:
+			break;
+		case 8:
+			break;
+		case 7:
+			break;
+		case 9:
+			break;
+		case 10:
+			break;
+		case 11:
+			break;
+		case 12:
+			break;
+		case 13:
+			break;
+		}
+	}
+	,parseCommandType: function(commandType) {
+		console.log("Parsing command type " + commandType);
+		try {
+			return Type.createEnum(model.CommandType,commandType);
+		} catch( e ) {
+			console.log("Error " + Std.string(e));
+			return model.CommandType.Undefined;
+		}
 	}
 	,onOpen: function(ev) {
 		console.log("Connection opened");
@@ -684,7 +733,15 @@ js.Boot.__instanceof = function(o,cl) {
 js.Browser = function() { }
 js.Browser.__name__ = true;
 var model = {}
-model.CommandType = { __ename__ : true, __constructs__ : ["RegisterUser","Login","QueryUser","DeletUser","UpdateUser","CreateUserTerms","UpdateUserTerms","QueryUserTerms","DeleteUserTerms","CreateUserPreferences","UpdateUserPreferences","QueryUserPreferences","DeleteUserPreferences"] }
+model.Command = function(aCType,payload) {
+	this.commandType = aCType;
+	this.payload = payload;
+};
+model.Command.__name__ = true;
+model.Command.prototype = {
+	__class__: model.Command
+}
+model.CommandType = { __ename__ : true, __constructs__ : ["RegisterUser","Login","QueryUser","DeleteUser","UpdateUser","CreateUserTerms","UpdateUserTerms","QueryUserTerms","DeleteUserTerms","CreateUserPreferences","UpdateUserPreferences","QueryUserPreferences","DeleteUserPreferences","Undefined"] }
 model.CommandType.RegisterUser = ["RegisterUser",0];
 model.CommandType.RegisterUser.toString = $estr;
 model.CommandType.RegisterUser.__enum__ = model.CommandType;
@@ -694,9 +751,9 @@ model.CommandType.Login.__enum__ = model.CommandType;
 model.CommandType.QueryUser = ["QueryUser",2];
 model.CommandType.QueryUser.toString = $estr;
 model.CommandType.QueryUser.__enum__ = model.CommandType;
-model.CommandType.DeletUser = ["DeletUser",3];
-model.CommandType.DeletUser.toString = $estr;
-model.CommandType.DeletUser.__enum__ = model.CommandType;
+model.CommandType.DeleteUser = ["DeleteUser",3];
+model.CommandType.DeleteUser.toString = $estr;
+model.CommandType.DeleteUser.__enum__ = model.CommandType;
 model.CommandType.UpdateUser = ["UpdateUser",4];
 model.CommandType.UpdateUser.toString = $estr;
 model.CommandType.UpdateUser.__enum__ = model.CommandType;
@@ -724,6 +781,9 @@ model.CommandType.QueryUserPreferences.__enum__ = model.CommandType;
 model.CommandType.DeleteUserPreferences = ["DeleteUserPreferences",12];
 model.CommandType.DeleteUserPreferences.toString = $estr;
 model.CommandType.DeleteUserPreferences.__enum__ = model.CommandType;
+model.CommandType.Undefined = ["Undefined",13];
+model.CommandType.Undefined.toString = $estr;
+model.CommandType.Undefined.__enum__ = model.CommandType;
 model.Contact = function(aName,lName,aLogin) {
 	this.firstName = aName;
 	this.lastName = lName;
@@ -736,10 +796,19 @@ model.Contact.prototype = {
 }
 model.Login = function(commandType,p,s) {
 	this.commandType = commandType;
-	this.person = p;
+	this.login = p;
 	this.loginStatus = Std.string(s);
 };
 model.Login.__name__ = true;
+model.Login.createLoginResponse = function(incomingMessage) {
+	console.log("Creating login response " + Std.string(incomingMessage));
+	var commandType = incomingMessage.commandType;
+	var loginStatus = Type.createEnum(model.LoginStatus,incomingMessage.loginStatus);
+	var p = incomingMessage.login;
+	var person = new model.Person(p.firstName,p.lastName,p.nickName,p.password);
+	var result = new model.Login(commandType,person,loginStatus);
+	return result;
+}
 model.Login.prototype = {
 	__class__: model.Login
 }
@@ -818,22 +887,26 @@ model.Person.prototype = {
 		this.createLastName(document,parent);
 		this.createPassword(document,parent);
 	}
-	,createRegistrationForm: function(books) {
+	,registerForm: function(books) {
 		try {
-			console.log("Creating registration form");
+			console.log("Person :: Creating registration form" + Std.string(books));
 			var document = js.Browser.document;
+			console.log("Setting status ");
 			this.status = document.getElementById("status");
 			this.status.innerHTML = "Let me sign you up";
 			var document1 = js.Browser.document;
 			this.mbooks = books;
+			console.log("Creating the div tags");
 			var div = this.createDivTag(document1,"Person.Registration");
 			this.createFormElements(document1,div);
 			this.createRegisterButton(document1,div);
 			this.createLogoutButton(document1,div);
 			document1.body.appendChild(div);
+			return document1;
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
-				console.log("Exception e");
+				console.log("Exception " + Std.string(msg));
+				return js.Browser.document;
 			} else throw(msg);
 		}
 	}
@@ -917,6 +990,7 @@ var Bool = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = { __name__ : ["Class"]};
 var Enum = { };
+if(typeof(JSON) != "undefined") haxe.Json = JSON;
 js.Browser.document = typeof window != "undefined" ? window.document : null;
 MBooks.main();
 })();
