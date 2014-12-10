@@ -65,8 +65,8 @@ class MBooks {
 			parseCommandType(incomingMessage.commandType);
 		switch(commandType){
 			case Login : {
-				model.Login.createLoginResponse(incomingMessage);
-				processLoginResponse(incomingMessage);
+				var login : Login = model.Login.createLoginResponse(incomingMessage);
+				processLoginResponse(login);
 			}
 
 			case RegisterUser: {
@@ -122,8 +122,7 @@ class MBooks {
 		parseIncomingMessage(incomingMessage);
 	}
 
-	private function processLoginResponse(lR : Login){
-		
+	private function processLoginResponse(lR : Login){		
 		trace("Processing login object " + lR);
 		trace("Processing lR status " + lR.loginStatus);
 		if(lR.loginStatus == null){
@@ -152,7 +151,7 @@ class MBooks {
 	}
 	private function createRegistrationForm(books : MBooks, lr : Login) : Void{
 		if(lr.login == null){
-			var person = new Person("", "", "","");
+			var person  : Person = new Person("", "", "","");
 			person.registerForm(books);
 		}else {
 			trace("Login not null : Login  " + lr.login);

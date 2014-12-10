@@ -111,8 +111,8 @@ MBooks.prototype = {
 		var commandType = this.parseCommandType(incomingMessage.commandType);
 		switch( (commandType)[1] ) {
 		case 1:
-			model.Login.createLoginResponse(incomingMessage);
-			this.processLoginResponse(incomingMessage);
+			var login = model.Login.createLoginResponse(incomingMessage);
+			this.processLoginResponse(login);
 			break;
 		case 0:
 			break;
@@ -902,11 +902,9 @@ model.Person.prototype = {
 			this.createRegisterButton(document1,div);
 			this.createLogoutButton(document1,div);
 			document1.body.appendChild(div);
-			return document1;
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
 				console.log("Exception " + Std.string(msg));
-				return js.Browser.document;
 			} else throw(msg);
 		}
 	}

@@ -91,7 +91,7 @@ class Person {
 		this.mbooks.doSendJSON(haxe.Json.stringify(this));
 	}
 
-	public function registerForm(books : MBooks) : Document{
+	public function registerForm(books : MBooks) : Void{
 		try {
 			trace("Person :: Creating registration form" + books);
 			var document = Browser.document;
@@ -106,10 +106,8 @@ class Person {
 			createRegisterButton(document, div);
 			createLogoutButton(document, div);
 			document.body.appendChild(div);
-			return document;
 		}catch(msg : DOMCoreException){
 			trace("Exception " + msg);
-			return Browser.document;
 		}
 	}
 	private function createFormElements(document : Document
