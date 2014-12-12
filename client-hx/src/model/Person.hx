@@ -17,6 +17,7 @@ class Person {
 	public var password (null, default) : String;
 	public var firstName (null, default): String;
 	public var lastName (null, default): String;
+	private var deleted : Bool;
 
 	private var nickNameInput : InputElement;
 	private var passwordInput : InputElement;
@@ -33,6 +34,7 @@ class Person {
 		lastName = lName;
 		nickName = nName;
 		password = pwd;
+		deleted = false; // Should be default..
 	}
 
 	public function createNickNameForm(books : MBooks): Void {
@@ -88,7 +90,9 @@ class Person {
 
 	private function registerUser(ev: Event){
 		trace("Register user " + ev);
-		this.mbooks.doSendJSON(haxe.Json.stringify(this));
+		var operation : UserOperation = new UserOperation("Create");
+		var uo : CommandUO = new CommandUO(operation, this);
+		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 
 	public function registerForm(books : MBooks) : Void{

@@ -14,7 +14,7 @@ import Data.Monoid ((<>))
 import Control.Concurrent.STM.Lifted
 import Data.Text as T
 import Database.Persist
-import Database.Persist.Postgresql
+import Database.Persist.Postgresql as DB
 import Database.Persist.TH
 import Data.Time
 import Data.Typeable
@@ -35,6 +35,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastName String 
             nickName String 
             password String
+            deleted Bool default=False
             PersonUniqueNickName nickName
             deriving Show Eq
         TermsAndConditions
@@ -44,13 +45,18 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Eq 
             |]
 
-
+type MyId = PersonId
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 
 emptyPerson = Person {personFirstName = "Not known"
                     , personLastName = "Not known"
                     , personNickName = "undefined"
-                    , personPassword = "Not known"}
+                    , personPassword = "Not known"
+                    , personDeleted = False}
+
+data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
+    deriving(Show, Typeable, Data, Generic, Eq)
+
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
 data UserOperations = UserOperations{operation :: CRUD, person :: Maybe Person} 
@@ -64,14 +70,15 @@ data Command = CommandLogin Login
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
                 | CommandError ErrorCommand deriving(Show, Eq)
-data CRUD = Create | Update | Query | Delete deriving(Show, Eq, Generic)
+data CRUD = Create MyId | CCAR_Update MyId | Query MyId | Delete MyId deriving(Show, Eq, Generic)
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
 
 
-genPerson (Person a b c d) = object ["firstName" .= a
+genPerson (Person a b c d e) = object ["firstName" .= a
                                        , "lastName" .= b
                                        , "nickName" .= c
-                                       , "password" .= d]
+                                       , "password" .= d
+                                       , "deleted" .= e]
 genLogin  (Login a b) = object [
     "commandType" .= (String "Login")
     , "login" .= Just a, "loginStatus" .= b]
@@ -136,21 +143,24 @@ parseCommand value = do
             Just cType -> 
                 case (cType) of 
                     "Login"-> CommandLogin <$> parseLogin value
+                    "CreateUser" -> CommandUO <$> parseCreateUser value
                     _       -> CommandError <$> parseErrorCommand value
 
 
-data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
-    deriving(Show, Typeable, Data, Generic, Eq)
 
 
 parsePerson v = Person <$>
                     v .: "firstName" <*>
                     v .: "lastName" <*>
                     v .: "nickName" <*>
-                    v .: "password" 
+                    v .: "password"  <*>
+                    v .: "deleted"
 
 
 
+parseCreateUser v = UserOperations <$>
+                        v .: "userOperations" <*> 
+                        v .: "person"
 parseLogin v = Login <$> 
                 v .: "login" <*>
                 (v .: "loginStatus")
@@ -212,6 +222,28 @@ checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $
             flip runSqlPersistMPool pool $ do
                 getBy $ PersonUniqueNickName aNickName
 
+insertPerson :: Person -> IO ((Key Person)) 
+insertPerson p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+    liftIO $ do
+            flip runSqlPersistMPool pool $ do 
+                        pid <- insert p
+                        return pid
+updatePerson :: MyId -> Person -> IO (Maybe Person)
+updatePerson pid p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+    liftIO $ do
+            flip runSqlPersistMPool pool $ do
+                DB.replace (pid) p
+                get pid
+
+queryPerson :: MyId -> IO (Maybe Person) 
+queryPerson pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+            liftIO $ do 
+                flip runSqlPersistMPool pool $ 
+                    get pid 
+
+deletePerson :: MyId -> Person -> IO (Maybe Person)
+deletePerson pid p = updatePerson pid p {personDeleted = True}
+
 {- Read the message, parse and then send it back. -}
 processCommand :: Maybe Command  -> IO T.Text
 processCommand (Just (CommandLogin aLogin)) = do 
@@ -232,6 +264,36 @@ processCommand (Just (CommandError error)) =
         return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandError error
 processCommand Nothing = return 
          $ decoder $ genericErrorCommand "Unable to process command"
+
+processCreateUser :: Maybe Command -> IO T.Text
+processCreateUser (Just ( CommandUO (UserOperations uo aPerson))) = do
+    case uo of
+        Create _ -> do
+                personId <- insertPerson person 
+                return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
+                        $ UserOperations (Create personId) (Just person)
+        CCAR_Update personId -> do
+                updatePerson personId person
+                return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
+                            $ UserOperations (CCAR_Update personId) (Just person)
+        Delete personId -> do 
+                deletePerson personId person
+                return $ L.toStrict $ E.decodeUtf8 $ J.encode $ 
+                        CommandUO $ UserOperations (Delete personId) (Just person)
+        Query personId -> do 
+                maybePerson <- queryPerson (personId)
+                case maybePerson of
+                    Nothing -> 
+                        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO  
+                                $ UserOperations (Query personId) Nothing
+                    Just (p) -> 
+                        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO  
+                                $ UserOperations (Query personId) (Just p)
+    where
+        person = case aPerson of
+                Nothing -> emptyPerson
+                Just a -> a        
+
 
 processCommandWrapper :: Value -> Command 
 processCommandWrapper (Object a)   = 

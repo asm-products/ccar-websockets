@@ -784,6 +784,14 @@ model.CommandType.DeleteUserPreferences.__enum__ = model.CommandType;
 model.CommandType.Undefined = ["Undefined",13];
 model.CommandType.Undefined.toString = $estr;
 model.CommandType.Undefined.__enum__ = model.CommandType;
+model.CommandUO = function(o,p) {
+	this.operation = o;
+	this.person = p;
+};
+model.CommandUO.__name__ = true;
+model.CommandUO.prototype = {
+	__class__: model.CommandUO
+}
 model.Contact = function(aName,lName,aLogin) {
 	this.firstName = aName;
 	this.lastName = lName;
@@ -830,6 +838,7 @@ model.Person = function(fName,lName,nName,pwd) {
 	this.lastName = lName;
 	this.nickName = nName;
 	this.password = pwd;
+	this.deleted = false;
 };
 model.Person.__name__ = true;
 model.Person.prototype = {
@@ -910,7 +919,9 @@ model.Person.prototype = {
 	}
 	,registerUser: function(ev) {
 		console.log("Register user " + Std.string(ev));
-		this.mbooks.doSendJSON(haxe.Json.stringify(this));
+		var operation = new model.UserOperation("Create");
+		var uo = new model.CommandUO(operation,this);
+		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 	,logoutUser: function(ev) {
 		console.log("Logout user " + Std.string(ev));
@@ -963,6 +974,13 @@ model.Person.prototype = {
 		}
 	}
 	,__class__: model.Person
+}
+model.UserOperation = function(o) {
+	this.operation = o;
+};
+model.UserOperation.__name__ = true;
+model.UserOperation.prototype = {
+	__class__: model.UserOperation
 }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; };
