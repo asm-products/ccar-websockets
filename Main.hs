@@ -329,8 +329,8 @@ processIncomingMessage aCommand =
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
 
 
-chatApp :: WebSocketsT Handler ()
-chatApp = do
+ccarApp :: WebSocketsT Handler ()
+ccarApp = do
         command <- receiveData
         liftIO $ putStrLn $ "Incoming text " ++ (T.unpack (command :: T.Text))
         liftIO $ putStrLn $ show $ incomingDictionary (command :: T.Text)
@@ -349,7 +349,7 @@ chatApp = do
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 getHomeR :: Handler Html
 getHomeR = do
-    webSockets chatApp
+    webSockets ccarApp
     defaultLayout $ do
         [whamlet|
             <div #output>
