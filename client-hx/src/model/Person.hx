@@ -90,8 +90,9 @@ class Person {
 
 	private function registerUser(ev: Event){
 		trace("Register user " + ev);
+		var commandType : String = "CreateUser";
 		var operation : UserOperation = new UserOperation("Create");
-		var uo : CommandUO = new CommandUO(operation, this);
+		var uo : CommandUO = new CommandUO(commandType, operation, this);
 		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 

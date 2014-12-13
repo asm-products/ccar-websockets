@@ -784,7 +784,8 @@ model.CommandType.DeleteUserPreferences.__enum__ = model.CommandType;
 model.CommandType.Undefined = ["Undefined",13];
 model.CommandType.Undefined.toString = $estr;
 model.CommandType.Undefined.__enum__ = model.CommandType;
-model.CommandUO = function(o,p) {
+model.CommandUO = function(commandType,o,p) {
+	this.commandType = commandType;
 	this.operation = o;
 	this.person = p;
 };
@@ -919,8 +920,9 @@ model.Person.prototype = {
 	}
 	,registerUser: function(ev) {
 		console.log("Register user " + Std.string(ev));
+		var commandType = "CreateUser";
 		var operation = new model.UserOperation("Create");
-		var uo = new model.CommandUO(operation,this);
+		var uo = new model.CommandUO(commandType,operation,this);
 		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 	,logoutUser: function(ev) {
