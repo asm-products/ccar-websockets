@@ -14,7 +14,8 @@ import model.CommandType;
 import js.Browser;
 import js.html.ButtonElement;
 class MBooks {
-	
+
+	//The client login
 	var serverHost : String = "localhost";
 	var protocol : String = "ws";
 	var portNumber : Int = 3000;
@@ -25,7 +26,9 @@ class MBooks {
 		serverHost = "localhost";
 		protocol = "ws";
 		portNumber = 3000;
+
 		createConnectionForm();
+
 	}
 
 	function initializeConnection(){
@@ -65,7 +68,12 @@ class MBooks {
 			parseCommandType(incomingMessage.commandType);
 		switch(commandType){
 			case Login : {
-				var login : Login = model.Login.createLoginResponse(incomingMessage);
+				var person = new Person("", 
+						"",
+						"",
+						"");
+
+				var login : Login = model.Login.createLoginResponse(incomingMessage, person);
 				processLoginResponse(login);
 			}
 
@@ -151,7 +159,11 @@ class MBooks {
 	}
 	private function createRegistrationForm(books : MBooks, lr : Login) : Void{
 		if(lr.login == null){
-			var person  : Person = new Person("", "", "","");
+			var person : Person = new Person("", 
+						"",
+						"",
+						"");
+			
 			person.registerForm(books);
 		}else {
 			trace("Login not null : Login  " + lr.login);
@@ -184,7 +196,11 @@ class MBooks {
 		try {
 		trace("Creating connection form");
 		var document = Browser.document;
-		var person : Person = new Person("","","","");
+		var person : Person = new Person("", 
+						"",
+						"",
+						"");
+
 		person.createNickNameForm(this);
 		initializeConnection();
 		trace("Connection form created");

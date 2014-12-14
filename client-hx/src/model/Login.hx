@@ -12,15 +12,11 @@ class Login {
 		loginStatus = Std.string(s);
 
 	}
-	public static function createLoginResponse(incomingMessage : Dynamic) : Login {
+	public static function createLoginResponse(incomingMessage : Dynamic, person : Person) : Login {
 		trace("Creating login response " + incomingMessage);
 		var commandType : String = incomingMessage.commandType;
 		var loginStatus : LoginStatus = Type.createEnum (LoginStatus, incomingMessage.loginStatus);
 		var p : Dynamic = incomingMessage.login;
-		var person : Person = new Person(p.firstName, 
-						p.lastName,
-						p.nickName,
-						p.password);
 		var result : Login = new Login(commandType, person, loginStatus);
 		return result;
 	}

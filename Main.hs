@@ -2,6 +2,7 @@
 import Yesod.Core
 import Yesod.WebSockets
 import Yesod.Static
+import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
 import Control.Monad (forever)
 import Control.Monad.Trans.Reader
@@ -70,7 +71,7 @@ data Command = CommandLogin Login
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
                 | CommandError ErrorCommand deriving(Show, Eq)
-data CRUD = Create MyId | CCAR_Update MyId | Query MyId | Delete MyId deriving(Show, Eq, Generic)
+data CRUD = Create  | CCAR_Update MyId | Query MyId | Delete MyId deriving(Show, Eq, Generic)
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
 
 
@@ -159,7 +160,7 @@ parsePerson v = Person <$>
 
 
 parseCreateUser v = UserOperations <$>
-                        v .: "userOperations" <*> 
+                        v .: "operation" <*> 
                         v .: "person"
 parseLogin v = Login <$> 
                 v .: "login" <*>
@@ -265,13 +266,14 @@ processCommand (Just (CommandError error)) =
 processCommand Nothing = return 
          $ decoder $ genericErrorCommand "Unable to process command"
 
-processCreateUser :: Maybe Command -> IO T.Text
-processCreateUser (Just ( CommandUO (UserOperations uo aPerson))) = do
+
+processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
+    putStrLn $ "Processing " ++ (show uo)
     case uo of
-        Create _ -> do
+        Create  -> do
                 personId <- insertPerson person 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
-                        $ UserOperations (Create personId) (Just person)
+                        $ UserOperations (Create ) (Just person)
         CCAR_Update personId -> do
                 updatePerson personId person
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
@@ -302,13 +304,18 @@ processCommandWrapper (Object a)   =
         Just aType -> 
             case aType of 
                 String "Login" -> 
-                        case result of
+                        case (parse parseLogin a) of
                             Success r -> CommandLogin r
                             Error s -> CommandError $ genericErrorCommand $ "parse login  "++ s
+                String "CreateUser" ->
+                        case (parse parseCreateUser a) of
+                            Success r -> CommandUO r
+                            Error s -> CommandError $ genericErrorCommand $ "parse login " ++ s
+
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
         cType =  LH.lookup "commandType" a
-        result = parse parseLogin a
+
 
 processCommandWrapper _ = CommandError $ genericErrorCommand "Not yet implemented"
 
@@ -342,9 +349,17 @@ ccarApp = do
             writeTChan writeChan $ command <> " has joined the chat"
             dupTChan writeChan
         race_
-            (forever $ sourceWS $$ mapC TL.toUpper =$ sinkWSText)
+            (forever $ sourceWS $$ mapM_C(\msg -> 
+                    atomically $ do
+                        GHCConc.unsafeIOToSTM $ liftIO $ putStrLn "Inside forever..."
+                        x <- GHCConc.unsafeIOToSTM $ processIncomingMessage $ incomingDictionary msg
+                        writeTChan writeChan x
+                    ))
             (sourceWS $$ mapM_C (\msg ->
-                atomically $ writeTChan writeChan $ command <> ": " <> msg))
+                atomically $ do
+                        GHCConc.unsafeIOToSTM $ liftIO $ putStrLn "Inside sourceWS"
+                        x <- GHCConc.unsafeIOToSTM $ processIncomingMessage $ incomingDictionary msg 
+                        writeTChan writeChan x))
         where
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 getHomeR :: Handler Html
