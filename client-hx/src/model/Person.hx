@@ -121,7 +121,21 @@ class Person {
 		var commandType : String = "CreateUser";
 		copyValues();
 		var operation : UserOperation = new UserOperation("Create");
-		var uo : CommandUO = new CommandUO(commandType, operation, this);
+
+		var uo = {
+			commandType : "CreateUser", 
+			operation:  {
+				tag : "Create" , //Tag is needed for the aeson objects.
+				contents : []
+			},
+			person : {
+				firstName : this.firstName,
+				lastName : this.lastName,
+				password : this.password,
+				nickName : this.nickName,
+				deleted : false
+			}
+		};
 		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 

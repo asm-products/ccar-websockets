@@ -785,15 +785,6 @@ model.CommandType.DeleteUserPreferences.__enum__ = model.CommandType;
 model.CommandType.Undefined = ["Undefined",13];
 model.CommandType.Undefined.toString = $estr;
 model.CommandType.Undefined.__enum__ = model.CommandType;
-model.CommandUO = function(commandType,o,p) {
-	this.commandType = commandType;
-	this.operation = o;
-	this.person = p;
-};
-model.CommandUO.__name__ = true;
-model.CommandUO.prototype = {
-	__class__: model.CommandUO
-}
 model.Contact = function(aName,lName,aLogin) {
 	this.firstName = aName;
 	this.lastName = lName;
@@ -947,7 +938,7 @@ model.Person.prototype = {
 		var commandType = "CreateUser";
 		this.copyValues();
 		var operation = new model.UserOperation("Create");
-		var uo = new model.CommandUO(commandType,operation,this);
+		var uo = { commandType : "CreateUser", operation : { tag : "Create", contents : []}, person : { firstName : this.firstName, lastName : this.lastName, password : this.password, nickName : this.nickName, deleted : false}};
 		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 	,logoutUser: function(ev) {

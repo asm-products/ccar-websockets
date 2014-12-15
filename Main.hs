@@ -310,7 +310,7 @@ processCommandWrapper (Object a)   =
                 String "CreateUser" ->
                         case (parse parseCreateUser a) of
                             Success r -> CommandUO r
-                            Error s -> CommandError $ genericErrorCommand $ "parse login " ++ s
+                            Error s -> CommandError $ genericErrorCommand $ "parse create user " ++ s
 
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
@@ -329,9 +329,9 @@ processIncomingMessage aCommand =
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode   
                         (CommandError $ genericErrorCommand ("Unknown error"))
             Just (Object a) -> do 
-                    liftIO $ putStrLn $ "Processing command " ++ show a
                     liftIO $ putStrLn $ "Processing command type " ++ (show (LH.lookup "commandType" a))
                     c <- return $ processCommandWrapper (Object a)
+                    liftIO $ putStrLn $ "Processing command " ++ (show c)
                     reply <- processCommand (Just c)
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
 
@@ -349,11 +349,12 @@ ccarApp = do
             writeTChan writeChan $ command <> " has joined the chat"
             dupTChan writeChan
         race_
-            (forever $ sourceWS $$ mapM_C(\msg -> 
+            (forever $ sourceWS $$ mapM_C(\msg -> do
+                    liftIO $ putStrLn "Inside sourceWS"
                     atomically $ do
-                        GHCConc.unsafeIOToSTM $ liftIO $ putStrLn "Inside forever..."
-                        x <- GHCConc.unsafeIOToSTM $ processIncomingMessage $ incomingDictionary msg
-                        writeTChan writeChan x
+                        -- These unsafe calls need to go!
+                        reply <- GHCConc.unsafeIOToSTM $ processIncomingMessage $ incomingDictionary msg                        
+                        writeTChan writeChan reply
                     ))
             (sourceWS $$ mapM_C (\msg ->
                 atomically $ do
