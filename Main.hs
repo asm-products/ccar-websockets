@@ -224,9 +224,11 @@ checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $
                 getBy $ PersonUniqueNickName aNickName
 
 insertPerson :: Person -> IO ((Key Person)) 
-insertPerson p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
-    liftIO $ do
-            flip runSqlPersistMPool pool $ do 
+insertPerson p = do 
+        putStrLn $ "Inside insert person " ++ (show p)
+        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+            liftIO $ do
+                flip runSqlPersistMPool pool $ do 
                         pid <- insert p
                         return pid
 updatePerson :: MyId -> Person -> IO (Maybe Person)
@@ -268,10 +270,11 @@ processCommand Nothing = return
 
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
-    putStrLn $ "Processing " ++ (show uo)
+    putStrLn $ "Processing processCommand " ++ (show uo)
     case uo of
         Create  -> do
-                personId <- insertPerson person 
+                personId <- insertPerson person
+                liftIO $ putStrLn  $ "Person inserted " ++ (show personId)
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
                         $ UserOperations (Create ) (Just person)
         CCAR_Update personId -> do
@@ -351,15 +354,14 @@ ccarApp = do
         race_
             (forever $ sourceWS $$ mapM_C(\msg -> do
                     liftIO $ putStrLn "Inside sourceWS"
+                    reply <-liftIO $ processIncomingMessage $ incomingDictionary msg
+                    liftIO $ putStrLn $ "Sending " ++ (show reply) ++ (" To the write channel")
                     atomically $ do
-                        -- These unsafe calls need to go!
-                        reply <- GHCConc.unsafeIOToSTM $ processIncomingMessage $ incomingDictionary msg                        
                         writeTChan writeChan reply
                     ))
-            (sourceWS $$ mapM_C (\msg ->
+            (sourceWS $$ mapM_C (\msg -> do 
+                x <- liftIO $ processIncomingMessage $ incomingDictionary msg 
                 atomically $ do
-                        GHCConc.unsafeIOToSTM $ liftIO $ putStrLn "Inside sourceWS"
-                        x <- GHCConc.unsafeIOToSTM $ processIncomingMessage $ incomingDictionary msg 
                         writeTChan writeChan x))
         where
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
