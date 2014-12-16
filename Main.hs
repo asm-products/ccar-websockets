@@ -84,7 +84,10 @@ genLogin  (Login a b) = object [
     "commandType" .= (String "Login")
     , "login" .= Just a, "loginStatus" .= b]
 
-genUserOperations (UserOperations o p) = object ["operation" .= o, "person" .= p]
+genUserOperations (UserOperations o p) = object [
+                        "operation" .= o
+                        , "person" .= p
+                        , "commandType" .= (String "CreateUser")]
 genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "terms" .= t]
 genErrorCommand (ErrorCommand e  m) = object ["errorCode" .= e
                                               , "message" .= m]
@@ -113,6 +116,7 @@ instance ToJSON Command where
         case aCommand of
             CommandLogin l -> genLogin l 
             CommandError e -> genErrorCommand e
+            CommandUO e -> genUserOperations e
             _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
@@ -230,6 +234,7 @@ insertPerson p = do
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
                         pid <- insert p
+                        liftIO $ putStrLn ("Returning " ++ (show pid))
                         return pid
 updatePerson :: MyId -> Person -> IO (Maybe Person)
 updatePerson pid p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
@@ -352,15 +357,10 @@ ccarApp = do
             writeTChan writeChan $ command <> " has joined the chat"
             dupTChan writeChan
         race_
-            (forever $ sourceWS $$ mapM_C(\msg -> do
-                    liftIO $ putStrLn "Inside sourceWS"
-                    reply <-liftIO $ processIncomingMessage $ incomingDictionary msg
-                    liftIO $ putStrLn $ "Sending " ++ (show reply) ++ (" To the write channel")
-                    atomically $ do
-                        writeTChan writeChan reply
-                    ))
+            (forever $ atomically (readTChan readChan) >>= sendTextData)
             (sourceWS $$ mapM_C (\msg -> do 
                 x <- liftIO $ processIncomingMessage $ incomingDictionary msg 
+                liftIO $ putStrLn $ "Sending " ++ show x ++ ("To the wire : sourceWS")
                 atomically $ do
                         writeTChan writeChan x))
         where
