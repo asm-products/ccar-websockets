@@ -8,7 +8,7 @@ A haxe based websocket client interacting with a yesod websockets server.
 ### Core functions
 
 #### Allow a user to load/modify scenarios. 
-	##### Create audit trails of all modification for the scenarios created.
+        ##### Create audit trails of all modification for the scenarios created.
 	##### Compare scenarios 
 	##### Upload trades.
 	##### Apply a scenario to a trade
