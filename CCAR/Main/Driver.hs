@@ -51,11 +51,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         CCAR 
             scenarioName String
             scenarioText String
-            creator PersonId
+            creator String -- This needs to be the unique name from the person table.
+            deleted Bool default=False
+            CCARUniqueName scenarioName
             deriving Show Eq
             |]
 
 type MyId = PersonId
+
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 
 emptyPerson = Person {personFirstName = "Not known"
@@ -64,8 +67,16 @@ emptyPerson = Person {personFirstName = "Not known"
                     , personPassword = "Not known"
                     , personDeleted = False}
 
+emptyCCAR = CCAR {
+        cCARScenarioName =  "Not known"
+        , cCARScenarioText = "Not known"
+        , cCARCreator = "Not Known"
+        , cCARDeleted = False
+}
 data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
     deriving(Show, Typeable, Data, Generic, Eq)
+
+{- List of commands that we support.-}
 
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
@@ -75,13 +86,15 @@ data UserTermsOperations = UserTermsOperations {utOperation :: CRUD, terms :: Ma
                 deriving(Show, Eq)
 data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Eq)
-data CCARUpload = CCARUpload {uploadedBy :: Maybe Person 
+               
+data CCARUpload = CCARUpload {uploadedBy :: T.Text 
                             , ccarOperation :: CRUD
-                            , ccarData :: CCAR} 
+                            , ccarData :: Maybe CCAR} 
                     deriving (Show, Eq)
 data Command = CommandLogin Login 
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
+                | CommandCCARUpload CCARUpload
                 | CommandError ErrorCommand deriving(Show, Eq)
 data CRUD = Create  | CCAR_Update MyId | Query MyId | Delete MyId deriving(Show, Eq, Generic)
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
@@ -92,6 +105,15 @@ genPerson (Person a b c d e) = object ["firstName" .= a
                                        , "nickName" .= c
                                        , "password" .= d
                                        , "deleted" .= e]
+
+genCCAR (CCAR a b person del)  = object ["scenarioName" .= a 
+                                    , "scenarioText" .= b
+                                    , "creator" .= person
+                                    , "deleted" .= del]
+
+genCCARUpload (CCARUpload a b c) = object["uploadedBy" .= a 
+                                    , "ccarOperation" .= b 
+                                    , "ccarData" .= c]
 genLogin  (Login a b) = object [
     "commandType" .= (String "Login")
     , "login" .= Just a, "loginStatus" .= b]
@@ -123,12 +145,19 @@ instance ToJSON TermsAndConditions where
 instance ToJSON ErrorCommand where
     toJSON = genErrorCommand
 
+instance ToJSON CCARUpload where
+    toJSON = genCCARUpload 
+
+instance ToJSON CCAR where
+    toJSON = genCCAR 
+
 instance ToJSON Command where
     toJSON aCommand = 
         case aCommand of
             CommandLogin l -> genLogin l 
             CommandError e -> genErrorCommand e
             CommandUO e -> genUserOperations e
+            CommandCCARUpload a  -> genCCARUpload a
             _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
@@ -138,19 +167,6 @@ parseErrorCommand value= do
         return $ ErrorCommand {errorCode = T.pack "Error"
                                , message = T.pack $ show value}
 
-{-        "DeleteUser" -> parseDeleteUser value
-        "UpdateUser" -> parseUpdateUser value
-        "CreateUser" -> parseCreateUser value
-        "QueryUser"  -> parseQueryUser value
-        "CreateUserTerms" -> parseCreateUserTerms value
-        "QueryUserTerms" -> parseQueryUserTerms value
-        "UpdateUserTerms" -> parseUpdateUserTerms value
-        "DeleteUserTerms" -> parseDeleteUserTerms value
-        "CreateUserPreferences" -> parseCreateUserPreferences value
-        "QueryUserPreferences" -> parseQueryUserPreferences value
-        "UpdateUserPreferences" -> parseUpdateUserPreferences value
-        "DeleteUserPreferences" -> parseDeleteUserPreferences value
--}
 
 commandType = LH.lookup "commandType"
 
@@ -161,10 +177,21 @@ parseCommand value = do
                 case (cType) of 
                     "Login"-> CommandLogin <$> parseLogin value
                     "ManageUser" -> CommandUO <$> parseCreateUser value
+                    "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     _       -> CommandError <$> parseErrorCommand value
 
 
 
+parseCCARUpload v = CCARUpload <$>
+                        v .: "uploadedBy" <*>
+                        v .: "ccarOperation" <*>
+                        v .: "ccarData"
+
+parseCCAR v = CCAR <$>
+                v .: "scenarioName" <*>
+                v .: "scenarioText" <*>
+                v .: "creator" <*>
+                v .: "deleted"
 
 parsePerson v = Person <$>
                     v .: "firstName" <*>
@@ -200,6 +227,9 @@ instance FromJSON TermsAndConditions where
     parseJSON (Object v) = parseTermsAndConditions v
     parseJSON _          = Appl.empty
 
+instance FromJSON CCAR where 
+    parseJSON (Object v) = parseCCAR v
+    parseJSON _          = Appl.empty
 
 instance FromJSON Command where
     parseJSON (Object v) = parseCommand v
@@ -233,6 +263,40 @@ mkYesod "App" [parseRoutes|
 /static StaticR  Static getStatic
 |]
 
+
+insertCCAR :: CCAR -> IO (Key CCAR) 
+insertCCAR c = do 
+        putStrLn $ "Inside insert ccar"
+        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+            liftIO $ do
+                flip runSqlPersistMPool pool $ do 
+                        cid <- insert c
+                        liftIO $ putStrLn ("Returning " ++ (show cid))
+                        return cid
+
+updateCCAR :: MyId -> CCAR -> IO (Maybe CCAR)
+updateCCAR cid c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+    liftIO $ do
+            flip runSqlPersistMPool pool $ do
+                DB.replace (cid) c
+                get cid
+
+queryALLCCAR :: String -> IO [Entity CCAR]
+queryALLCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+            liftIO $ do 
+                flip runSqlPersistMPool pool $ 
+                    selectList [CCARCreator ==. aNickName] []
+ 
+queryCCAR :: MyId -> IO (Maybe CCAR) 
+queryCCAR pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+            liftIO $ do 
+                flip runSqlPersistMPool pool $ 
+                    get pid 
+
+deleteCCAR :: MyId -> CCAR -> IO (Maybe CCAR)
+deleteCCAR pid p = updateCCAR pid p { cCARDeleted = True}
+
+
 checkLoginExists :: String  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
         liftIO $ do
@@ -248,6 +312,7 @@ insertPerson p = do
                         pid <- insert p
                         liftIO $ putStrLn ("Returning " ++ (show pid))
                         return pid
+
 updatePerson :: MyId -> Person -> IO (Maybe Person)
 updatePerson pid p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
     liftIO $ do
@@ -317,6 +382,35 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
                 Just a -> a        
 
 
+processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR))) = do
+    putStrLn $ "Processing command ccar upload " ++ (show ccar)
+    case operation of 
+        Create -> do 
+                ccarId <- insertCCAR ccar
+                liftIO $ putStrLn $ "CCAR created " ++ (show ccar)
+                return $ L.toStrict $ E.decodeUtf8 $ J.encode 
+                        $ CommandCCARUpload $ CCARUpload nickName operation 
+                                (Just ccar)
+        CCAR_Update ccarId -> do
+                updateCCAR ccarId ccar 
+                return $ L.toStrict $ E.decodeUtf8 $ J.encode 
+                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar)
+        Delete ccarId -> do 
+                deleteCCAR ccarId ccar 
+                return $ L.toStrict $ E.decodeUtf8 $ J.encode 
+                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar)
+        Query ccarId -> do 
+                maybeCCAR <- queryCCAR (ccarId)
+                case maybeCCAR of 
+                    Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
+                        $ CommandCCARUpload $ CCARUpload nickName (Query ccarId) Nothing
+                    Just x -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
+                        $ CommandCCARUpload $ CCARUpload nickName (Query ccarId) (Just x)
+        where
+            ccar = case aCCAR of
+                    Nothing -> emptyCCAR
+                    Just a -> a
+
 processCommandWrapper :: Value -> Command 
 processCommandWrapper (Object a)   = 
     case cType of 
@@ -326,12 +420,15 @@ processCommandWrapper (Object a)   =
                 String "Login" -> 
                         case (parse parseLogin a) of
                             Success r -> CommandLogin r
-                            Error s -> CommandError $ genericErrorCommand $ "parse login  "++ s
+                            Error s -> CommandError $ genericErrorCommand $ "parse login  failed "++ s
                 String "ManageUser" ->
                         case (parse parseCreateUser a) of
                             Success r -> CommandUO r
-                            Error s -> CommandError $ genericErrorCommand $ "parse create user " ++ s
-
+                            Error s -> CommandError $ genericErrorCommand $ "parse manage user failed " ++ s
+                String "CCARUpload" ->
+                        case (parse parseCCARUpload a) of
+                            Success r -> CommandCCARUpload r 
+                            Error s -> CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
         cType =  LH.lookup "commandType" a

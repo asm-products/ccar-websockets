@@ -92,3 +92,4 @@ executable ccar-websockets
                         QuasiQuotes
                         NamedFieldPuns
 
+  ghc-options: -ddump-splices

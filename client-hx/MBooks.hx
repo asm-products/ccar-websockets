@@ -164,7 +164,10 @@ class MBooks {
 			person.registerForm(books);
 		}else {
 			trace("Login not null : Login  " + lr.login);
-			lr.login.registerForm(books);
+			var p : Person = lr.login;		
+			//Copy the 
+			var pCopy : Person = new Person(p.firstName, p.lastName, p.nickName, p.password);
+			pCopy.registerForm(books);
 		}
 	}
 
