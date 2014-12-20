@@ -18,13 +18,6 @@ import Conduit
 import Data.Monoid ((<>))
 import Control.Concurrent.STM.Lifted
 import Data.Text as T
-import Database.Persist
-import Database.Persist.Postgresql as DB
-import Database.Persist.TH
-import Data.Time
-import Data.Typeable
-import GHC.Generics
-import Data.Data
 import Data.Aeson as J
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
@@ -33,31 +26,15 @@ import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L
 import System.IO
 import Data.HashMap.Lazy as LH (HashMap, lookup, member)
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
-    [persistLowerCase| 
-        Person
-            firstName String 
-            lastName String 
-            nickName String 
-            password String
-            deleted Bool default=False
-            PersonUniqueNickName nickName
-            deriving Show Eq
-        TermsAndConditions
-            title String
-            description String
-            acceptDate UTCTime
-            deriving Show Eq 
-        CCAR 
-            scenarioName String
-            scenarioText String
-            creator String -- This needs to be the unique name from the person table.
-            deleted Bool default=False
-            CCARUniqueName scenarioName
-            deriving Show Eq
-            |]
+import qualified CCAR.Model.Person as Us 
+import qualified CCAR.Model.CCAR as CC 
+import qualified CCAR.Model.UserTermsAndConditions as Ust 
+import CCAR.Main.DBUtils
+import GHC.Generics
+import Data.Data
+import Data.Typeable 
+import Database.Persist.Postgresql as DB
 
-type MyId = PersonId
 
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 
@@ -80,15 +57,15 @@ data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
 
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
-data UserOperations = UserOperations{operation :: CRUD, person :: Maybe Person} 
+data UserOperations = UserOperations{operation :: Us.CRUD, person :: Maybe Person} 
                 deriving (Show, Eq)
-data UserTermsOperations = UserTermsOperations {utOperation :: CRUD, terms :: Maybe TermsAndConditions} 
+data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD, terms :: Maybe TermsAndConditions} 
                 deriving(Show, Eq)
 data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Eq)
                
 data CCARUpload = CCARUpload {uploadedBy :: T.Text 
-                            , ccarOperation :: CRUD
+                            , ccarOperation :: CC.CRUD
                             , ccarData :: Maybe CCAR} 
                     deriving (Show, Eq)
 data Command = CommandLogin Login 
@@ -96,7 +73,6 @@ data Command = CommandLogin Login
                 | CommandUTO UserTermsOperations
                 | CommandCCARUpload CCARUpload
                 | CommandError ErrorCommand deriving(Show, Eq)
-data CRUD = Create  | CCAR_Update MyId | Query MyId | Delete MyId deriving(Show, Eq, Generic)
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
 
 
@@ -274,7 +250,7 @@ insertCCAR c = do
                         liftIO $ putStrLn ("Returning " ++ (show cid))
                         return cid
 
-updateCCAR :: MyId -> CCAR -> IO (Maybe CCAR)
+updateCCAR :: CCARId -> CCAR -> IO (Maybe CCAR)
 updateCCAR cid c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
     liftIO $ do
             flip runSqlPersistMPool pool $ do
@@ -287,13 +263,13 @@ queryALLCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \po
                 flip runSqlPersistMPool pool $ 
                     selectList [CCARCreator ==. aNickName] []
  
-queryCCAR :: MyId -> IO (Maybe CCAR) 
+queryCCAR :: CCARId -> IO (Maybe CCAR) 
 queryCCAR pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
 
-deleteCCAR :: MyId -> CCAR -> IO (Maybe CCAR)
+deleteCCAR :: CCARId -> CCAR -> IO (Maybe CCAR)
 deleteCCAR pid p = updateCCAR pid p { cCARDeleted = True}
 
 
@@ -313,20 +289,20 @@ insertPerson p = do
                         liftIO $ putStrLn ("Returning " ++ (show pid))
                         return pid
 
-updatePerson :: MyId -> Person -> IO (Maybe Person)
+updatePerson :: PersonId -> Person -> IO (Maybe Person)
 updatePerson pid p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
     liftIO $ do
             flip runSqlPersistMPool pool $ do
                 DB.replace (pid) p
                 get pid
 
-queryPerson :: MyId -> IO (Maybe Person) 
+queryPerson :: PersonId -> IO (Maybe Person) 
 queryPerson pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
 
-deletePerson :: MyId -> Person -> IO (Maybe Person)
+deletePerson :: PersonId -> Person -> IO (Maybe Person)
 deletePerson pid p = updatePerson pid p {personDeleted = True}
 
 {- Read the message, parse and then send it back. -}
@@ -354,28 +330,28 @@ processCommand Nothing = return
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ "Processing processCommand " ++ (show uo)
     case uo of
-        Create  -> do
+        Us.Create  -> do
                 personId <- insertPerson person
                 liftIO $ putStrLn  $ "Person inserted " ++ (show personId)
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
-                        $ UserOperations (Create ) (Just person)
-        CCAR_Update personId -> do
+                        $ UserOperations Us.Create (Just person)
+        Us.Update personId -> do
                 updatePerson personId person
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
-                            $ UserOperations (CCAR_Update personId) (Just person)
-        Delete personId -> do 
+                            $ UserOperations (Us.Update personId) (Just person)
+        Us.Delete personId -> do 
                 deletePerson personId person
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ 
-                        CommandUO $ UserOperations (Delete personId) (Just person)
-        Query personId -> do 
+                        CommandUO $ UserOperations (Us.Delete personId) (Just person)
+        Us.Query personId -> do 
                 maybePerson <- queryPerson (personId)
                 case maybePerson of
                     Nothing -> 
                         return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO  
-                                $ UserOperations (Query personId) Nothing
+                                $ UserOperations (Us.Query personId) Nothing
                     Just (p) -> 
                         return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO  
-                                $ UserOperations (Query personId) (Just p)
+                                $ UserOperations (Us.Query personId) (Just p)
     where
         person = case aPerson of
                 Nothing -> emptyPerson
@@ -385,27 +361,27 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR))) = do
     putStrLn $ "Processing command ccar upload " ++ (show ccar)
     case operation of 
-        Create -> do 
+        CC.Create -> do 
                 ccarId <- insertCCAR ccar
                 liftIO $ putStrLn $ "CCAR created " ++ (show ccar)
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation 
                                 (Just ccar)
-        CCAR_Update ccarId -> do
+        CC.Update ccarId -> do
                 updateCCAR ccarId ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar)
-        Delete ccarId -> do 
+        CC.Delete ccarId -> do 
                 deleteCCAR ccarId ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar)
-        Query ccarId -> do 
+        CC.Query ccarId -> do 
                 maybeCCAR <- queryCCAR (ccarId)
                 case maybeCCAR of 
                     Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (Query ccarId) Nothing
+                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing
                     Just x -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (Query ccarId) (Just x)
+                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x)
         where
             ccar = case aCCAR of
                     Nothing -> emptyCCAR
@@ -537,5 +513,3 @@ driver = do
 
 instance ToJSON LoginStatus
 instance FromJSON LoginStatus
-instance ToJSON CRUD
-instance FromJSON CRUD
