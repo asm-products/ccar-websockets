@@ -22,10 +22,10 @@ class Person {
 	private static var NICK_NAME_LABEL : String = "Nick name (needs to be unique)";
 
 	private var mbooks : MBooks;
-	public var nickName (null, default) : String;
-	public var password (null, default) : String;
-	public var firstName (null, default): String;
-	public var lastName (null, default): String;
+	public var nickName (default, null) : String;
+	public var password (default, null) : String;
+	public var firstName (default, null): String;
+	public var lastName (default, null): String;
 	private var deleted : Bool;
 	private var document : Document;
 
@@ -42,6 +42,27 @@ class Person {
 		password = pwd;
 		deleted = false; // Should be default..
 		document = Browser.document;
+	}
+
+
+	public function createLoginForm(books : MBooks) : Person {
+		try {
+			trace("Creating login form " + this);
+			this.mbooks = books;
+			var document = Browser.document;
+			removeAllElements(document);
+			var div : DivElement = createDivTag(document, "Person.Login");
+			trace("Querying status element");
+			status = cast document.getElementById("status");
+			status.innerHTML = "Welcome back. The last time you logged in";
+			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
+			createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
+			copyValues();
+			return this;
+		}catch(msg : DOMCoreException){
+			trace ("Exception " + msg);
+		}
+		return null;
 	}
 
 	private function copyValues(): Void {
@@ -66,34 +87,31 @@ class Person {
 
 	public function createNickNameForm(books : MBooks): Void {
 		try {
-			this.mbooks = books;
-			trace("Creating login form");
 			var document = Browser.document;
+			removeAllElements(document);
+			this.mbooks = books;
+			trace("Creating nickname form");
 			var div : DivElement = createDivTag(document, "Person.Login");
-			createNickName(document, div, NICK_NAME, NICK_NAME_LABEL);
+			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
 			var nickNameInput : InputElement = getNickNameInput();
+			nickNameInput.focus();
+			nickNameInput.select();
 			nickNameInput.onchange = this.sendLogin;
 		}catch(msg : DOMCoreException){
 			trace ("Exception " + msg);
 		}
 
 	}
-	public function createLoginForm() : Void {
-		try {
-			trace("Creating login form");
-			var document = Browser.document;
-			var div : DivElement = createDivTag(document, "Person.Login");
-			div.appendChild(div);
-			status = cast document.getElementById("status");
-			status.innerHTML = "Welcome back. The last time you logged in";
-			createNickName(document, div, NICK_NAME, NICK_NAME_LABEL);
-			createPassword(document, div, PASSWORD, PASSWORD_LABEL);
-		}catch(msg : DOMCoreException){
-			trace ("Exception " + msg);
-		}
+	private function removeAllElements(document) : Void {
+		deleteElement(document, NICK_NAME, NICK_NAME_LABEL);
+		deleteElement(document, PASSWORD, PASSWORD_LABEL);
+		deleteElement(document, FIRST_NAME, FIRST_NAME_LABEL);
+		deleteElement(document, LAST_NAME, LAST_NAME_LABEL);
+
 	}
+
 	private function createRegisterButton(document : Document
 		, parent : DivElement) : Void {
 			register = document.createButtonElement();
@@ -143,6 +161,7 @@ class Person {
 		try {
 			trace("Person :: Creating registration form" + books);
 			var document = Browser.document;
+			removeAllElements(document);
 			trace("Setting status ");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Let me sign you up";
@@ -160,67 +179,42 @@ class Person {
 	}
 	private function createFormElements(document : Document
 		, parent : DivElement) : Void{
-		createFirstName(document, parent, FIRST_NAME, FIRST_NAME_LABEL);
-        createLastName (document, parent, LAST_NAME, LAST_NAME_LABEL);
-        createPassword (document, parent, PASSWORD, PASSWORD_LABEL);
-		
+		createElementWithLabel(document, parent, NICK_NAME, NICK_NAME_LABEL);
+		createElementWithLabel(document, parent, FIRST_NAME, FIRST_NAME_LABEL);
+        createElementWithLabel(document, parent, LAST_NAME, LAST_NAME_LABEL);
+        createElementWithLabel(document, parent, PASSWORD, PASSWORD_LABEL);
+			
 	}
 
-	private function createFirstName(document : Document
+	private function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
 			trace("Creating first name element ");
 			var div = document.createDivElement();
 			div.className = "Person.Login.FirstName";
-			var textElement = document.createTextNode(elementLabel);
-			var firstNameInput = document.createInputElement();
-			firstNameInput.id = elementId;
-			div.appendChild(textElement);
-            div.appendChild(firstNameInput);
+			var input = document.createInputElement();
+			input.id = elementId;
+			input.value = elementLabel;
+            div.appendChild(input);
 			parent.appendChild(div);
 
 	}
 
-    private function createLastName(document : Document
-        , parent : DivElement, elementId : String, elementLabel : String) : Void {
-            var div = document.createDivElement();
-            div.className  = "Person.Login.LastName";
-            var textElement = document.createTextNode(elementLabel);
-            var lastNameInput : InputElement = document.createInputElement();
-            lastNameInput.id = elementId;
-            div.appendChild(textElement);
-            div.appendChild(lastNameInput);
-            parent.appendChild(div);
-    }
-
-    private function createNickName(document : Document
-        , parent : DivElement, elementId:  String, elementLabel : String): Void {
-        var div = document.createDivElement();
-        div.className = "Person.Login.NickName";
-        var textElement = document.createTextNode(elementLabel);
-     	var nickNameInput = document.createInputElement();
-     	nickNameInput.id = elementId;
-     	div.appendChild(textElement);
-     	div.appendChild(nickNameInput);
-     	parent.appendChild(div);
-
-    }
-    private function createPassword(document : Document
-        , parent : DivElement, elementId: String, elementLabel : String) : Void {
-        var div = document.createDivElement();
-        div.className = "Person.Login.Password";
-        var textElement = document.createTextNode(elementLabel);
-        var passwordInput : InputElement = document.createInputElement();
-        passwordInput.id = elementId;
-        div.appendChild(textElement);
-        div.appendChild(passwordInput);
-        parent.appendChild(div);
-    }
 	private function createDivTag(document : Document, className : String) : DivElement {
 		var div = document.createDivElement();
 		div.className = className;
 		document.body.appendChild(div);
 		return div;
 	}
+
+	private function deleteElement(document : Document, elementId : String, 
+		elementLabelId : String){
+		trace("Deleting element if exists -> " + elementId);	
+		var element : Element = document.getElementById(elementId);
+		if (element != null){
+			element.parentNode.removeChild(element);
+		}
+	}
+
 	public function sendLogin (ev: Event){
 		trace("Copying values");
 		copyValues();

@@ -67,9 +67,10 @@ MBooks.prototype = {
 	,createInvalidPassword: function(lr) {
 		console.log("Processing invalid login" + Std.string(lr));
 	}
-	,createLoginForm: function(lr) {
-		console.log("Creating login form");
-		lr.login.createLoginForm();
+	,createLoginForm: function(books,lr) {
+		var p = lr.login;
+		var pCopy = new model.Person(p.firstName,p.lastName,p.nickName,p.password);
+		pCopy.createLoginForm(this);
 	}
 	,createRegistrationForm: function(books,lr) {
 		if(lr.login == null) {
@@ -96,7 +97,10 @@ MBooks.prototype = {
 			console.log("User not found. Need to see why enum is not working " + Std.string(lR));
 			this.createRegistrationForm(this,lR);
 		}
-		if(lStatus == model.LoginStatus.UserExists) this.createLoginForm(lR);
+		if(lStatus == model.LoginStatus.UserExists) {
+			console.log("User exists " + Std.string(lR));
+			this.createLoginForm(this,lR);
+		}
 		if(lStatus == model.LoginStatus.InvalidPassword) this.createInvalidPassword(lR);
 		if(lStatus == model.LoginStatus.Undefined) this.createUndefined();
 	}
@@ -111,7 +115,7 @@ MBooks.prototype = {
 		var commandType = this.parseCommandType(incomingMessage.commandType);
 		switch( (commandType)[1] ) {
 		case 1:
-			var person = new model.Person("","","","");
+			var person = incomingMessage.login;
 			var login = model.Login.createLoginResponse(incomingMessage,person);
 			this.processLoginResponse(login);
 			break;
@@ -860,62 +864,38 @@ model.Person.prototype = {
 		console.log("Sending login status " + Std.string(l));
 		this.mbooks.doSendJSON(haxe.Json.stringify(l));
 	}
+	,deleteElement: function(document,elementId,elementLabelId) {
+		console.log("Deleting element if exists -> " + elementId);
+		var element = document.getElementById(elementId);
+		if(element != null) element.parentNode.removeChild(element);
+	}
 	,createDivTag: function(document,className) {
 		var div = document.createElement("div");
 		div.className = className;
 		document.body.appendChild(div);
 		return div;
 	}
-	,createPassword: function(document,parent,elementId,elementLabel) {
-		var div = document.createElement("div");
-		div.className = "Person.Login.Password";
-		var textElement = document.createTextNode(elementLabel);
-		var passwordInput = document.createElement("input");
-		passwordInput.id = elementId;
-		div.appendChild(textElement);
-		div.appendChild(passwordInput);
-		parent.appendChild(div);
-	}
-	,createNickName: function(document,parent,elementId,elementLabel) {
-		var div = document.createElement("div");
-		div.className = "Person.Login.NickName";
-		var textElement = document.createTextNode(elementLabel);
-		var nickNameInput = document.createElement("input");
-		nickNameInput.id = elementId;
-		div.appendChild(textElement);
-		div.appendChild(nickNameInput);
-		parent.appendChild(div);
-	}
-	,createLastName: function(document,parent,elementId,elementLabel) {
-		var div = document.createElement("div");
-		div.className = "Person.Login.LastName";
-		var textElement = document.createTextNode(elementLabel);
-		var lastNameInput = document.createElement("input");
-		lastNameInput.id = elementId;
-		div.appendChild(textElement);
-		div.appendChild(lastNameInput);
-		parent.appendChild(div);
-	}
-	,createFirstName: function(document,parent,elementId,elementLabel) {
+	,createElementWithLabel: function(document,parent,elementId,elementLabel) {
 		console.log("Creating first name element ");
 		var div = document.createElement("div");
 		div.className = "Person.Login.FirstName";
-		var textElement = document.createTextNode(elementLabel);
-		var firstNameInput = document.createElement("input");
-		firstNameInput.id = elementId;
-		div.appendChild(textElement);
-		div.appendChild(firstNameInput);
+		var input = document.createElement("input");
+		input.id = elementId;
+		input.value = elementLabel;
+		div.appendChild(input);
 		parent.appendChild(div);
 	}
 	,createFormElements: function(document,parent) {
-		this.createFirstName(document,parent,model.Person.FIRST_NAME,model.Person.FIRST_NAME_LABEL);
-		this.createLastName(document,parent,model.Person.LAST_NAME,model.Person.LAST_NAME_LABEL);
-		this.createPassword(document,parent,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
+		this.createElementWithLabel(document,parent,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
+		this.createElementWithLabel(document,parent,model.Person.FIRST_NAME,model.Person.FIRST_NAME_LABEL);
+		this.createElementWithLabel(document,parent,model.Person.LAST_NAME,model.Person.LAST_NAME_LABEL);
+		this.createElementWithLabel(document,parent,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
 	}
 	,registerForm: function(books) {
 		try {
 			console.log("Person :: Creating registration form" + Std.string(books));
 			var document = js.Browser.document;
+			this.removeAllElements(document);
 			console.log("Setting status ");
 			this.status = document.getElementById("status");
 			this.status.innerHTML = "Let me sign you up";
@@ -959,32 +939,25 @@ model.Person.prototype = {
 		parent.appendChild(this.register);
 		this.register.onclick = $bind(this,this.registerUser);
 	}
-	,createLoginForm: function() {
-		try {
-			console.log("Creating login form");
-			var document = js.Browser.document;
-			var div = this.createDivTag(document,"Person.Login");
-			div.appendChild(div);
-			this.status = document.getElementById("status");
-			this.status.innerHTML = "Welcome back. The last time you logged in";
-			this.createNickName(document,div,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
-			this.createPassword(document,div,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
-		} catch( msg ) {
-			if( js.Boot.__instanceof(msg,DOMException) ) {
-				console.log("Exception " + Std.string(msg));
-			} else throw(msg);
-		}
+	,removeAllElements: function(document) {
+		this.deleteElement(document,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
+		this.deleteElement(document,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
+		this.deleteElement(document,model.Person.FIRST_NAME,model.Person.FIRST_NAME_LABEL);
+		this.deleteElement(document,model.Person.LAST_NAME,model.Person.LAST_NAME_LABEL);
 	}
 	,createNickNameForm: function(books) {
 		try {
-			this.mbooks = books;
-			console.log("Creating login form");
 			var document = js.Browser.document;
+			this.removeAllElements(document);
+			this.mbooks = books;
+			console.log("Creating nickname form");
 			var div = this.createDivTag(document,"Person.Login");
-			this.createNickName(document,div,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
+			this.createElementWithLabel(document,div,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
 			this.status = document.getElementById("status");
 			this.status.innerHTML = "Welcome.";
 			var nickNameInput = this.getNickNameInput();
+			nickNameInput.focus();
+			nickNameInput.select();
 			nickNameInput.onchange = $bind(this,this.sendLogin);
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
@@ -1001,6 +974,27 @@ model.Person.prototype = {
 		if(element != null) this.lastName = element.value;
 		element = this.document.getElementById(model.Person.NICK_NAME);
 		if(element != null) this.nickName = element.value;
+	}
+	,createLoginForm: function(books) {
+		try {
+			console.log("Creating login form " + Std.string(this));
+			this.mbooks = books;
+			var document = js.Browser.document;
+			this.removeAllElements(document);
+			var div = this.createDivTag(document,"Person.Login");
+			console.log("Querying status element");
+			this.status = document.getElementById("status");
+			this.status.innerHTML = "Welcome back. The last time you logged in";
+			this.createElementWithLabel(document,div,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
+			this.createElementWithLabel(document,div,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
+			this.copyValues();
+			return this;
+		} catch( msg ) {
+			if( js.Boot.__instanceof(msg,DOMException) ) {
+				console.log("Exception " + Std.string(msg));
+			} else throw(msg);
+		}
+		return null;
 	}
 	,__class__: model.Person
 }

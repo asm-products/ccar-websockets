@@ -68,11 +68,7 @@ class MBooks {
 			parseCommandType(incomingMessage.commandType);
 		switch(commandType){
 			case Login : {
-				var person = new Person("", 
-						"",
-						"",
-						"");
-
+			    var person  : Person = incomingMessage.login;
 				var login : Login = model.Login.createLoginResponse(incomingMessage, person);
 				processLoginResponse(login);
 			}
@@ -144,7 +140,8 @@ class MBooks {
 			createRegistrationForm(this, lR);
 		}
 		if(lStatus == UserExists){
-			createLoginForm(lR);
+			trace("User exists " + lR);
+			createLoginForm( this, lR);
 		}
 		if(lStatus == InvalidPassword){
 			createInvalidPassword(lR);
@@ -170,9 +167,12 @@ class MBooks {
 			lr.login.registerForm(books);
 		}
 	}
-	private function createLoginForm(lr : Login) : Void{
-		trace("Creating login form");
-		lr.login.createLoginForm();
+
+	public function createLoginForm(books : MBooks, lr : Login) : Void{
+		var p : Person = lr.login;		
+		//Copy the 
+		var pCopy : Person = new Person(p.firstName, p.lastName, p.nickName, p.password);
+		pCopy.createLoginForm(this);
 	}
 	private function createInvalidPassword(lr : Login) : Void{
 		trace("Processing invalid login" + lr);
