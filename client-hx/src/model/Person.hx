@@ -57,7 +57,7 @@ class Person {
 			status.innerHTML = "Welcome back. The last time you logged in";
 			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
-			copyValues();
+			setValues();
 			return this;
 		}catch(msg : DOMCoreException){
 			trace ("Exception " + msg);
@@ -65,6 +65,25 @@ class Person {
 		return null;
 	}
 
+	private function setValues() : Void {
+		var element : InputElement = cast document.getElementById(FIRST_NAME);
+		if(element != null){
+			element.value = this.firstName;
+		}
+		element = cast document.getElementById(LAST_NAME);
+		if(element != null){
+			element.value = this.lastName;
+		}
+		element = cast document.getElementById(NICK_NAME);
+		if(element != null){
+			element.value = this.nickName;
+		}
+		element = cast document.getElementById(PASSWORD);
+		if(element != null){
+			element.value = this.password;
+		}
+
+	}
 	private function copyValues(): Void {
 		var element : InputElement = cast document.getElementById(PASSWORD);
 		if(element != null) {

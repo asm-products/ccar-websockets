@@ -975,6 +975,16 @@ model.Person.prototype = {
 		element = this.document.getElementById(model.Person.NICK_NAME);
 		if(element != null) this.nickName = element.value;
 	}
+	,setValues: function() {
+		var element = this.document.getElementById(model.Person.FIRST_NAME);
+		if(element != null) element.value = this.firstName;
+		element = this.document.getElementById(model.Person.LAST_NAME);
+		if(element != null) element.value = this.lastName;
+		element = this.document.getElementById(model.Person.NICK_NAME);
+		if(element != null) element.value = this.nickName;
+		element = this.document.getElementById(model.Person.PASSWORD);
+		if(element != null) element.value = this.password;
+	}
 	,createLoginForm: function(books) {
 		try {
 			console.log("Creating login form " + Std.string(this));
@@ -987,7 +997,7 @@ model.Person.prototype = {
 			this.status.innerHTML = "Welcome back. The last time you logged in";
 			this.createElementWithLabel(document,div,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
 			this.createElementWithLabel(document,div,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
-			this.copyValues();
+			this.setValues();
 			return this;
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
