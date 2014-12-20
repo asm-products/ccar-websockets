@@ -218,6 +218,9 @@ class MBooks {
 			trace("No valid connection found");
 		}
 	}
-
+	public function showDashboard() : Void {
+		trace("Showing dashboard");
+		js.Lib.alert("Showing the dashboard");
+	}
 
 }

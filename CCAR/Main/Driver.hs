@@ -48,6 +48,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             description String
             acceptDate UTCTime
             deriving Show Eq 
+        CCAR 
+            scenarioName String
+            scenarioText String
+            creator PersonId
+            deriving Show Eq
             |]
 
 type MyId = PersonId
@@ -70,7 +75,10 @@ data UserTermsOperations = UserTermsOperations {utOperation :: CRUD, terms :: Ma
                 deriving(Show, Eq)
 data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Eq)
-
+data CCARUpload = CCARUpload {uploadedBy :: Maybe Person 
+                            , ccarOperation :: CRUD
+                            , ccarData :: CCAR} 
+                    deriving (Show, Eq)
 data Command = CommandLogin Login 
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
@@ -91,7 +99,7 @@ genLogin  (Login a b) = object [
 genUserOperations (UserOperations o p) = object [
                         "operation" .= o
                         , "person" .= p
-                        , "commandType" .= (String "CreateUser")]
+                        , "commandType" .= (String "ManageUser")]
 genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "terms" .= t]
 genErrorCommand (ErrorCommand e  m) = object ["errorCode" .= e
                                               , "message" .= m]
@@ -152,7 +160,7 @@ parseCommand value = do
             Just cType -> 
                 case (cType) of 
                     "Login"-> CommandLogin <$> parseLogin value
-                    "CreateUser" -> CommandUO <$> parseCreateUser value
+                    "ManageUser" -> CommandUO <$> parseCreateUser value
                     _       -> CommandError <$> parseErrorCommand value
 
 
@@ -319,7 +327,7 @@ processCommandWrapper (Object a)   =
                         case (parse parseLogin a) of
                             Success r -> CommandLogin r
                             Error s -> CommandError $ genericErrorCommand $ "parse login  "++ s
-                String "CreateUser" ->
+                String "ManageUser" ->
                         case (parse parseCreateUser a) of
                             Success r -> CommandUO r
                             Error s -> CommandError $ genericErrorCommand $ "parse create user " ++ s

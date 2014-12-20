@@ -9,6 +9,7 @@ import js.html.InputElement;
 import js.html.DOMCoreException;
 import js.html.Document;
 import js.html.ButtonElement;
+import js.Lib.*;
 
 
 class Person {
@@ -21,6 +22,8 @@ class Person {
 	private static var NICK_NAME : String = "Nickname";
 	private static var NICK_NAME_LABEL : String = "Nick name (needs to be unique)";
 
+	private var maxAttempts : Int;
+	private var attempts : Int;
 	private var mbooks : MBooks;
 	public var nickName (default, null) : String;
 	public var password (default, null) : String;
@@ -42,6 +45,8 @@ class Person {
 		password = pwd;
 		deleted = false; // Should be default..
 		document = Browser.document;
+		attempts = 0;
+		maxAttempts = 3;
 	}
 
 
@@ -58,13 +63,18 @@ class Person {
 			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
 			setValues();
+			getPassword().focus();
+			getPassword().select();
+
+			getPassword().onblur = validatePassword;
+
 			return this;
 		}catch(msg : DOMCoreException){
 			trace ("Exception " + msg);
 		}
 		return null;
 	}
-
+	
 	private function setValues() : Void {
 		var element : InputElement = cast document.getElementById(FIRST_NAME);
 		if(element != null){
@@ -77,10 +87,6 @@ class Person {
 		element = cast document.getElementById(NICK_NAME);
 		if(element != null){
 			element.value = this.nickName;
-		}
-		element = cast document.getElementById(PASSWORD);
-		if(element != null){
-			element.value = this.password;
 		}
 
 	}
@@ -155,12 +161,12 @@ class Person {
 
 	private function registerUser(ev: Event){
 		trace("Register user " + ev);
-		var commandType : String = "CreateUser";
+		var commandType : String = "ManageUser";
 		copyValues();
 		var operation : UserOperation = new UserOperation("Create");
 
 		var uo = {
-			commandType : "CreateUser", 
+			commandType : "ManagerUser", 
 			operation:  {
 				tag : "Create" , //Tag is needed for the aeson objects.
 				contents : []
@@ -234,6 +240,19 @@ class Person {
 		}
 	}
 
+	private function validatePassword(ev : Event){
+		var passwordTest : String = getPassword().value;
+		if(passwordTest != this.password){
+			js.Lib.alert("Invalid password. Try again");
+			attempts++;
+			if(attempts > maxAttempts){
+				js.Lib.alert("Too many attempts. Logging you out.");
+				mbooks.logout();
+			}
+		}else {
+			mbooks.showDashboard();
+		}
+	}
 	public function sendLogin (ev: Event){
 		trace("Copying values");
 		copyValues();
@@ -259,4 +278,5 @@ class Person {
 		var result : InputElement = cast document.getElementById(id);
 		return result;
 	}
+
 }

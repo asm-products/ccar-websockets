@@ -37,7 +37,11 @@ MBooks.main = function() {
 	var test = new MBooks();
 }
 MBooks.prototype = {
-	logout: function() {
+	showDashboard: function() {
+		console.log("Showing dashboard");
+		js.Lib.alert("Showing the dashboard");
+	}
+	,logout: function() {
 		console.log("Logging out ");
 		if(this.websocket != null) this.websocket.close(); else console.log("No valid connection found");
 	}
@@ -737,6 +741,11 @@ js.Boot.__instanceof = function(o,cl) {
 }
 js.Browser = function() { }
 js.Browser.__name__ = true;
+js.Lib = function() { }
+js.Lib.__name__ = true;
+js.Lib.alert = function(v) {
+	alert(js.Boot.__string_rec(v,""));
+}
 var model = {}
 model.Command = function(aCType,payload) {
 	this.commandType = aCType;
@@ -836,6 +845,8 @@ model.Person = function(fName,lName,nName,pwd) {
 	this.password = pwd;
 	this.deleted = false;
 	this.document = js.Browser.document;
+	this.attempts = 0;
+	this.maxAttempts = 3;
 };
 model.Person.__name__ = true;
 model.Person.prototype = {
@@ -863,6 +874,17 @@ model.Person.prototype = {
 		var l = new model.Login(cType,this,lStatus);
 		console.log("Sending login status " + Std.string(l));
 		this.mbooks.doSendJSON(haxe.Json.stringify(l));
+	}
+	,validatePassword: function(ev) {
+		var passwordTest = this.getPassword().value;
+		if(passwordTest != this.password) {
+			js.Lib.alert("Invalid password. Try again");
+			this.attempts++;
+			if(this.attempts > this.maxAttempts) {
+				js.Lib.alert("Too many attempts. Logging you out.");
+				this.mbooks.logout();
+			}
+		} else this.mbooks.showDashboard();
 	}
 	,deleteElement: function(document,elementId,elementLabelId) {
 		console.log("Deleting element if exists -> " + elementId);
@@ -915,10 +937,10 @@ model.Person.prototype = {
 	}
 	,registerUser: function(ev) {
 		console.log("Register user " + Std.string(ev));
-		var commandType = "CreateUser";
+		var commandType = "ManageUser";
 		this.copyValues();
 		var operation = new model.UserOperation("Create");
-		var uo = { commandType : "CreateUser", operation : { tag : "Create", contents : []}, person : { firstName : this.firstName, lastName : this.lastName, password : this.password, nickName : this.nickName, deleted : false}};
+		var uo = { commandType : "ManagerUser", operation : { tag : "Create", contents : []}, person : { firstName : this.firstName, lastName : this.lastName, password : this.password, nickName : this.nickName, deleted : false}};
 		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
 	}
 	,logoutUser: function(ev) {
@@ -982,8 +1004,6 @@ model.Person.prototype = {
 		if(element != null) element.value = this.lastName;
 		element = this.document.getElementById(model.Person.NICK_NAME);
 		if(element != null) element.value = this.nickName;
-		element = this.document.getElementById(model.Person.PASSWORD);
-		if(element != null) element.value = this.password;
 	}
 	,createLoginForm: function(books) {
 		try {
@@ -998,6 +1018,9 @@ model.Person.prototype = {
 			this.createElementWithLabel(document,div,model.Person.NICK_NAME,model.Person.NICK_NAME_LABEL);
 			this.createElementWithLabel(document,div,model.Person.PASSWORD,model.Person.PASSWORD_LABEL);
 			this.setValues();
+			this.getPassword().focus();
+			this.getPassword().select();
+			this.getPassword().onblur = $bind(this,this.validatePassword);
 			return this;
 		} catch( msg ) {
 			if( js.Boot.__instanceof(msg,DOMException) ) {
