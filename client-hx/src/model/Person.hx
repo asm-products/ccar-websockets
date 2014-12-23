@@ -10,6 +10,7 @@ import js.html.DOMCoreException;
 import js.html.Document;
 import js.html.ButtonElement;
 import js.Lib.*;
+import util.*;
 
 
 class Person {
@@ -56,7 +57,7 @@ class Person {
 			this.mbooks = books;
 			var document = Browser.document;
 			removeAllElements(document);
-			var div : DivElement = createDivTag(document, "Person.Login");
+			var div : DivElement = Util.createDivTag(document, "Person.Login");
 			trace("Querying status element");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome back. The last time you logged in";
@@ -116,7 +117,7 @@ class Person {
 			removeAllElements(document);
 			this.mbooks = books;
 			trace("Creating nickname form");
-			var div : DivElement = createDivTag(document, "Person.Login");
+			var div : DivElement = Util.createDivTag(document, "Person.Login");
 			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
@@ -143,6 +144,7 @@ class Person {
 			register.value = "Register";
 			register.innerHTML = "Register";
 			parent.appendChild(register);
+
 			register.onclick = registerUser;			
 		}
 	private function createLogoutButton(document : Document 
@@ -193,11 +195,12 @@ class Person {
 			var document = Browser.document;
 			this.mbooks = books;
 			trace("Creating the div tags");
-			var div : DivElement = createDivTag(document, "Person.Registration");
+			var div : DivElement = Util.createDivTag(document, "Person.Registration");
 			createFormElements(document, div);
 			createRegisterButton(document, div);
 			createLogoutButton(document, div);
 			document.body.appendChild(div);
+			setValues();
 		}catch(msg : DOMCoreException){
 			trace("Exception " + msg);
 		}
@@ -214,8 +217,7 @@ class Person {
 	private function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
 			trace("Creating first name element ");
-			var div = document.createDivElement();
-			div.className = "Person.Login.FirstName";
+			var div = Util.createDivTag(document, "Person.Login.FirstName");
 			var input = document.createInputElement();
 			input.id = elementId;
 			input.value = elementLabel;
@@ -224,12 +226,6 @@ class Person {
 
 	}
 
-	private function createDivTag(document : Document, className : String) : DivElement {
-		var div = document.createDivElement();
-		div.className = className;
-		document.body.appendChild(div);
-		return div;
-	}
 
 	private function deleteElement(document : Document, elementId : String, 
 		elementLabelId : String){

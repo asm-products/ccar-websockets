@@ -257,7 +257,7 @@ updateCCAR cid c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
                 DB.replace (cid) c
                 get cid
 
-queryALLCCAR :: String -> IO [Entity CCAR]
+queryALLCCAR :: T.Text -> IO [Entity CCAR]
 queryALLCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
@@ -273,7 +273,7 @@ deleteCCAR :: CCARId -> CCAR -> IO (Maybe CCAR)
 deleteCCAR pid p = updateCCAR pid p { cCARDeleted = True}
 
 
-checkLoginExists :: String  -> IO (Maybe (Entity Person))
+checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do

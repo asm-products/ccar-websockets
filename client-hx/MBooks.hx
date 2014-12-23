@@ -5,12 +5,14 @@ import js.html.Event;
 import js.html.MessageEvent;
 import js.html.WebSocket;
 import js.html.DOMCoreException;
+import js.html.DivElement;
 import model.Contact;
 import model.Login;
 import model.Person;
 import model.LoginStatus;
 import model.Command;
 import model.CommandType;
+import util.Util;
 import js.Browser;
 import js.html.ButtonElement;
 class MBooks {
@@ -223,7 +225,11 @@ class MBooks {
 	}
 	public function showDashboard() : Void {
 		trace("Showing dashboard");
-		js.Lib.alert("Showing the dashboard");
+		var ccarM : model.CCAR = new model.CCAR("", "", "");
+		var ccar : view.CCAR = new view.CCAR(ccarM, this);
+		var div : DivElement = Util.createDivTag(Browser.document
+			, "CCAR_ROOT");
+		ccar.createCCARForm(div);
 	}
 
 }
