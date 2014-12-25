@@ -404,7 +404,7 @@ processCommandWrapper (Object a)   =
                 String "CCARUpload" ->
                         case (parse parseCCARUpload a) of
                             Success r -> CommandCCARUpload r 
-                            Error s -> CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s
+                            Error s -> CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s ++ (show a)
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
         cType =  LH.lookup "commandType" a

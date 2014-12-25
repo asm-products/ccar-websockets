@@ -66,7 +66,6 @@ class Person {
 			setValues();
 			getPassword().focus();
 			getPassword().select();
-
 			getPassword().onblur = validatePassword;
 
 			return this;
@@ -168,7 +167,7 @@ class Person {
 		var operation : UserOperation = new UserOperation("Create");
 
 		var uo = {
-			commandType : "ManagerUser", 
+			commandType : "ManageUser", 
 			operation:  {
 				tag : "Create" , //Tag is needed for the aeson objects.
 				contents : []
@@ -246,7 +245,7 @@ class Person {
 				mbooks.logout();
 			}
 		}else {
-			mbooks.showDashboard();
+			mbooks.showDashboard(this);
 		}
 	}
 	public function sendLogin (ev: Event){

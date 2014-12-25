@@ -9,6 +9,7 @@ class CCAR {
 		scenarioName = name;
 		scenarioText = text;
 		this.creator = creator;
+		this.deleted = false;
 	}
 	public function setScenarioName(aName : String): Void {
 		this.scenarioName = aName;
