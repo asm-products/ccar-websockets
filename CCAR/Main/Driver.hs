@@ -57,6 +57,7 @@ data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
 
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
+
 data UserOperations = UserOperations{operation :: Us.CRUD, person :: Maybe Person} 
                 deriving (Show, Eq)
 data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD, terms :: Maybe TermsAndConditions} 
@@ -68,11 +69,15 @@ data CCARUpload = CCARUpload {uploadedBy :: T.Text
                             , ccarOperation :: CC.CRUD
                             , ccarData :: Maybe CCAR} 
                     deriving (Show, Eq)
+type KeepAliveCommand = T.Text
 data Command = CommandLogin Login 
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
                 | CommandCCARUpload CCARUpload
-                | CommandError ErrorCommand deriving(Show, Eq)
+                | CommandError ErrorCommand 
+                | CommandKeepAlive KeepAliveCommand
+                deriving(Show, Eq)
+
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
 
 
@@ -105,6 +110,8 @@ genErrorCommand (ErrorCommand e  m) = object ["errorCode" .= e
 genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
                                             , "description" .= des
                                             , "acceptDate" .= accept]
+genCommandKeepAlive a  = object ["keepAlive" .= a]
+
 instance ToJSON Person where
     toJSON  = genPerson 
 
@@ -134,6 +141,7 @@ instance ToJSON Command where
             CommandError e -> genErrorCommand e
             CommandUO e -> genUserOperations e
             CommandCCARUpload a  -> genCCARUpload a
+            CommandKeepAlive a -> genCommandKeepAlive a
             _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
@@ -154,9 +162,11 @@ parseCommand value = do
                     "Login"-> CommandLogin <$> parseLogin value
                     "ManageUser" -> CommandUO <$> parseCreateUser value
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
+                    "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     _       -> CommandError <$> parseErrorCommand value
 
 
+parseKeepAlive v = v .: "keepAlive"
 
 parseCCARUpload v = CCARUpload <$>
                         v .: "uploadedBy" <*>
@@ -326,6 +336,8 @@ processCommand (Just (CommandError error)) =
 processCommand Nothing = return 
          $ decoder $ genericErrorCommand "Unable to process command"
 
+processCommand (Just (CommandKeepAlive a)) = 
+        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandKeepAlive a 
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ "Processing processCommand " ++ (show uo)
@@ -405,6 +417,10 @@ processCommandWrapper (Object a)   =
                         case (parse parseCCARUpload a) of
                             Success r -> CommandCCARUpload r 
                             Error s -> CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s ++ (show a)
+                String "KeepAlive" ->
+                        case (parse parseKeepAlive a) of
+                            Success r -> CommandKeepAlive r 
+                            Error s -> CommandError $ genericErrorCommand $ "Parse Keep alive failed" ++ s ++ (show a)
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
         cType =  LH.lookup "commandType" a
