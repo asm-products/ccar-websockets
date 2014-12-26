@@ -1,6 +1,7 @@
 
 import haxe.Json;
 import haxe.Utf8;
+import haxe.Timer;
 import js.html.Event;
 import js.html.MessageEvent;
 import js.html.WebSocket;
@@ -21,14 +22,15 @@ class MBooks {
 	var serverHost : String = "localhost";
 	var protocol : String = "ws";
 	var portNumber : Int = 3000;
+	var keepAliveInterval : Int = 15000;
 	var websocket : WebSocket;
 	var contact : Contact;	
 	var connect : ButtonElement;
+	var timer : Timer;
 	function new (){
 		serverHost = "localhost";
 		protocol = "ws";
 		portNumber = 3000;
-
 		createConnectionForm();
 
 	}
@@ -54,10 +56,18 @@ class MBooks {
 	}
 	public  function onOpen(ev: Event){
 		trace("Connection opened");
+		initializeKeepAlive();
 	}
-
+	private function initializeKeepAlive() : Void {
+		if(timer == null){
+			timer = new haxe.Timer(keepAliveInterval);
+			timer.run = keepAliveFunction;
+		}else {
+			trace("Timer already running. This should not happen");
+		}
+	}
 	private function parseCommandType(commandType : String) : CommandType {
-		trace("Parsing command type " + commandType);
+	 trace("Parsing command type " + commandType);
 		try {
 		return Type.createEnum(CommandType, commandType);
 		}catch(e : Dynamic){
@@ -231,6 +241,15 @@ class MBooks {
 		var div : DivElement = Util.createDivTag(Browser.document
 			, "CCAR_ROOT");
 		ccar.createCCARForm(div);
+	}
+	private function keepAliveFunction() : Void {
+		var commandType : String = "KeepAlive";
+		var payload = {
+			commandType : commandType
+			, keepAlive : "Ping"
+		};
+		doSendJSON(haxe.Json.stringify(payload));
+
 	}
 
 }
