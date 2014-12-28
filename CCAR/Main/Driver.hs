@@ -8,6 +8,7 @@ import Yesod.WebSockets
 import Yesod.Static
 import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
+
 import Control.Monad (forever)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
@@ -15,15 +16,15 @@ import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
 import Conduit
-import Data.Monoid ((<>))
+import Data.Monoid ((<>), mappend)
 import Control.Concurrent.STM.Lifted
-import Data.Text as T
+import Data.Text as T  hiding(foldl, foldr)
 import Data.Aeson as J
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
-import Data.Text.Lazy as L
+import Data.Text.Lazy as L hiding(foldl, foldr)
 import System.IO
 import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 import qualified CCAR.Model.Person as Us 
@@ -267,11 +268,11 @@ updateCCAR cid c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
                 DB.replace (cid) c
                 get cid
 
-queryALLCCAR :: T.Text -> IO [Entity CCAR]
-queryALLCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+queryAllCCAR :: T.Text -> IO [Entity CCAR]
+queryAllCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
-                    selectList [CCARCreator ==. aNickName] []
+                    selectList [] []
  
 queryCCAR :: CCARId -> IO (Maybe CCAR) 
 queryCCAR pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
@@ -394,6 +395,19 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR))) 
                         $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing
                     Just x -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x)
+        CC.QueryAll nickName -> do
+                maybeCCAR <- queryAllCCAR nickName
+                case maybeCCAR of 
+                    [] -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
+                        $ CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing
+                    aList -> return $ 
+                        foldr (\(Entity _ x)  acc -> 
+                            acc `mappend`
+                            (L.toStrict $ E.decodeUtf8 $ J.encode 
+                            $ CommandCCARUpload $ 
+                                CCARUpload nickName (CC.QueryAll nickName) (Just x))
+                            ) "" aList
+
         where
             ccar = case aCCAR of
                     Nothing -> emptyCCAR

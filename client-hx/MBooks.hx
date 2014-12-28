@@ -241,6 +241,7 @@ class MBooks {
 		var div : DivElement = Util.createDivTag(Browser.document
 			, "CCAR_ROOT");
 		ccar.createCCARForm(div);
+		ccar.queryAllCCARs();
 	}
 	private function keepAliveFunction() : Void {
 		var commandType : String = "KeepAlive";
