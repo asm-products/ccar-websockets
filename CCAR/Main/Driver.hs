@@ -45,6 +45,8 @@ emptyPerson = Person {personFirstName = "Not known"
                     , personPassword = "Not known"
                     , personDeleted = False}
 
+
+
 emptyCCAR = CCAR {
         cCARScenarioName =  "Not known"
         , cCARScenarioText = "Not known"
@@ -65,10 +67,13 @@ data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD, terms :
                 deriving(Show, Eq)
 data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Eq)
-               
+
+-- There is a lack of symmetry in this object: the result set can never be populated
+-- as part of the request.               
 data CCARUpload = CCARUpload {uploadedBy :: T.Text 
                             , ccarOperation :: CC.CRUD
-                            , ccarData :: Maybe CCAR} 
+                            , ccarData :: Maybe CCAR
+                            , ccarResultSet :: [Maybe CCAR]} 
                     deriving (Show, Eq)
 type KeepAliveCommand = T.Text
 data Command = CommandLogin Login 
@@ -93,9 +98,10 @@ genCCAR (CCAR a b person del)  = object ["scenarioName" .= a
                                     , "creator" .= person
                                     , "deleted" .= del]
 
-genCCARUpload (CCARUpload a b c) = object["uploadedBy" .= a 
+genCCARUpload (CCARUpload a b c d ) = object["uploadedBy" .= a 
                                     , "ccarOperation" .= b 
-                                    , "ccarData" .= c]
+                                    , "ccarData" .= c
+                                    , "ccarResultSet" .= d]
 genLogin  (Login a b) = object [
     "commandType" .= (String "Login")
     , "login" .= Just a, "loginStatus" .= b]
@@ -169,10 +175,12 @@ parseCommand value = do
 
 parseKeepAlive v = v .: "keepAlive"
 
+-- The upload 
 parseCCARUpload v = CCARUpload <$>
                         v .: "uploadedBy" <*>
                         v .: "ccarOperation" <*>
-                        v .: "ccarData"
+                        v .: "ccarData" <*>
+                        (pure [])
 
 parseCCAR v = CCAR <$>
                 v .: "scenarioName" <*>
@@ -371,7 +379,7 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
                 Just a -> a        
 
 
-processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR))) = do
+processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
     putStrLn $ "Processing command ccar upload " ++ (show ccar)
     case operation of 
         CC.Create -> do 
@@ -379,35 +387,31 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR))) 
                 liftIO $ putStrLn $ "CCAR created " ++ (show ccar)
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation 
-                                (Just ccar)
+                                (Just ccar) []
         CC.Update ccarId -> do
                 updateCCAR ccarId ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar)
+                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
         CC.Delete ccarId -> do 
                 deleteCCAR ccarId ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar)
+                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
         CC.Query ccarId -> do 
                 maybeCCAR <- queryCCAR (ccarId)
                 case maybeCCAR of 
                     Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing
+                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing []
                     Just x -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x)
+                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []
         CC.QueryAll nickName -> do
                 maybeCCAR <- queryAllCCAR nickName
                 case maybeCCAR of 
                     [] -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing
-                    aList -> return $ 
-                        foldr (\(Entity _ x)  acc -> 
-                            acc `mappend`
-                            (L.toStrict $ E.decodeUtf8 $ J.encode 
-                            $ CommandCCARUpload $ 
-                                CCARUpload nickName (CC.QueryAll nickName) (Just x))
-                            ) "" aList
-
+                        $ CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing []
+                    aList -> return $ L.toStrict $ E.decodeUtf8 $ J.encode $ 
+                            CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList)
+                    where
+                        ccarList aList = Prelude.map( \(Entity y  x) -> Just x) aList
         where
             ccar = case aCCAR of
                     Nothing -> emptyCCAR

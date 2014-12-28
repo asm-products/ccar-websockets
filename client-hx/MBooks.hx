@@ -53,6 +53,7 @@ class MBooks {
 	public function onClose(ev: Event){
 		trace("Connection closed");
 
+
 	}
 	public  function onOpen(ev: Event){
 		trace("Connection opened");
