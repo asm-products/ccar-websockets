@@ -7,6 +7,7 @@ import js.html.MessageEvent;
 import js.html.WebSocket;
 import js.html.DOMCoreException;
 import js.html.DivElement;
+import js.html.Document;
 import model.Contact;
 import model.Login;
 import model.Person;
@@ -93,7 +94,11 @@ class MBooks {
 				var login : Login = model.Login.createLoginResponse(incomingMessage, person);
 				processLoginResponse(login);
 			}
-
+			case CCARUpload : {
+				var ccarUpload : model.CCAR = incomingMessage.ccarData;
+				var resultSet : List<model.CCAR> = incomingMessage.ccarResultSet;
+				processCCARUpload(ccarUpload, resultSet);
+			}
 			case RegisterUser: {
 				//processRegisterUser(incomingMessage);
 			}
@@ -172,6 +177,18 @@ class MBooks {
 		}
 	}
 
+	private function processCCARUpload( ccarData: model.CCAR,  resultSet : List<model.CCAR>)
+	{
+		var document : Document = Browser.document;
+		var div : DivElement = cast document.getElementById("CCAR_ROOT");
+		if (div == null){
+			trace("No div tag CCAR_ROOT defined");
+		}else {
+			resultSet.add(ccarData);
+			view.CCAR.populateList(document, div, resultSet);
+		}
+	}
+
 	private function createUndefined() : Void {
 		trace("Undefined as response..should not happen");
 	}
@@ -243,8 +260,7 @@ class MBooks {
 		}
 	}
 	public function showDashboard(p : Person) : Void {
-		trace("Showing dashboard");
-		
+		trace("Showing dashboard");		
 		var ccarM : model.CCAR = new model.CCAR("", "", p.nickName);
 		var ccar : view.CCAR = new view.CCAR(ccarM, this);
 		var div : DivElement = Util.createDivTag(Browser.document

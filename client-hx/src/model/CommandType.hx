@@ -14,5 +14,6 @@ enum CommandType {
 	UpdateUserPreferences;
 	QueryUserPreferences;
 	DeleteUserPreferences;
+	CCARUpload;
 	Undefined;
 }
