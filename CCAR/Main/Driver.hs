@@ -101,7 +101,8 @@ genCCAR (CCAR a b person del)  = object ["scenarioName" .= a
 genCCARUpload (CCARUpload a b c d ) = object["uploadedBy" .= a 
                                     , "ccarOperation" .= b 
                                     , "ccarData" .= c
-                                    , "ccarResultSet" .= d]
+                                    , "ccarResultSet" .= d
+                                    , "commandType" .= (String "CCARUpload")]
 genLogin  (Login a b) = object [
     "commandType" .= (String "Login")
     , "login" .= Just a, "loginStatus" .= b]
@@ -117,7 +118,8 @@ genErrorCommand (ErrorCommand e  m) = object ["errorCode" .= e
 genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
                                             , "description" .= des
                                             , "acceptDate" .= accept]
-genCommandKeepAlive a  = object ["keepAlive" .= a]
+genCommandKeepAlive a  = object ["keepAlive" .= a
+                                , "commandType" .= ("keepAlive" :: T.Text)]
 
 instance ToJSON Person where
     toJSON  = genPerson 

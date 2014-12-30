@@ -52,7 +52,7 @@ class MBooks {
 	}
 	public function onClose(ev: Event){
 		trace("Connection closed");
-
+		disableKeepAlive();
 
 	}
 	public  function onOpen(ev: Event){
@@ -65,6 +65,14 @@ class MBooks {
 			timer.run = keepAliveFunction;
 		}else {
 			trace("Timer already running. This should not happen");
+		}
+	}
+	private function disableKeepAlive() : Void {
+		if(timer == null){
+			trace("Nothing to disable");
+		}else {
+			trace("Stopping the timer");
+			timer.stop();
 		}
 	}
 	private function parseCommandType(commandType : String) : CommandType {
