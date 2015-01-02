@@ -85,6 +85,7 @@ class MBooks {
 			return Undefined;
 		}
 	}
+
 	public function parseIncomingMessage(incomingMessage : Dynamic) : Void {
 		var commandType : CommandType = 
 			parseCommandType(incomingMessage.commandType);
@@ -96,8 +97,7 @@ class MBooks {
 			}
 			case CCARUpload : {
 				var ccarUpload : model.CCAR = incomingMessage.ccarData;
-				var resultSet : List<model.CCAR> = incomingMessage.ccarResultSet;
-				trace("Result set " + resultSet);
+				var resultSet : Array<model.CCAR> = cast incomingMessage.ccarResultSet;
 				processCCARUpload(ccarUpload, resultSet);
 			}
 			case RegisterUser: {
@@ -178,13 +178,13 @@ class MBooks {
 		}
 	}
 
-	private function processCCARUpload( ccarData: model.CCAR,  resultSet : List<model.CCAR>)
+	private function processCCARUpload( ccarData: model.CCAR,  resultSet : Array<model.CCAR>)
 	{
-		trace("Processing ccar upload" + resultSet);
 		var document : Document = Browser.document;
 		if(ccarData != null) {
-			resultSet.add(ccarData);
+			resultSet.push(ccarData);
 		}
+	
 		view.CCAR.populateList(document, resultSet);
 	}
 

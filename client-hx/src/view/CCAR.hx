@@ -14,6 +14,8 @@ import js.html.UListElement;
 import js.html.LIElement;
 import js.html.SelectElement;
 import js.html.OptionElement;
+
+
 import js.Lib.*;
 import util.*;
 /**
@@ -74,7 +76,7 @@ class CCAR {
 		Util.createTextAreaElement(document, div 
 		, TEXT_CLASS
 		, TEXT);
-		Util.createSelectElement(document, div , LIST, LIST_CLASS);
+		Util.createSelectElement(document, div , LIST_CLASS, LIST);
 		Util.createButtonElement(document, div, UPLOAD_BUTTON_CLASS, UPLOAD_BUTTON);
 		var buttonElement : ButtonElement = 
 					cast document.getElementById(UPLOAD_BUTTON);
@@ -118,21 +120,32 @@ class CCAR {
 
 
 	public static function populateList(document: Document
-		, elements : List<model.CCAR>){
-		trace("Populate the elements in the list " + elements);
+		, elements : Array<model.CCAR>){
+		trace("Populate the elements in the list " + elements.length);
 		var list : SelectElement = cast document.getElementById(LIST);
+		var options : List<OptionElement> = new List<OptionElement>();
+		var prev : OptionElement = null;
+		var cur : OptionElement = null;
 		for ( i in elements){
+		if(i.scenarioName != "") {
 			var option : OptionElement = 
 				cast document.getElementById(i.scenarioName);
 			if (option == null){
-				trace("Creating option element");
-				option = document.createOptionElement();
-				option.id = i.scenarioName;
-				list.appendChild(option);
+					trace("Creating option element " + i);
+					option = document.createOptionElement();
+					cur = option;
+					option.id = i.scenarioName;
+					option.text = i.scenarioName;
+					list.appendChild(option);
+					prev = option;				
 			}
+		}else {
+			trace("Ignoring empty scenario name " + i);
+		}
 
 		}
-	}
+	
 
+	}
 
 }
