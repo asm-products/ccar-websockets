@@ -97,6 +97,7 @@ class MBooks {
 			case CCARUpload : {
 				var ccarUpload : model.CCAR = incomingMessage.ccarData;
 				var resultSet : List<model.CCAR> = incomingMessage.ccarResultSet;
+				trace("Result set " + resultSet);
 				processCCARUpload(ccarUpload, resultSet);
 			}
 			case RegisterUser: {
@@ -179,14 +180,12 @@ class MBooks {
 
 	private function processCCARUpload( ccarData: model.CCAR,  resultSet : List<model.CCAR>)
 	{
+		trace("Processing ccar upload" + resultSet);
 		var document : Document = Browser.document;
-		var div : DivElement = cast document.getElementById("CCAR_ROOT");
-		if (div == null){
-			trace("No div tag CCAR_ROOT defined");
-		}else {
+		if(ccarData != null) {
 			resultSet.add(ccarData);
-			view.CCAR.populateList(document, div, resultSet);
 		}
+		view.CCAR.populateList(document, resultSet);
 	}
 
 	private function createUndefined() : Void {
@@ -263,10 +262,15 @@ class MBooks {
 		trace("Showing dashboard");		
 		var ccarM : model.CCAR = new model.CCAR("", "", p.nickName);
 		var ccar : view.CCAR = new view.CCAR(ccarM, this);
-		var div : DivElement = Util.createDivTag(Browser.document
-			, "CCAR_ROOT");
-		ccar.createCCARForm(div);
-		ccar.queryAllCCARs();
+		var div : DivElement = cast Browser.document.getElementById("CCAR.ROOT");
+		if(div == null) {
+			div = Util.createDivTag(Browser.document
+						, "CCAR.ROOT");
+			ccar.createCCARForm(div);
+			ccar.queryAllCCARs();
+		}else {
+			trace("Not creating the div element " + div);
+		}
 	}
 	private function keepAliveFunction() : Void {
 		var commandType : String = "KeepAlive";
