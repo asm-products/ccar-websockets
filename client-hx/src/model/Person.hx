@@ -10,6 +10,7 @@ import js.html.DOMCoreException;
 import js.html.Document;
 import js.html.ButtonElement;
 import js.Lib.*;
+import haxe.ds.GenericStack;
 import util.*;
 
 
@@ -23,6 +24,7 @@ class Person {
 	private static var NICK_NAME : String = "Nickname";
 	private static var NICK_NAME_LABEL : String = "Nick name (needs to be unique)";
 
+	private var divStack : GenericStack<DivElement>;
 	private var maxAttempts : Int;
 	private var attempts : Int;
 	private var mbooks : MBooks;
@@ -48,12 +50,17 @@ class Person {
 		document = Browser.document;
 		attempts = 0;
 		maxAttempts = 3;
+		divStack = new GenericStack<DivElement>();
 	}
 
 
+	public function hideDiv(element: DivElement) : Void {
+		element.style.display = "Hide";
+	}
 	public function createLoginForm(books : MBooks) : Person {
 		try {
 			trace("Creating login form " + this);
+			popStack();
 			this.mbooks = books;
 			var document = Browser.document;
 			removeAllElements(document);
@@ -67,7 +74,7 @@ class Person {
 			getPassword().focus();
 			getPassword().select();
 			getPassword().onblur = validatePassword;
-
+			pushStack(div);
 			return this;
 		}catch(msg : DOMCoreException){
 			trace ("Exception " + msg);
@@ -112,6 +119,7 @@ class Person {
 
 	public function createNickNameForm(books : MBooks): Void {
 		try {
+			popStack();
 			var document = Browser.document;
 			removeAllElements(document);
 			this.mbooks = books;
@@ -124,6 +132,7 @@ class Person {
 			nickNameInput.focus();
 			nickNameInput.select();
 			nickNameInput.onchange = this.sendLogin;
+			pushStack(div);
 		}catch(msg : DOMCoreException){
 			trace ("Exception " + msg);
 		}
@@ -187,6 +196,7 @@ class Person {
 		try {
 			trace("Person :: Creating registration form" + books);
 			var document = Browser.document;
+			popStack();
 			removeAllElements(document);
 			trace("Setting status ");
 			status = cast document.getElementById("status");
@@ -200,6 +210,7 @@ class Person {
 			createLogoutButton(document, div);
 			document.body.appendChild(div);
 			setValues();
+			pushStack(div);
 		}catch(msg : DOMCoreException){
 			trace("Exception " + msg);
 		}
@@ -219,7 +230,10 @@ class Person {
 			var div = Util.createDivTag(document, "Person.Login.FirstName");
 			var input = document.createInputElement();
 			input.id = elementId;
-			input.value = elementLabel;
+			var inputLabel = document.createLabelElement();
+			inputLabel.id = elementLabel;
+			inputLabel.innerHTML = elementLabel;
+			div.appendChild(inputLabel);
             div.appendChild(input);
 			parent.appendChild(div);
 
@@ -232,6 +246,10 @@ class Person {
 		var element : Element = document.getElementById(elementId);
 		if (element != null){
 			element.parentNode.removeChild(element);
+		}
+		var elementLabel : Element = document.getElementById(elementLabelId);
+		if (elementLabel != null){
+			elementLabel.parentNode.removeChild(elementLabel);
 		}
 	}
 
@@ -273,5 +291,17 @@ class Person {
 		var result : InputElement = cast document.getElementById(id);
 		return result;
 	}
+	//Pop before manipulating the current window, hide the window
+	private function popStack() : Void {
+		var prev : DivElement = divStack.pop();
+		if(prev != null) {
+			trace("Hiding div " + prev);
+			prev.style.display = "hidden";			
+		}		
+	}
+	private function pushStack(div : DivElement) : Void {
+		divStack.add(div);
+	}
+
 
 }
