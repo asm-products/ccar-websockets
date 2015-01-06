@@ -167,7 +167,6 @@ class MBooks {
 			createRegistrationForm(this, lR);
 		}
 		if(lStatus == UserExists){
-			trace("User exists " + lR);
 			createLoginForm( this, lR);
 		}
 		if(lStatus == InvalidPassword){
@@ -210,7 +209,7 @@ class MBooks {
 
 	public function createLoginForm(books : MBooks, lr : Login) : Void{
 		var p : Person = lr.login;		
-		//Copy the 
+		//Copy the person object from the incoming message.
 		var pCopy : Person = new Person(p.firstName, p.lastName, p.nickName, p.password);
 		pCopy.createLoginForm(this);
 	}
@@ -229,7 +228,6 @@ class MBooks {
 	public  function doSendJSON(aMessage : String){
 		trace("Sending " + aMessage);
 		var d : Dynamic = haxe.Json.parse(aMessage);
-		trace("Parsed message should look like so " + d);
 		websocket.send(aMessage);
 	}
 	private function createConnectionForm() : Void {

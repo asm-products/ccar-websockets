@@ -19,7 +19,7 @@ class Person {
 	private static var FIRST_NAME_LABEL : String = "First Name";
 	private static var LAST_NAME : String = "LastName";
 	private static var LAST_NAME_LABEL : String = "Last Name";
-	private static var PASSWORD : String = "Password";
+	private static var PASSWORD : String = "PasswordField";
 	private static var PASSWORD_LABEL : String = "Password";
 	private static var NICK_NAME : String = "Nickname";
 	private static var NICK_NAME_LABEL : String = "Nick name (needs to be unique)";
@@ -65,15 +65,14 @@ class Person {
 			var document = Browser.document;
 			removeAllElements(document);
 			var div : DivElement = Util.createDivTag(document, "Person.Login");
-			trace("Querying status element");
 			status = cast document.getElementById("status");
-			status.innerHTML = "Welcome back. The last time you logged in";
+			status.innerHTML = "Welcome back. The last time you logged in: Fix this";
 			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
-			setValues();
+			trace("Setting up password field");
 			getPassword().focus();
-			getPassword().select();
 			getPassword().onblur = validatePassword;
+			setValues();
 			pushStack(div);
 			return this;
 		}catch(msg : DOMCoreException){
@@ -114,6 +113,10 @@ class Person {
 		if(element != null){
 			nickName = element.value;
 		}
+		element = cast document.getElementById(PASSWORD);
+		if(element != null){
+			password = element.value;
+		}
 
 	}
 
@@ -124,7 +127,7 @@ class Person {
 			removeAllElements(document);
 			this.mbooks = books;
 			trace("Creating nickname form");
-			var div : DivElement = Util.createDivTag(document, "Person.Login");
+			var div : DivElement = Util.createDivTag(document, "Person.NickName");
 			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
@@ -143,7 +146,6 @@ class Person {
 		deleteElement(document, PASSWORD, PASSWORD_LABEL);
 		deleteElement(document, FIRST_NAME, FIRST_NAME_LABEL);
 		deleteElement(document, LAST_NAME, LAST_NAME_LABEL);
-
 	}
 
 	private function createRegisterButton(document : Document
@@ -255,6 +257,7 @@ class Person {
 
 	private function validatePassword(ev : Event){
 		var passwordTest : String = getPassword().value;
+		trace("Password ?? " + passwordTest);
 		if(passwordTest != this.password){
 			js.Lib.alert("Invalid password. Try again");
 			attempts++;
@@ -294,14 +297,16 @@ class Person {
 	//Pop before manipulating the current window, hide the window
 	private function popStack() : Void {
 		var prev : DivElement = divStack.pop();
+		trace("Popping " + prev);
 		if(prev != null) {
 			trace("Hiding div " + prev);
 			prev.style.display = "hidden";			
 		}		
 	}
 	private function pushStack(div : DivElement) : Void {
+		trace("Pushing " + div);
+		div.style.display = "visible";
 		divStack.add(div);
 	}
-
 
 }
