@@ -266,7 +266,11 @@ class Person {
 				mbooks.logout();
 			}
 		}else {
+			var document : Document = Browser.document;
+			var div : DivElement = Util.createDivTag(document, "Dashboard.Logout");
+			createLogoutButton(document, div);
 			mbooks.showDashboard(this);
+			
 		}
 	}
 	public function sendLogin (ev: Event){

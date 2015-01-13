@@ -2,6 +2,7 @@
 import haxe.Json;
 import haxe.Utf8;
 import haxe.Timer;
+import haxe.ds.GenericStack;
 import js.html.Event;
 import js.html.MessageEvent;
 import js.html.WebSocket;
@@ -33,7 +34,7 @@ class MBooks {
 		protocol = "ws";
 		portNumber = 3000;
 		createConnectionForm();
-
+		ccarViews = new GenericStack<view.CCAR>();
 	}
 
 	function initializeConnection(){
@@ -183,8 +184,13 @@ class MBooks {
 		if(ccarData != null) {
 			resultSet.push(ccarData);
 		}
-	
-		view.CCAR.populateList(document, resultSet);
+		var ccar : view.CCAR = ccarViews.pop();
+		if(ccar == null){
+			trace("No view found??");
+		}else {
+			ccar.populateList(document, resultSet);
+		}
+		
 	}
 
 	private function createUndefined() : Void {
@@ -260,6 +266,7 @@ class MBooks {
 		trace("Showing dashboard");		
 		var ccarM : model.CCAR = new model.CCAR("", "", p.nickName);
 		var ccar : view.CCAR = new view.CCAR(ccarM, this);
+		ccarViews.add(ccar);
 		var div : DivElement = cast Browser.document.getElementById("CCAR.ROOT");
 		if(div == null) {
 			div = Util.createDivTag(Browser.document
@@ -279,5 +286,5 @@ class MBooks {
 		doSendJSON(haxe.Json.stringify(payload));
 
 	}
-
+	private var ccarViews : GenericStack<view.CCAR>;
 }

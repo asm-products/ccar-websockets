@@ -29,7 +29,6 @@ class Util {
 		var div = createDivTag(document, elementClass);
 		var inputElement = document.createInputElement();
 		inputElement.id = elementName;
-		inputElement.value = elementName;
 		div.appendChild(inputElement);
 		parent.appendChild(div);
 
@@ -83,7 +82,5 @@ class Util {
 			element.id = elementName;
 			div.appendChild(element);
 			parent.appendChild(div);
-
-
 		}
 }
