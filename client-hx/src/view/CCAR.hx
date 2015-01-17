@@ -37,12 +37,10 @@
 		private static var UPLOAD_BUTTON : String = "Upload Scenario";
 		private var document : Document;
 		private var model : model.CCAR;
-		private var mbooks : MBooks ;
 		private var ccarDictionary : ObjectMap<String, model.CCAR>;
-		public function new(a : model.CCAR, m : MBooks) {
+		public function new(a : model.CCAR) {
 			this.model = a;
 			document = Browser.document;
-			mbooks = m;	
 			ccarDictionary = new ObjectMap<String, model.CCAR>();
 		}
 		//Copy values from the view into the model;
@@ -72,10 +70,10 @@
 		public function createCCARForm(parent : DivElement){
 			trace("Creating CCAR form ");
 			var div : DivElement = Util.createDivTag(document, CCAR_DIV_TAG);
-			Util.createInputElement(document, div
+			Util.createElementWithLabel(document, div
 			, NAME_CLASS
 			, NAME);
-			Util.createTextAreaElement(document, div 
+			Util.createTextAreaElementWithLabel(document, div 
 			, TEXT_CLASS
 			, TEXT);
 			Util.createSelectElement(document, div , LIST_CLASS, LIST);
@@ -103,7 +101,7 @@
 				, uploadedBy : this.model.creator
 				, ccarData : this.model
 			};
-			mbooks.doSendJSON(Json.stringify(payload));
+			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 
 		}
 
@@ -124,7 +122,7 @@
 				, uploadedBy : this.model.creator
 				, ccarData : this.model
 			};
-			mbooks.doSendJSON(Json.stringify(payload));
+			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 		}
 
 

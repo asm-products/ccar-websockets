@@ -4,6 +4,9 @@ import js.html.Event;
 import js.Browser;
 import js.html.Element;
 import js.html.InputElement;
+import js.html.Text;
+import js.html.TextAreaElement;
+
 import js.html.DivElement;
 import js.html.Document;
 import js.html.ButtonElement;
@@ -41,12 +44,10 @@ class Util {
 			trace("Creating text area element");
 			var div = createDivTag(document, elementClass);
 			var areaElement = document.createTextAreaElement();
-			areaElement.value = elementName;
 			areaElement.id = elementName;
 			div.appendChild(areaElement);
 			parent.appendChild(div);
-
-		}
+	}
 
 	public static function createListElement(document : Document
 		, parent : DivElement
@@ -83,4 +84,34 @@ class Util {
 			div.appendChild(element);
 			parent.appendChild(div);
 		}
+	public static function createElementWithLabel(document : Document
+			, parent : DivElement, elementId : String, elementLabel : String) : Void{
+			var input = document.createInputElement();
+			input.id = elementId;
+			var div = Util.createDivTag(document, DIV + elementLabel);
+			var inputLabel = document.createLabelElement();
+			inputLabel.id = LABEL + elementLabel;
+			inputLabel.innerHTML = elementLabel;
+			div.appendChild(inputLabel);
+            div.appendChild(input);
+            parent.appendChild(div);
+	}
+
+	public static function createTextAreaElementWithLabel(document : Document
+			, parent : DivElement
+			, elementId : String 
+			, elementLabel : String) : Void {
+			
+			var inputLabel = document.createLabelElement();
+			inputLabel.id = LABEL + elementId;
+			inputLabel.innerHTML = elementLabel;
+			createTextAreaElement(document, parent, elementId, elementLabel);
+			
+			var textAreaElement : Text = cast document.getElementById(elementId);
+
+	}
+
+	//Prefix: to maintain uniqueness
+	private static var LABEL: String = "LABEL_";
+	private static var DIV : String = "DIV_";
 }

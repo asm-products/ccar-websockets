@@ -29,12 +29,16 @@ class MBooks {
 	var contact : Contact;	
 	var connect : ButtonElement;
 	var timer : Timer;
+	public var divStack (default, null) : GenericStack<DivElement>;
+
+
+
 	function new (){
 		serverHost = "localhost";
 		protocol = "ws";
 		portNumber = 3000;
-		createConnectionForm();
 		ccarViews = new GenericStack<view.CCAR>();
+		divStack = new GenericStack<DivElement>();
 	}
 
 	function initializeConnection(){
@@ -49,14 +53,7 @@ class MBooks {
 	function connectionString() : String {
 		return protocol + "://" + serverHost + ":" + portNumber;
 	}
-	static function main() {
-		var test : MBooks= new MBooks();
-	}
-	public function onClose(ev: Event){
-		trace("Connection closed");
-		disableKeepAlive();
 
-	}
 	public  function onOpen(ev: Event){
 		trace("Connection opened");
 		initializeKeepAlive();
@@ -165,10 +162,10 @@ class MBooks {
 		trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
 			trace("User not found. Need to see why enum is not working " + lR);
-			createRegistrationForm(this, lR);
+			createRegistrationForm(lR);
 		}
 		if(lStatus == UserExists){
-			createLoginForm( this, lR);
+			createLoginForm(lR);
 		}
 		if(lStatus == InvalidPassword){
 			createInvalidPassword(lR);
@@ -196,28 +193,28 @@ class MBooks {
 	private function createUndefined() : Void {
 		trace("Undefined as response..should not happen");
 	}
-	private function createRegistrationForm(books : MBooks, lr : Login) : Void{
+	private function createRegistrationForm(lr : Login) : Void{
 		if(lr.login == null){
-			var person : Person = new Person("", 
+			person = new Person("", 
 						"",
 						"",
 						"");
 			
-			person.registerForm(books);
+			person.registerForm();
 		}else {
 			trace("Login not null : Login  " + lr.login);
 			var p : Person = lr.login;		
 			//Copy the 
 			var pCopy : Person = new Person(p.firstName, p.lastName, p.nickName, p.password);
-			pCopy.registerForm(books);
+			pCopy.registerForm();
 		}
 	}
 
-	public function createLoginForm(books : MBooks, lr : Login) : Void{
+	public function createLoginForm(lr : Login) : Void{
 		var p : Person = lr.login;		
 		//Copy the person object from the incoming message.
-		var pCopy : Person = new Person(p.firstName, p.lastName, p.nickName, p.password);
-		pCopy.createLoginForm(this);
+		person.copyInput(p.firstName, p.lastName, p.nickName, p.password);
+		person.createLoginForm();
 	}
 	private function createInvalidPassword(lr : Login) : Void{
 		trace("Processing invalid login" + lr);
@@ -240,12 +237,12 @@ class MBooks {
 		try {
 		trace("Creating connection form");
 		var document = Browser.document;
-		var person : Person = new Person("", 
+		person  = new Person("", 
 						"",
 						"",
 						"");
 
-		person.createNickNameForm(this);
+		person.createNickNameForm();
 		initializeConnection();
 		trace("Connection form created");
 		} catch(msg:DOMCoreException){
@@ -265,7 +262,7 @@ class MBooks {
 	public function showDashboard(p : Person) : Void {
 		trace("Showing dashboard");		
 		var ccarM : model.CCAR = new model.CCAR("", "", p.nickName);
-		var ccar : view.CCAR = new view.CCAR(ccarM, this);
+		var ccar : view.CCAR = new view.CCAR(ccarM);
 		ccarViews.add(ccar);
 		var div : DivElement = cast Browser.document.getElementById("CCAR.ROOT");
 		if(div == null) {
@@ -287,4 +284,26 @@ class MBooks {
 
 	}
 	private var ccarViews : GenericStack<view.CCAR>;
+	private var person : model.Person;
+	private static var singleton : MBooks;
+	public static function pop(): DivElement {
+		return singleton.divStack.pop();
+	}
+	public static function push(div : DivElement){
+		singleton.divStack.add(div);
+	}
+	public static function getMBooks() : MBooks {
+		return singleton;
+	}
+	static function main() {
+		singleton = new MBooks();
+		singleton.createConnectionForm();
+	}
+	public function onClose(ev: Event){
+		trace("Connection closed");
+		disableKeepAlive();
+
+	}
+
+
 }

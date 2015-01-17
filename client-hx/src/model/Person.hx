@@ -24,10 +24,8 @@ class Person {
 	private static var NICK_NAME : String = "Nickname";
 	private static var NICK_NAME_LABEL : String = "Nick name (needs to be unique)";
 
-	private var divStack : GenericStack<DivElement>;
 	private var maxAttempts : Int;
 	private var attempts : Int;
-	private var mbooks : MBooks;
 	public var nickName (default, null) : String;
 	public var password (default, null) : String;
 	public var firstName (default, null): String;
@@ -50,26 +48,22 @@ class Person {
 		document = Browser.document;
 		attempts = 0;
 		maxAttempts = 3;
-		divStack = new GenericStack<DivElement>();
 	}
 
 
 	public function hideDiv(element: DivElement) : Void {
 		element.style.display = "Hide";
 	}
-	public function createLoginForm(books : MBooks) : Person {
+	public function createLoginForm() : Person {
 		try {
 			trace("Creating login form " + this);
 			popStack();
-			this.mbooks = books;
 			var document = Browser.document;
-			removeAllElements(document);
 			var div : DivElement = Util.createDivTag(document, "Person.Login");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome back. The last time you logged in: Fix this";
-			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
-			createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
-			trace("Setting up password field");
+			Util.createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
+			Util.createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
 			getPassword().focus();
 			getPassword().onblur = validatePassword;
 			setValues();
@@ -120,15 +114,14 @@ class Person {
 
 	}
 
-	public function createNickNameForm(books : MBooks): Void {
+	public function createNickNameForm(): Void {
 		try {
 			popStack();
 			var document = Browser.document;
 			removeAllElements(document);
-			this.mbooks = books;
 			trace("Creating nickname form");
 			var div : DivElement = Util.createDivTag(document, "Person.NickName");
-			createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
+			Util.createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
 			var nickNameInput : InputElement = getNickNameInput();
@@ -168,7 +161,7 @@ class Person {
 
 	private function logoutUser(ev : Event){
 		trace("Logout user " + ev);
-		this.mbooks.logout();
+		MBooks.getMBooks().logout();
 	}
 
 	private function registerUser(ev: Event){
@@ -191,12 +184,12 @@ class Person {
 				deleted : false
 			}
 		};
-		this.mbooks.doSendJSON(haxe.Json.stringify(uo));
+		MBooks.getMBooks().doSendJSON(haxe.Json.stringify(uo));
 	}
 
-	public function registerForm(books : MBooks) : Void{
+	public function registerForm() : Void{
 		try {
-			trace("Person :: Creating registration form" + books);
+			
 			var document = Browser.document;
 			popStack();
 			removeAllElements(document);
@@ -204,7 +197,6 @@ class Person {
 			status = cast document.getElementById("status");
 			status.innerHTML = "Let me sign you up";
 			var document = Browser.document;
-			this.mbooks = books;
 			trace("Creating the div tags");
 			var div : DivElement = Util.createDivTag(document, "Person.Registration");
 			createFormElements(document, div);
@@ -219,27 +211,13 @@ class Person {
 	}
 	private function createFormElements(document : Document
 		, parent : DivElement) : Void{
-		createElementWithLabel(document, parent, NICK_NAME, NICK_NAME_LABEL);
-		createElementWithLabel(document, parent, FIRST_NAME, FIRST_NAME_LABEL);
-        createElementWithLabel(document, parent, LAST_NAME, LAST_NAME_LABEL);
-        createElementWithLabel(document, parent, PASSWORD, PASSWORD_LABEL);
+		Util.createElementWithLabel(document, parent, NICK_NAME, NICK_NAME_LABEL);
+		Util.createElementWithLabel(document, parent, FIRST_NAME, FIRST_NAME_LABEL);
+        Util.createElementWithLabel(document, parent, LAST_NAME, LAST_NAME_LABEL);
+        Util.createElementWithLabel(document, parent, PASSWORD, PASSWORD_LABEL);
 			
 	}
 
-	private function createElementWithLabel(document : Document
-			, parent : DivElement, elementId : String, elementLabel : String) : Void{
-			trace("Creating first name element ");
-			var div = Util.createDivTag(document, "Person.Login.FirstName");
-			var input = document.createInputElement();
-			input.id = elementId;
-			var inputLabel = document.createLabelElement();
-			inputLabel.id = elementLabel;
-			inputLabel.innerHTML = elementLabel;
-			div.appendChild(inputLabel);
-            div.appendChild(input);
-			parent.appendChild(div);
-
-	}
 
 
 	private function deleteElement(document : Document, elementId : String, 
@@ -263,13 +241,13 @@ class Person {
 			attempts++;
 			if(attempts > maxAttempts){
 				js.Lib.alert("Too many attempts. Logging you out.");
-				mbooks.logout();
+				MBooks.getMBooks().logout();
 			}
 		}else {
 			var document : Document = Browser.document;
 			var div : DivElement = Util.createDivTag(document, "Dashboard.Logout");
 			createLogoutButton(document, div);
-			mbooks.showDashboard(this);
+			MBooks.getMBooks().showDashboard(this);
 			
 		}
 	}
@@ -280,7 +258,7 @@ class Person {
 		var cType : String = Std.string(CommandType.Login);
 		var l : Login = new Login(cType, this, lStatus);
 		trace("Sending login status " + l);
-		mbooks.doSendJSON(Json.stringify(l));
+		MBooks.getMBooks().doSendJSON(Json.stringify(l));
 	}
 	private function getNickNameInput() : InputElement {
 		return getInput(NICK_NAME);
@@ -300,7 +278,7 @@ class Person {
 	}
 	//Pop before manipulating the current window, hide the window
 	private function popStack() : Void {
-		var prev : DivElement = divStack.pop();
+		var prev : DivElement = MBooks.pop();
 		trace("Popping " + prev);
 		if(prev != null) {
 			trace("Hiding div " + prev);
@@ -310,7 +288,16 @@ class Person {
 	private function pushStack(div : DivElement) : Void {
 		trace("Pushing " + div);
 		div.style.display = "visible";
-		divStack.add(div);
+		MBooks.push(div);
+		trace("Div element pushed" + div);
+	}
+
+
+	public function copyInput(fName: String, lName : String, nName : String, pwd : String) : Void{
+		this.firstName = fName;
+		this.lastName = lName;
+		this.nickName = nName;
+		this.password = pwd;
 	}
 
 }
