@@ -18,6 +18,9 @@ import model.CommandType;
 import util.Util;
 import js.Browser;
 import js.html.ButtonElement;
+import promhx.Stream;
+import massive.munit.TestRunner;
+
 class MBooks {
 
 	//The client login
