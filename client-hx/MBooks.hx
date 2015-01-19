@@ -19,8 +19,10 @@ import util.Util;
 import js.Browser;
 import js.html.ButtonElement;
 import promhx.Stream;
+import promhx.Promise;
 import massive.munit.TestRunner;
-
+using promhx.haxe.EventTools;
+import promhx.Deferred;
 class MBooks {
 
 	//The client login
@@ -44,13 +46,19 @@ class MBooks {
 		divStack = new GenericStack<DivElement>();
 	}
 
+	function initializeWebSocket(ws : WebSocket, event : String
+				, ?useCapture: Bool) : Stream<Dynamic>{
+		var def = new Deferred<Dynamic> ();
+		ws.addEventListener(event, def.resolve, useCapture);
+		return def.stream();
+	}
 	function initializeConnection(){
 		websocket = new WebSocket(connectionString());
 		websocket.onclose = onClose;
 		websocket.onerror = onError;
-		websocket.onmessage = onMessage;
 		websocket.onopen = onOpen;
-
+		var eventStream = initializeWebSocket(websocket, "message");
+		eventStream.then(onMessage);
 	}
 
 	function connectionString() : String {
@@ -145,7 +153,7 @@ class MBooks {
 
 	}
 	public  function onMessage(ev: MessageEvent) : Void{
-		trace("Received " + ev.data);
+		trace("Received stream " + ev.data);
 		var incomingMessage = haxe.Json.parse(ev.data);
 		//XXX: Needed to parse the incoming message twice because
 		// of \",s in the response. This is a bug.
@@ -235,6 +243,7 @@ class MBooks {
 		trace("Sending " + aMessage);
 		var d : Dynamic = haxe.Json.parse(aMessage);
 		websocket.send(aMessage);
+		trace("Sent " + aMessage);
 	}
 	private function createConnectionForm() : Void {
 		try {
