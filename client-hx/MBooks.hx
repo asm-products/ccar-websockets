@@ -2,6 +2,7 @@
 import haxe.Json;
 import haxe.Utf8;
 import haxe.Timer;
+import js.html.Element;
 import haxe.ds.GenericStack;
 import js.html.Event;
 import js.html.MessageEvent;
@@ -46,7 +47,7 @@ class MBooks {
 		divStack = new GenericStack<DivElement>();
 	}
 
-	function initializeWebSocket(ws : WebSocket, event : String
+	public function initializeElementStream(ws : Element, event : String
 				, ?useCapture: Bool) : Stream<Dynamic>{
 		var def = new Deferred<Dynamic> ();
 		ws.addEventListener(event, def.resolve, useCapture);
@@ -57,7 +58,7 @@ class MBooks {
 		websocket.onclose = onClose;
 		websocket.onerror = onError;
 		websocket.onopen = onOpen;
-		var eventStream = initializeWebSocket(websocket, "message");
+		var eventStream = initializeElementStream(cast websocket, "message");
 		eventStream.then(onMessage);
 	}
 

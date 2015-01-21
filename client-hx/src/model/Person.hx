@@ -1,6 +1,7 @@
 package model;
 import haxe.Json;
 import js.html.Event;
+import js.html.KeyboardEvent;
 import js.Browser;
 import js.html.Text;
 import js.html.Element;
@@ -12,6 +13,8 @@ import js.html.ButtonElement;
 import js.Lib.*;
 import haxe.ds.GenericStack;
 import util.*;
+import promhx.Stream;
+import promhx.Promise;
 
 
 class Person {
@@ -59,13 +62,14 @@ class Person {
 			trace("Creating login form " + this);
 			popStack();
 			var document = Browser.document;
+			var divName : String = "Person.Login";
 			var div : DivElement = Util.createDivTag(document, "Person.Login");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome back. The last time you logged in: Fix this";
-			Util.createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
-			Util.createElementWithLabel(document, div, PASSWORD, PASSWORD_LABEL);
-			getPassword().focus();
-			getPassword().onblur = validatePassword;
+			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
+			Util.createElementWithLabel(document, div, divName + PASSWORD, PASSWORD_LABEL);
+			getInput(divName + PASSWORD).focus();
+			getInput(divName + PASSWORD).onblur = validatePassword;
 			setValues();
 			pushStack(div);
 			return this;
@@ -118,22 +122,23 @@ class Person {
 		try {
 			popStack();
 			var document = Browser.document;
-			removeAllElements(document);
 			trace("Creating nickname form");
-			var div : DivElement = Util.createDivTag(document, "Person.NickName");
-			Util.createElementWithLabel(document, div, NICK_NAME, NICK_NAME_LABEL);
+			var divName : String = "Person.Nickname";
+			var div : DivElement = Util.createDivTag(document, divName);
+			Util.createElementWithLabel(document, div, divName + NICK_NAME, divName + NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
-			var nickNameInput : InputElement = getNickNameInput();
+			var nickNameInput : InputElement = getInput(divName + NICK_NAME);
 			nickNameInput.focus();
 			nickNameInput.select();
-			nickNameInput.onchange = this.sendLogin;
+			var stream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(nickNameInput, "keyup");
+			stream.then(sendLogin);
 			pushStack(div);
 		}catch(msg : DOMCoreException){
 			trace ("Exception " + msg);
 		}
-
 	}
+
 	private function removeAllElements(document) : Void {
 		deleteElement(document, NICK_NAME, NICK_NAME_LABEL);
 		deleteElement(document, PASSWORD, PASSWORD_LABEL);
@@ -147,7 +152,6 @@ class Person {
 			register.value = "Register";
 			register.innerHTML = "Register";
 			parent.appendChild(register);
-
 			register.onclick = registerUser;			
 		}
 	private function createLogoutButton(document : Document 
@@ -211,10 +215,10 @@ class Person {
 	}
 	private function createFormElements(document : Document
 		, parent : DivElement) : Void{
-		Util.createElementWithLabel(document, parent, NICK_NAME, NICK_NAME_LABEL);
-		Util.createElementWithLabel(document, parent, FIRST_NAME, FIRST_NAME_LABEL);
-        Util.createElementWithLabel(document, parent, LAST_NAME, LAST_NAME_LABEL);
-        Util.createElementWithLabel(document, parent, PASSWORD, PASSWORD_LABEL);
+		Util.createElementWithLabel(document, parent, parent.id + NICK_NAME, NICK_NAME_LABEL);
+		Util.createElementWithLabel(document, parent, parent.id + FIRST_NAME, FIRST_NAME_LABEL);
+        Util.createElementWithLabel(document, parent, parent.id + LAST_NAME, LAST_NAME_LABEL);
+        Util.createElementWithLabel(document, parent, parent.id + PASSWORD, PASSWORD_LABEL);
 			
 	}
 
@@ -234,7 +238,8 @@ class Person {
 	}
 
 	private function validatePassword(ev : Event){
-		var passwordTest : String = getPassword().value;
+		var divName : String = "Person.Login";
+		var passwordTest : String = getInput(divName + PASSWORD).value;
 		trace("Password ?? " + passwordTest);
 		if(passwordTest != this.password){
 			js.Lib.alert("Invalid password. Try again");
@@ -251,26 +256,19 @@ class Person {
 			
 		}
 	}
-	public function sendLogin (ev: Event){
-		trace("Copying values");
-		copyValues();
-		var lStatus : LoginStatus = Undefined;
-		var cType : String = Std.string(CommandType.Login);
-		var l : Login = new Login(cType, this, lStatus);
-		trace("Sending login status " + l);
-		MBooks.getMBooks().doSendJSON(Json.stringify(l));
-	}
-	private function getNickNameInput() : InputElement {
-		return getInput(NICK_NAME);
-	}
-	private function getFirstName() : InputElement {
-		return getInput(FIRST_NAME);
-	}
-	private function getLastName() : InputElement {
-		return getInput(LAST_NAME);
-	}
-	private function getPassword() : InputElement {
-		return getInput(PASSWORD);
+
+	public function sendLogin (ev: KeyboardEvent){
+		trace("Send login " + ev.keyCode);
+		if(ev.keyCode == 10 || ev.keyCode == 13 || ev.keyCode == 9){
+			var inputElement : InputElement = cast ev.target;
+			this.nickName = inputElement.value;
+			var lStatus : LoginStatus = Undefined;
+			var cType : String = Std.string(CommandType.Login);
+
+			var l : Login = new Login(cType, this, lStatus);
+			trace("Sending login status " + l);
+			MBooks.getMBooks().doSendJSON(Json.stringify(l));
+		}
 	}
 	private function getInput(id : String) : InputElement{
 		var result : InputElement = cast document.getElementById(id);
@@ -279,15 +277,20 @@ class Person {
 	//Pop before manipulating the current window, hide the window
 	private function popStack() : Void {
 		var prev : DivElement = MBooks.pop();
-		trace("Popping " + prev);
+		if(prev != null) {
+			trace("Popping " + prev + " -> " +  prev.id);
+		}
 		if(prev != null) {
 			trace("Hiding div " + prev);
-			prev.style.display = "hidden";			
+			prev.hidden = true;			
 		}		
 	}
 	private function pushStack(div : DivElement) : Void {
-		trace("Pushing " + div);
-		div.style.display = "visible";
+		if(div == null){
+			return;
+		}
+		trace("Pushing " + div + "->" + div.id);
+		div.hidden = false;
 		MBooks.push(div);
 		trace("Div element pushed" + div);
 	}
