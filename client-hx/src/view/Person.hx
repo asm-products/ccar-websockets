@@ -68,7 +68,8 @@ class Person {
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
 			Util.createElementWithLabel(document, div, divName + PASSWORD, PASSWORD_LABEL);
 			getInput(divName + NICK_NAME).value = m.nickName;
-			getInput(divName + PASSWORD).onblur = validatePassword;
+			var stream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(getInput(divName + PASSWORD), "keyup");			
+			stream.then(validatePassword);
 			getInput(divName + PASSWORD).focus();
 			pushStack(div);
 			return this;
@@ -183,26 +184,29 @@ class Person {
 		}
 	}
 
-	private function validatePassword(ev : Event){
-		var divName : String = "Person.Login";
-		var passwordTest : String = getInput(divName + PASSWORD).value;
+	private function validatePassword(ev : KeyboardEvent){
+		if(Util.isSignificantWS(ev.keyCode)){		
+			var divName : String = "Person.Login";
+			var passwordTest : String = getInput(divName + PASSWORD).value;
 
-		trace("Password ?? " + passwordTest);
-		if(passwordTest != this.modelPerson.password){
-			js.Lib.alert("Invalid password. Try again");
-			attempts++;
-			if(attempts > maxAttempts){
-				js.Lib.alert("Too many attempts. Logging you out.");
-				MBooks.getMBooks().logout();
+			trace("Password ?? " + passwordTest);
+			if(passwordTest != this.modelPerson.password){
+				js.Lib.alert("Invalid password. Try again");
+				attempts++;
+				if(attempts > maxAttempts){
+					js.Lib.alert("Too many attempts. Logging you out.");
+					MBooks.getMBooks().logout();
+				}
+				}else {
+					var document : Document = Browser.document;
+					var div : DivElement = Util.createDivTag(document, "Dashboard.Logout");
+					createLogoutButton(document, div);
+					MBooks.getMBooks().showDashboard(this);
+
+				}
 			}
-		}else {
-			var document : Document = Browser.document;
-			var div : DivElement = Util.createDivTag(document, "Dashboard.Logout");
-			createLogoutButton(document, div);
-			MBooks.getMBooks().showDashboard(this);
-			
 		}
-	}
+
 
 	public function sendLogin (ev: KeyboardEvent){
 		trace("Send login " + ev.keyCode);

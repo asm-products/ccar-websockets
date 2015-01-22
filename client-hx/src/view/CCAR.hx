@@ -82,7 +82,7 @@
 						cast document.getElementById(UPLOAD_BUTTON);
 			var selectElement : SelectElement = 
 						cast document.getElementById(LIST);
-			selectElement.onselect = selectScenario;
+			selectElement.onclick = selectScenario;
 			parent.appendChild(div);
 			buttonElement.onclick = uploadCCARData;
 		}

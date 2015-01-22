@@ -14,6 +14,19 @@ import js.html.SelectElement;
 import js.html.OptionElement;
 
 class Util {
+	public static function NEW_LINE () : Int {
+		return 10;
+	}
+	public static function TAB() : Int {
+		return 9 ;
+	}
+	public static function CR() : Int {
+		return 13;
+	}
+	public static function isSignificantWS(code : Int) {
+		//newline, tab or carriage return
+		return (code == TAB() || code == NEW_LINE() || code == CR());
+	}
 	public static function createDivTag(document : Document, className : String) : DivElement {
 		var div : DivElement = cast document.getElementById(className);
 		if (div == null) {
