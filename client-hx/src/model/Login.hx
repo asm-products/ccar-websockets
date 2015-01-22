@@ -4,7 +4,7 @@ package model;
 class Login {
 	
 	public var commandType (default, null) : String;
-	public var login(default, null) : Person;
+	public var login(default, null) : model.Person;
 	public var loginStatus(default, null) : String;
 	public function new (commandType : String, p: Person, s : LoginStatus){
 		this.commandType = commandType;

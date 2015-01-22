@@ -12,7 +12,7 @@ import js.html.DivElement;
 import js.html.Document;
 import model.Contact;
 import model.Login;
-import model.Person;
+import view.Person;
 import model.LoginStatus;
 import model.Command;
 import model.CommandType;
@@ -45,6 +45,11 @@ class MBooks {
 		portNumber = 3000;
 		ccarViews = new GenericStack<view.CCAR>();
 		divStack = new GenericStack<DivElement>();
+		person = new view.Person("", 
+						"",
+						"",
+						"");
+
 	}
 
 	public function initializeElementStream(ws : Element, event : String
@@ -101,7 +106,7 @@ class MBooks {
 			parseCommandType(incomingMessage.commandType);
 		switch(commandType){
 			case Login : {
-			    var person  : Person = incomingMessage.login;
+			    var person  : model.Person = incomingMessage.login;
 				var login : Login = model.Login.createLoginResponse(incomingMessage, person);
 				processLoginResponse(login);
 			}
@@ -206,27 +211,21 @@ class MBooks {
 		trace("Undefined as response..should not happen");
 	}
 	private function createRegistrationForm(lr : Login) : Void{
-		if(lr.login == null){
-			person = new Person("", 
-						"",
-						"",
-						"");
-			
+		if(lr.login == null){			
 			person.registerForm();
 		}else {
 			trace("Login not null : Login  " + lr.login);
-			var p : Person = lr.login;		
+			var p : model.Person = lr.login;		
 			//Copy the 
-			var pCopy : Person = new Person(p.firstName, p.lastName, p.nickName, p.password);
-			pCopy.registerForm();
+			person.registerForm();
 		}
 	}
 
 	public function createLoginForm(lr : Login) : Void{
-		var p : Person = lr.login;		
+		var p : model.Person = lr.login;		
 		//Copy the person object from the incoming message.
-		person.copyInput(p.firstName, p.lastName, p.nickName, p.password);
-		person.createLoginForm();
+		
+		person.createLoginForm(p);
 	}
 	private function createInvalidPassword(lr : Login) : Void{
 		trace("Processing invalid login" + lr);
@@ -250,12 +249,12 @@ class MBooks {
 		try {
 		trace("Creating connection form");
 		var document = Browser.document;
-		person  = new Person("", 
+		var p : model.Person  = new model.Person("", 
 						"",
 						"",
 						"");
 
-		person.createNickNameForm();
+		person.createNickNameForm(p);
 		initializeConnection();
 		trace("Connection form created");
 		} catch(msg:DOMCoreException){
@@ -274,7 +273,7 @@ class MBooks {
 	}
 	public function showDashboard(p : Person) : Void {
 		trace("Showing dashboard");		
-		var ccarM : model.CCAR = new model.CCAR("", "", p.nickName);
+		var ccarM : model.CCAR = new model.CCAR("", "", p.modelPerson.nickName);
 		var ccar : view.CCAR = new view.CCAR(ccarM);
 		ccarViews.add(ccar);
 		var div : DivElement = cast Browser.document.getElementById("CCAR.ROOT");
@@ -297,7 +296,7 @@ class MBooks {
 
 	}
 	private var ccarViews : GenericStack<view.CCAR>;
-	private var person : model.Person;
+	private var person : view.Person;
 	private static var singleton : MBooks;
 	public static function pop(): DivElement {
 		return singleton.divStack.pop();
