@@ -271,7 +271,7 @@ class MBooks {
 			trace("No valid connection found");
 		}
 	}
-	public function showDashboard(p : Person) : Void {
+	public function showDashboard(p : view.Person) : Void {
 		trace("Showing dashboard");		
 		var ccarM : model.CCAR = new model.CCAR("", "", p.modelPerson.nickName);
 		var ccar : view.CCAR = new view.CCAR(ccarM);

@@ -116,10 +116,9 @@ class Util {
 			, elementLabel : String) : Void {
 			
 			var inputLabel = document.createLabelElement();
-			inputLabel.id = LABEL + elementId;
+			inputLabel.id = elementId;
 			inputLabel.innerHTML = elementLabel;
-			createTextAreaElement(document, parent, elementId, elementLabel);
-			
+			createTextAreaElement(document, parent, elementId, elementLabel);			
 			var textAreaElement : Text = cast document.getElementById(elementId);
 
 	}

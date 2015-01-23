@@ -37,11 +37,11 @@
 		private static var UPLOAD_BUTTON : String = "Upload Scenario";
 		private var document : Document;
 		private var model : model.CCAR;
-		private var ccarDictionary : ObjectMap<String, model.CCAR>;
+		private var ccarDictionary : Map<String, model.CCAR>;
 		public function new(a : model.CCAR) {
 			this.model = a;
 			document = Browser.document;
-			ccarDictionary = new ObjectMap<String, model.CCAR>();
+			ccarDictionary = new Map<String, model.CCAR>();
 		}
 		//Copy values from the view into the model;
 		private function copyValues(){
@@ -61,7 +61,7 @@
 				element.value = model.scenarioName;
 			}
 			var areaElement : TextAreaElement = 
-					cast document.getElementById(TEXT);
+			cast document.getElementById(TEXT);
 			if(areaElement != null) {
 				areaElement.value = model.scenarioText;
 			}
@@ -71,17 +71,17 @@
 			trace("Creating CCAR form ");
 			var div : DivElement = Util.createDivTag(document, CCAR_DIV_TAG);
 			Util.createElementWithLabel(document, div
-			, NAME_CLASS
-			, NAME);
+				, CCAR_DIV_TAG + NAME_CLASS
+				, NAME);
 			Util.createTextAreaElementWithLabel(document, div 
-			, TEXT_CLASS
-			, TEXT);
-			Util.createSelectElement(document, div , LIST_CLASS, LIST);
+				, CCAR_DIV_TAG + TEXT_CLASS
+				, CCAR_DIV_TAG + TEXT);
+			Util.createSelectElement(document, div , LIST_CLASS, CCAR_DIV_TAG + LIST);
 			Util.createButtonElement(document, div, UPLOAD_BUTTON_CLASS, UPLOAD_BUTTON);
 			var buttonElement : ButtonElement = 
-						cast document.getElementById(UPLOAD_BUTTON);
+			cast document.getElementById(UPLOAD_BUTTON);
 			var selectElement : SelectElement = 
-						cast document.getElementById(LIST);
+			cast document.getElementById(CCAR_DIV_TAG + LIST);
 			selectElement.onclick = selectScenario;
 			parent.appendChild(div);
 			buttonElement.onclick = uploadCCARData;
@@ -90,68 +90,76 @@
 		public function uploadCCARData(ev : Event) {
 			trace("Uploading ccar data");
 			var commandType : String = "CCARUpload";
-	 		var ccarOperation = {
+			var ccarOperation = {
 	 				tag : "Create" , //Tag is needed for the aeson objects.
-	   				contents : []
-	   			};
-	   		copyValues();
-			var payload = {
-				commandType : commandType
-				, ccarOperation : ccarOperation
-				, uploadedBy : this.model.creator
-				, ccarData : this.model
-			};
-			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
+	 				contents : []
+	 			};
+	 			copyValues();
+	 			var payload = {
+	 				commandType : commandType
+	 				, ccarOperation : ccarOperation
+	 				, uploadedBy : this.model.creator
+	 				, ccarData : this.model
+	 			};
+	 			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 
-		}
+	 		}
 
-		private function selectScenario(ev : Event){
-			trace("Selecting ccar element " + ev);
+	 		private function selectScenario(ev : Event){
+	 			trace("Selecting ccar element " + ev);
+	 			var selectElement : SelectElement = cast ev.target;
+	 			trace("Event target " + ev.target + " " + selectElement.value);
+	 			var ccarText = ccarDictionary.get(selectElement.value);
+	 			var textAreaElement : TextAreaElement = cast document.getElementById(CCAR_DIV_TAG + TEXT);
+	 			trace("Selected text " + ccarText.scenarioText);
+	 			textAreaElement.value = ccarText.scenarioText;
 
-		}
-		public function queryAllCCARs() {
-			trace("Querying all ccar objects");
-			var commandType : String = "CCARUpload";
-	 		var ccarOperation = {
+	 		}
+	 		public function queryAllCCARs() {
+	 			trace("Querying all ccar objects");
+	 			var commandType : String = "CCARUpload";
+	 			var ccarOperation = {
 	 				tag : "QueryAll" , //Tag is needed for the aeson objects.
-	   				contents : this.model.creator
-	   			};
-			var payload = {
-				commandType : commandType
-				, ccarOperation : ccarOperation
-				, uploadedBy : this.model.creator
-				, ccarData : this.model
-			};
-			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
-		}
+	 				contents : this.model.creator
+	 			};
+	 			var payload = {
+	 				commandType : commandType
+	 				, ccarOperation : ccarOperation
+	 				, uploadedBy : this.model.creator
+	 				, ccarData : this.model
+	 			};
+	 			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
+	 		}
 
 
-		public function populateList(document: Document
-			, elements : Array<model.CCAR>){
-			trace("Populate the elements in the list " + elements.length);
-			for (i in elements){
-				ccarDictionary.set(i.scenarioName, i);
-			}
-			var list : SelectElement = cast document.getElementById(LIST);
-			var options : List<OptionElement> = new List<OptionElement>();
-			for ( i in elements){
-			if(i.scenarioName != "") {
-				var option : OptionElement = 
-					cast document.getElementById(i.scenarioName);
-				if (option == null){
-						trace("Creating option element " + i);
-						option = document.createOptionElement();
-						option.id = i.scenarioName;
-						option.text = i.scenarioName;
-						list.appendChild(option);
-				}
-			}else {
-				trace("Ignoring empty scenario name " + i);
-			}
+	 		public function populateList(document: Document
+	 			, elements : Array<model.CCAR>){
+	 			trace("Populate the elements in the list " + elements.length);
+	 			for (i in elements){
+	 				trace("Dictionary " + i);
+	 				//ccarDictionary.set(i.scenarioName, i);
+	 				ccarDictionary[i.scenarioName] = i;
+	 				trace("Element added "+ ccarDictionary.get(i.scenarioName) + " " + i.scenarioName);
+	 			}
+	 			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
+	 			var options : List<OptionElement> = new List<OptionElement>();
+	 			for ( i in elements){
+	 				if(i.scenarioName != "") {
+	 					var option : OptionElement = 
+	 					cast document.getElementById(i.scenarioName);
+		 					if (option == null){
+		 						option = document.createOptionElement();
+		 						option.id = i.scenarioName;
+		 						option.text = i.scenarioName;
+		 						list.appendChild(option);
+		 					}
+	 					}else {
+	 						trace("Ignoring empty scenario name " + i);
+	 					}
 
-			}
-		
+	 				}
 
-		}
 
-	}
+	 			}
+
+	 		}
