@@ -38,6 +38,7 @@ class Util {
 		return div;
 	}
 
+
 	public static function createInputElement(document : Document, 
 		parent : DivElement, elementClass : String
 		, elementName : String): Void {
@@ -47,13 +48,12 @@ class Util {
 		inputElement.id = elementName;
 		div.appendChild(inputElement);
 		parent.appendChild(div);
-
 	}
 
 	public static function createTextAreaElement(document : Document
 		, parent : DivElement 
-		, elementClass : String
-		, elementName : String) : Void {
+		, elementName : String
+		, elementClass : String) : Void {
 			trace("Creating text area element");
 			var div = createDivTag(document, elementClass);
 			var areaElement = document.createTextAreaElement();
@@ -119,7 +119,7 @@ class Util {
 			var inputLabel = document.createLabelElement();
 			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
-			createTextAreaElement(document, parent, elementLabel, elementId);			
+			createTextAreaElement(document, parent, elementId, elementLabel);			
 			var textAreaElement : Text = cast document.getElementById(elementId);
 
 	}
