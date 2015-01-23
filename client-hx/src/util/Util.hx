@@ -97,13 +97,14 @@ class Util {
 			div.appendChild(element);
 			parent.appendChild(div);
 		}
+
 	public static function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
-			var input = document.createInputElement();
-			input.id = elementId;
 			var div = Util.createDivTag(document, DIV + elementLabel);
 			var inputLabel = document.createLabelElement();
-			inputLabel.id = LABEL + elementLabel;
+			var input = document.createInputElement();
+			input.id = elementId;
+			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
 			div.appendChild(inputLabel);
             div.appendChild(input);
@@ -116,9 +117,9 @@ class Util {
 			, elementLabel : String) : Void {
 			
 			var inputLabel = document.createLabelElement();
-			inputLabel.id = elementId;
+			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
-			createTextAreaElement(document, parent, elementId, elementLabel);			
+			createTextAreaElement(document, parent, elementLabel, elementId);			
 			var textAreaElement : Text = cast document.getElementById(elementId);
 
 	}

@@ -85,14 +85,14 @@ class Person {
 			popStack();
 			var document = Browser.document;
 			trace("Creating nickname form");
-			var divName : String = "`ickname";
+			var divName : String = "Nickname";
 			var div : DivElement = Util.createDivTag(document, divName);
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, divName + NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
 			var nickNameInput : InputElement = getInput(divName + NICK_NAME);
 			nickNameInput.focus();
-			nickNameInput.select();
+			//nickNameInput.select();
 			var stream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(nickNameInput, "keyup");
 			stream.then(sendLogin);
 			pushStack(div);

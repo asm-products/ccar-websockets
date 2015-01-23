@@ -15,6 +15,7 @@
 	import js.html.SelectElement;
 	import js.html.OptionElement;
 	import haxe.ds.ObjectMap;
+	import promhx.Stream;
 
 	import js.Lib.*;
 	import util.*;
@@ -34,7 +35,7 @@
 		private static var NAME : String = "Scenario Name";
 		private static var TEXT : String = "Scenario Text";
 		private static var LIST : String = "Scenario List";
-		private static var UPLOAD_BUTTON : String = "Upload Scenario";
+		private static var UPLOAD_BUTTON : String = "Save Scenario";
 		private var document : Document;
 		private var model : model.CCAR;
 		private var ccarDictionary : Map<String, model.CCAR>;
@@ -71,18 +72,19 @@
 			trace("Creating CCAR form ");
 			var div : DivElement = Util.createDivTag(document, CCAR_DIV_TAG);
 			Util.createElementWithLabel(document, div
-				, CCAR_DIV_TAG + NAME_CLASS
+				, NAME_CLASS
 				, NAME);
 			Util.createTextAreaElementWithLabel(document, div 
-				, CCAR_DIV_TAG + TEXT_CLASS
-				, CCAR_DIV_TAG + TEXT);
+				, TEXT_CLASS
+				, TEXT);
 			Util.createSelectElement(document, div , LIST_CLASS, CCAR_DIV_TAG + LIST);
 			Util.createButtonElement(document, div, UPLOAD_BUTTON_CLASS, UPLOAD_BUTTON);
 			var buttonElement : ButtonElement = 
 			cast document.getElementById(UPLOAD_BUTTON);
 			var selectElement : SelectElement = 
 			cast document.getElementById(CCAR_DIV_TAG + LIST);
-			selectElement.onclick = selectScenario;
+			var listStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(selectElement, "click");
+			listStream.then(selectScenario);			
 			parent.appendChild(div);
 			buttonElement.onclick = uploadCCARData;
 		}
@@ -110,9 +112,11 @@
 	 			var selectElement : SelectElement = cast ev.target;
 	 			trace("Event target " + ev.target + " " + selectElement.value);
 	 			var ccarText = ccarDictionary.get(selectElement.value);
-	 			var textAreaElement : TextAreaElement = cast document.getElementById(CCAR_DIV_TAG + TEXT);
+	 			var textAreaElement : TextAreaElement = cast document.getElementById(TEXT_CLASS);
 	 			trace("Selected text " + ccarText.scenarioText);
 	 			textAreaElement.value = ccarText.scenarioText;
+	 			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+	 			scenarioNameElement.value = selectElement.value;
 
 	 		}
 	 		public function queryAllCCARs() {
