@@ -31,8 +31,8 @@ class Person {
 	private static var FIRST_NAME_LABEL : String = "First Name";
 	private static var LAST_NAME : String = "LastName";
 	private static var LAST_NAME_LABEL : String = "Last Name";
-	private static var PASSWORD : String = "PasswordField";
-	private static var PASSWORD_LABEL : String = "Password";
+	private static var PASSWORD : String = "Password";
+	private static var PASSWORD_LABEL : String = "Enter Password";
 	private static var NICK_NAME : String = "Nickname";
 	private static var NICK_NAME_LABEL : String = "Nick name (needs to be unique)";
 
@@ -68,6 +68,7 @@ class Person {
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
 			Util.createElementWithLabel(document, div, divName + PASSWORD, PASSWORD_LABEL);
 			getInput(divName + NICK_NAME).value = m.nickName;
+			getInput(divName + NICK_NAME).focus();
 			var stream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(getInput(divName + PASSWORD), "keyup");			
 			stream.then(validatePassword);
 			getInput(divName + PASSWORD).focus();
@@ -85,14 +86,13 @@ class Person {
 			popStack();
 			var document = Browser.document;
 			trace("Creating nickname form");
-			var divName : String = "Nickname";
+			var divName : String = "Person.Nickname";
 			var div : DivElement = Util.createDivTag(document, divName);
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, divName + NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
 			var nickNameInput : InputElement = getInput(divName + NICK_NAME);
 			nickNameInput.focus();
-			//nickNameInput.select();
 			var stream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(nickNameInput, "keyup");
 			stream.then(sendLogin);
 			pushStack(div);
@@ -209,7 +209,6 @@ class Person {
 
 
 	public function sendLogin (ev: KeyboardEvent){
-		trace("Send login " + ev.keyCode);
 		if(ev.keyCode == 10 || ev.keyCode == 13 || ev.keyCode == 9){
 			var inputElement : InputElement = cast ev.target;
 			this.modelPerson.setNickName(inputElement.value);
@@ -221,7 +220,9 @@ class Person {
 		}
 	}
 	private function getInput(id : String) : InputElement{
+		trace("Querying " + id);
 		var result : InputElement = cast document.getElementById(id);
+		trace("Result " + result.id);
 		return result;
 	}
 	//Pop before manipulating the current window, hide the window

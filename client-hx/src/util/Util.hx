@@ -100,6 +100,7 @@ class Util {
 
 	public static function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
+			trace("Element id " + elementId + "->" + "Label " + elementLabel);
 			var div = Util.createDivTag(document, DIV + elementLabel);
 			var inputLabel = document.createLabelElement();
 			var input = document.createInputElement();

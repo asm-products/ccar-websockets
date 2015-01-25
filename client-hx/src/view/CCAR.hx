@@ -13,6 +13,7 @@
 	import js.html.UListElement;
 	import js.html.LIElement;
 	import js.html.SelectElement;
+	import js.html.KeyboardEvent;
 	import js.html.OptionElement;
 	import haxe.ds.ObjectMap;
 	import promhx.Stream;
@@ -27,6 +28,7 @@
 	* A list of scenarios for a creator.
 	*/
 	class CCAR {
+		private static var OPTION : String = "SelectElementOptionPrefix";
 		private static var CCAR_DIV_TAG : String = "CCAR.Scenario";
 		private static var NAME_CLASS  : String = "CCAR.Scenario.Name";
 		private static var TEXT_CLASS : String = "CCAR.Scenario.Text";
@@ -46,11 +48,11 @@
 		}
 		//Copy values from the view into the model;
 		private function copyValues(){
-			var element : InputElement = cast document.getElementById(NAME);
+			var element : InputElement = cast document.getElementById(NAME_CLASS);
 			if (element != null){
 				model.setScenarioName(element.value);
 			}
-			var areaElement : TextAreaElement  = cast document.getElementById(TEXT);
+			var areaElement : TextAreaElement  = cast document.getElementById(TEXT_CLASS);
 			if(areaElement != null){
 				model.setScenarioText(areaElement.value);
 			}	
@@ -79,16 +81,44 @@
 				, TEXT);
 			Util.createSelectElement(document, div , LIST_CLASS, CCAR_DIV_TAG + LIST);
 			Util.createButtonElement(document, div, UPLOAD_BUTTON_CLASS, UPLOAD_BUTTON);
+			var selectElement : SelectElement = getCCARListElement();
 			var buttonElement : ButtonElement = 
 			cast document.getElementById(UPLOAD_BUTTON);
-			var selectElement : SelectElement = 
-			cast document.getElementById(CCAR_DIV_TAG + LIST);
 			var listStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(selectElement, "click");
 			listStream.then(selectScenario);			
 			parent.appendChild(div);
 			buttonElement.onclick = uploadCCARData;
+			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+			var scenarioNameStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keyup");
+			scenarioNameStream.then(scenarioNameUpdate);
 		}
 
+		private function getCCARListElement() : SelectElement {
+			var selectElement : SelectElement = 
+			cast document.getElementById(CCAR_DIV_TAG + LIST);
+			return selectElement;			
+		}
+		//When the user modifies the scenario name directly, if the 
+		//the name is not in the dictionary, then the list box should be disabled,
+		//or we may lose the scenario
+		public function scenarioNameUpdate(ev : KeyboardEvent) : Void {
+			trace("Inside scenario name update " + ev + "->" + ev.keyCode);
+			if(ev.keyCode == 10 || ev.keyCode == 13 || ev.keyCode == 9){
+				var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+				if(!scenarioNameExists(scenarioNameElement.value)){
+					trace("New element " + scenarioNameElement.value);
+					var selectElement : SelectElement = getCCARListElement();
+					selectElement.disabled = true;
+				}else {
+					trace("Element found so we are going to update an existing element " + scenarioNameElement.value);
+				}
+			}
+		}
+
+		
+		private function scenarioNameExists(sName : String) : Bool {
+			return ccarDictionary.exists(sName);
+		}
 		public function uploadCCARData(ev : Event) {
 			trace("Uploading ccar data");
 			var commandType : String = "CCARUpload";
@@ -141,7 +171,6 @@
 	 			trace("Populate the elements in the list " + elements.length);
 	 			for (i in elements){
 	 				trace("Dictionary " + i);
-	 				//ccarDictionary.set(i.scenarioName, i);
 	 				ccarDictionary[i.scenarioName] = i;
 	 				trace("Element added "+ ccarDictionary.get(i.scenarioName) + " " + i.scenarioName);
 	 			}
@@ -151,12 +180,12 @@
 	 				if(i.scenarioName != "") {
 	 					var option : OptionElement = 
 	 					cast document.getElementById(i.scenarioName);
-		 					if (option == null){
-		 						option = document.createOptionElement();
-		 						option.id = i.scenarioName;
-		 						option.text = i.scenarioName;
-		 						list.appendChild(option);
-		 					}
+	 					if (option == null){
+	 						option = document.createOptionElement();
+	 						option.id = OPTION + i.scenarioName;
+	 						option.text = i.scenarioName;
+	 						list.appendChild(option);
+	 					}
 	 					}else {
 	 						trace("Ignoring empty scenario name " + i);
 	 					}
