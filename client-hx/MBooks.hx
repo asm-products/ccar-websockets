@@ -194,11 +194,13 @@ class MBooks {
 
 	private function processCCARUpload( ccarData: model.CCAR,  resultSet : Array<model.CCAR>)
 	{
+
 		var document : Document = Browser.document;
 		if(ccarData != null) {
 			resultSet.push(ccarData);
 		}
 		var ccar : view.CCAR = ccarViews.pop();
+		ccarViews.add(ccar); //This needs to be reviewed..Will this architecture ever make sense?
 		if(ccar == null){
 			trace("No view found??");
 		}else {

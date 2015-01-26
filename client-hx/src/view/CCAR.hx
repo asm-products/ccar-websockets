@@ -90,7 +90,9 @@
 			buttonElement.onclick = uploadCCARData;
 			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
 			var scenarioNameStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keyup");
+			var keydownStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keydownn");
 			scenarioNameStream.then(scenarioNameUpdate);
+			keydownStream.then(scenarioNameUpdate);
 		}
 
 		private function getCCARListElement() : SelectElement {
@@ -134,7 +136,8 @@
 	 				, ccarData : this.model
 	 			};
 	 			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
-
+	 			var selectElement : SelectElement  = getCCARListElement();
+	 			selectElement.disabled = false;
 	 		}
 
 	 		private function selectScenario(ev : Event){
