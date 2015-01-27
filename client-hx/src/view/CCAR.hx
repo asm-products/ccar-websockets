@@ -92,6 +92,7 @@
 			var scenarioNameStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keyup");
 			var keydownStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keydownn");
 			scenarioNameStream.then(scenarioNameUpdate);
+			scenarioNameElement.focus();
 			keydownStream.then(scenarioNameUpdate);
 		}
 
