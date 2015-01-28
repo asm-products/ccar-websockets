@@ -46,6 +46,10 @@
 			document = Browser.document;
 			ccarDictionary = new Map<String, model.CCAR>();
 		}
+		private function getScenarioName() : String {
+			var inputElement : InputElement = cast document.getElementById(NAME_CLASS);
+			return inputElement.value;
+		}
 		//Copy values from the view into the model;
 		private function copyValues(){
 			var element : InputElement = cast document.getElementById(NAME_CLASS);
@@ -122,14 +126,29 @@
 		private function scenarioNameExists(sName : String) : Bool {
 			return ccarDictionary.exists(sName);
 		}
+
+		private function getOperation(sName : String)  {
+			if(scenarioNameExists(sName)) {
+				var ccarOperation = {
+					tag : "Update",
+					contents : []
+				};
+				return ccarOperation;
+			}else {
+				var ccarOperation = {
+					tag : "Create",
+					contents : []
+				};
+				return ccarOperation;
+			}
+			throw ("This should not happen. " + sName);
+		}
 		public function uploadCCARData(ev : Event) {
-			trace("Uploading ccar data");
-			var commandType : String = "CCARUpload";
-			var ccarOperation = {
-	 				tag : "Create" , //Tag is needed for the aeson objects.
-	 				contents : []
-	 			};
-	 			copyValues();
+				trace("Uploading ccar data");
+				var commandType : String = "CCARUpload";
+				var scenarioName = getScenarioName();
+				var ccarOperation = getOperation(scenarioName);
+		 		copyValues();
 	 			var payload = {
 	 				commandType : commandType
 	 				, ccarOperation : ccarOperation

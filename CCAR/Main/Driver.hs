@@ -271,12 +271,12 @@ insertCCAR c = do
                         liftIO $ putStrLn ("Returning " ++ (show cid))
                         return cid
 
-updateCCAR :: CCARId -> CCAR -> IO (Maybe CCAR)
-updateCCAR cid c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+updateCCAR :: CCAR -> IO (Maybe CCAR)
+updateCCAR c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
     liftIO $ do
             flip runSqlPersistMPool pool $ do
-                DB.replace (cid) c
-                get cid
+                DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
+                return $ Just c 
 
 queryAllCCAR :: T.Text -> IO [Entity CCAR]
 queryAllCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
@@ -290,8 +290,8 @@ queryCCAR pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
                 flip runSqlPersistMPool pool $ 
                     get pid 
 
-deleteCCAR :: CCARId -> CCAR -> IO (Maybe CCAR)
-deleteCCAR pid p = updateCCAR pid p { cCARDeleted = True}
+deleteCCAR :: CCAR -> IO (Maybe CCAR)
+deleteCCAR p = updateCCAR p { cCARDeleted = True}
 
 
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
@@ -390,12 +390,12 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation 
                                 (Just ccar) []
-        CC.Update ccarId -> do
-                updateCCAR ccarId ccar 
+        CC.Update  -> do
+                updateCCAR ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
-        CC.Delete ccarId -> do 
-                deleteCCAR ccarId ccar 
+        CC.Delete  -> do 
+                deleteCCAR ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
         CC.Query ccarId -> do 
