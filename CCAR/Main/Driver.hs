@@ -8,7 +8,7 @@ import Yesod.WebSockets
 import Yesod.Static
 import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
-
+import CCAR.Parser.CCARParsec
 import Control.Monad (forever)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
@@ -68,13 +68,23 @@ data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD, terms :
 data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Eq)
 
--- There is a lack of symmetry in this object: the result set can never be populated
--- as part of the request.               
+-- There an absence of symmetry in this object: the result set can never be populated
+-- as part of the request. Another clever thought.
 data CCARUpload = CCARUpload {uploadedBy :: T.Text 
                             , ccarOperation :: CC.CRUD
                             , ccarData :: Maybe CCAR
                             , ccarResultSet :: [Maybe CCAR]} 
                     deriving (Show, Eq)
+
+data CCARText = CCARText { textUploadedBy :: T.Text 
+                            , scenarioName :: T.Text
+                           , ccarText :: T.Text} deriving  (Show, Eq)
+
+instance ToJSON CCARText where 
+    toJSON (CCARText u s cc) = object ["uploadedBy" .= u 
+                                        , "scenarioName" .= s
+                                        , "ccarText" .= (readExpr cc)]
+
 type KeepAliveCommand = T.Text
 data Command = CommandLogin Login 
                 | CommandUO UserOperations 
@@ -82,6 +92,7 @@ data Command = CommandLogin Login
                 | CommandCCARUpload CCARUpload
                 | CommandError ErrorCommand 
                 | CommandKeepAlive KeepAliveCommand
+                | ParseCCARText CCARText
                 deriving(Show, Eq)
 
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
@@ -212,6 +223,12 @@ parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "description" <*>
                         v .: "acceptDate"
 
+parseCCARText v = CCARText <$>
+                    v .: "uploadedBy" <*>
+                    v .: "scenarioName" <*>
+                    v .: "ccarText"
+
+
 instance FromJSON Login where
     parseJSON (Object v) = parseLogin v
     parseJSON _          = Appl.empty
@@ -232,6 +249,9 @@ instance FromJSON Command where
     parseJSON (Object v) = parseCommand v
     parseJSON _         = Appl.empty
 
+instance FromJSON CCARText where
+    parseJSON (Object v) = parseCCARText  v 
+    parseJSON _          = Appl.empty
 
 iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
 iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
