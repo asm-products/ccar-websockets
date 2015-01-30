@@ -439,6 +439,9 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                     Nothing -> emptyCCAR
                     Just a -> a
 
+processCommand (Just a) = return $ L.toStrict $ E.decodeUtf8 
+                                $ J.encode $ a
+
 processCommandWrapper :: Value -> Command 
 processCommandWrapper (Object a)   = 
     case cType of 
@@ -461,6 +464,10 @@ processCommandWrapper (Object a)   =
                         case (parse parseKeepAlive a) of
                             Success r -> CommandKeepAlive r 
                             Error s -> CommandError $ genericErrorCommand $ "Parse Keep alive failed" ++ s ++ (show a)
+                String "ParseCCAR" ->
+                        case (parse parseCCARText a) of
+                            Success r -> ParseCCARText r 
+                            Error s -> CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
         cType =  LH.lookup "commandType" a
