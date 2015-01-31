@@ -122,7 +122,16 @@
 			}
 		}
 
-		
+		private function safeGetScenario(sName : String) : model.CCAR {
+			if(scenarioNameExists(sName)){
+				return getScenario(sName);
+			}else {
+				throw ("Scenario not found " + sName);
+			}
+		}
+		private function getScenario(sName : String) : model.CCAR {
+			return ccarDictionary.get(sName);
+		}
 		private function scenarioNameExists(sName : String) : Bool {
 			return ccarDictionary.exists(sName);
 		}
@@ -142,6 +151,17 @@
 				return ccarOperation;
 			}
 			throw ("This should not happen. " + sName);
+		}
+		private function sendParseRequest(ccarModel : model.CCAR) {
+			trace("Sending parse request");
+			var commandType : String = "ParseCCARText";
+			var payload  = {
+				commandType : commandType
+				, uploadedBy : ccarModel.creator
+				, scenarioName : ccarModel.scenarioName
+				, ccarText  : ccarModel.scenarioText
+			};
+			MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 		}
 		public function uploadCCARData(ev : Event) {
 				trace("Uploading ccar data");
@@ -170,7 +190,7 @@
 	 			textAreaElement.value = ccarText.scenarioText;
 	 			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
 	 			scenarioNameElement.value = selectElement.value;
-
+	 			sendParseRequest(ccarText);
 	 		}
 	 		public function queryAllCCARs() {
 	 			trace("Querying all ccar objects");
@@ -199,7 +219,8 @@
 	 			}
 	 			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
 	 			var options : List<OptionElement> = new List<OptionElement>();
-	 			for ( i in elements){
+	 			for ( key in ccarDictionary.keys()){
+	 				var i : model.CCAR = ccarDictionary[key];
 	 				if(i.scenarioName != "") {
 	 					var option : OptionElement = 
 	 					cast document.getElementById(i.scenarioName);

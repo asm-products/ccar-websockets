@@ -7,13 +7,13 @@ import Data.Text as Text
 import CCAR.Model.CcarDataTypes
 import CCAR.Model.Maturity
 import Control.Monad
-syntaxError = CCARError "Invalid symbol"
+syntaxError i = CCARError $ Text.append "Invalid symbol " i 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_-"
 
 readExpr :: Text -> Value
-readExpr input = case parse (parseStatements) (Text.unpack $ msg syntaxError) (Text.unpack input) of 
-    Left err ->  toJSON syntaxError
+readExpr input = case parse (parseStatements) (Text.unpack $ msg $ syntaxError input) (Text.unpack input) of 
+    Left err ->  toJSON $ syntaxError input
     Right val -> toJSON val
 
 
@@ -222,7 +222,7 @@ parseRatesVegaStress = do
 
 parserError :: Parser Stress 
 parserError = do
-    return $ StressError syntaxError
+    return $ StressError $ syntaxError "Unknown error"
 parseExpr :: Parser Stress
 parseExpr = do 
         try parseEquityStress <|> try parseCurrencyStress
@@ -238,6 +238,5 @@ parseStatements = do
 
 eol :: Parser Char
 eol = do 
-        _ <- char '\r' 
-        x <- char '\n'
+        x <- char ';' 
         return x
