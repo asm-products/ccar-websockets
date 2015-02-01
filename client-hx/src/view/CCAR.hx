@@ -229,10 +229,9 @@
 	 			}
 	 			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
 	 			var options : List<OptionElement> = new List<OptionElement>();
-	 			var index : Int = 0;
+	 			var index : Int = 1;
 	 			for ( key in ccarDictionary.keys()){
 	 				var i : model.CCAR = ccarDictionary[key];
-	 				index = index + 1;
 	 				if(i.scenarioName != "") {
 	 					var option : OptionElement = 
 	 					cast document.getElementById(i.scenarioName);
@@ -252,7 +251,7 @@
 	 						}else {
 	 							trace("Ignoring empty scenario name " + i);
 	 						}
-
+	 						index = index + 1;
 	 					}
 
 	 					if(newElement != null){
