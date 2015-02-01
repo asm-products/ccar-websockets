@@ -242,9 +242,6 @@
 	 						if(newElement == null) {
 	 							list.selectedIndex = index;
 	 							}else {
-	 								if(i.scenarioName == newElement.scenarioName){
-	 									list.selectedIndex = index;
-	 								}
 	 							}
 	 							list.appendChild(option);
 	 						}
