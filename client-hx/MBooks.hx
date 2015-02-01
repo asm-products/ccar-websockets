@@ -115,6 +115,9 @@ class MBooks {
 				var resultSet : Array<model.CCAR> = cast incomingMessage.ccarResultSet;
 				processCCARUpload(ccarUpload, resultSet);
 			}
+			case ParsedCCARText : {
+				processParsedCCARText(incomingMessage);
+			}
 			case RegisterUser: {
 				//processRegisterUser(incomingMessage);
 			}
@@ -204,9 +207,14 @@ class MBooks {
 		if(ccar == null){
 			trace("No view found??");
 		}else {
-			ccar.populateList(document, resultSet);
+			ccar.populateList(document, resultSet, ccarData);
 		}
 		
+	}
+	private function processParsedCCARText(incomingMessage : Dynamic): Void {
+		var ccar : view.CCAR = ccarViews.pop();
+		ccarViews.add(ccar);
+		ccar.setParsedScenarioText(haxe.Json.stringify(incomingMessage));
 	}
 
 	private function createUndefined() : Void {

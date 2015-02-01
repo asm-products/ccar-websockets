@@ -15,5 +15,6 @@ enum CommandType {
 	QueryUserPreferences;
 	DeleteUserPreferences;
 	CCARUpload;
+	ParsedCCARText;
 	Undefined;
 }

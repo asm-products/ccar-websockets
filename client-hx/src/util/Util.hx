@@ -14,6 +14,8 @@ import js.html.SelectElement;
 import js.html.OptionElement;
 
 class Util {
+	public static var DEFAULT_ROWS : Int = 10;
+	public static var DEFAULT_COLS : Int = 50;
 	public static function NEW_LINE () : Int {
 		return 10;
 	}
@@ -58,6 +60,8 @@ class Util {
 			var div = createDivTag(document, elementClass);
 			var areaElement = document.createTextAreaElement();
 			areaElement.id = elementName;
+			areaElement.rows = DEFAULT_ROWS;
+			areaElement.cols = DEFAULT_COLS;
 			div.appendChild(areaElement);
 			parent.appendChild(div);
 	}

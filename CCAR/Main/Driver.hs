@@ -83,7 +83,8 @@ data CCARText = CCARText { textUploadedBy :: T.Text
 instance ToJSON CCARText where 
     toJSON (CCARText u s cc) = object ["textUploadedBy" .= u 
                                         , "scenarioName" .= s
-                                        , "ccarText" .= (readExpr cc)]
+                                        , "ccarText" .= (readExpr cc)
+                                        , "commandType" .= ("ParsedCCARText" :: T.Text)]
 
 type KeepAliveCommand = T.Text
 data Command = CommandLogin Login 
@@ -184,7 +185,7 @@ parseCommand value = do
                     "ManageUser" -> CommandUO <$> parseCreateUser value
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
-                    "ParseCCARText" -> ParseCCARText <$> parseCCARText value
+                    "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
                     _       -> CommandError <$> parseErrorCommand value
 
 
@@ -466,7 +467,7 @@ processCommandWrapper (Object a)   =
                         case (parse parseKeepAlive a) of
                             Success r -> CommandKeepAlive r 
                             Error s -> CommandError $ genericErrorCommand $ "Parse Keep alive failed" ++ s ++ (show a)
-                String "ParseCCARText" ->
+                String "ParsedCCARText" ->
                         case (parse parseCCARText a) of
                             Success r -> ParseCCARText r 
                             Error s -> CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
