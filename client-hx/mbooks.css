@@ -1,0 +1,21 @@
+/*Styles for the various elements*/
+.Person-NickName, 
+.DIV_Person-NicknameNickname
+
+.Person-NickName {
+	top    :  0;
+	left   : 0;
+	right  : 0;
+	height : 600px;
+	width :  1500px;
+	background : red;
+}
+
+.DIV_Person-NicknameNickname {
+	top    :  0;
+	left   : 0;
+	right  : 0;
+	height : 40px;
+	width :  600px;
+	background : green;	
+}

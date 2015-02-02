@@ -33,7 +33,6 @@ class Util {
 		var div : DivElement = cast document.getElementById(className);
 		if (div == null) {
 			div = cast document.createDivElement();
-			div.id = className;
 			div.className = className;
 			document.body.appendChild(div);
 		}
@@ -105,12 +104,14 @@ class Util {
 	public static function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
 			trace("Element id " + elementId + "->" + "Label " + elementLabel);
-			var div = Util.createDivTag(document, DIV + elementLabel);
+			var div = Util.createDivTag(document, DIV + elementId);
+
 			var inputLabel = document.createLabelElement();
 			var input = document.createInputElement();
 			input.id = elementId;
 			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
+			inputLabel.className = LABEL + elementId;
 			div.appendChild(inputLabel);
             div.appendChild(input);
             parent.appendChild(div);

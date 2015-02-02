@@ -62,7 +62,7 @@ class Person {
 			popStack();
 			var document = Browser.document;
 			var divName : String = "Person.Login";
-			var div : DivElement = Util.createDivTag(document, "Person.Login");
+			var div : DivElement = Util.createDivTag(document, "Person-Login");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome back. The last time you logged in: Fix this";
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
@@ -85,10 +85,9 @@ class Person {
 		try {
 			popStack();
 			var document = Browser.document;
-			trace("Creating nickname form");
-			var divName : String = "Person.Nickname";
+			var divName : String = "Person-Nickname";
 			var div : DivElement = Util.createDivTag(document, divName);
-			Util.createElementWithLabel(document, div, divName + NICK_NAME, divName + NICK_NAME_LABEL);
+			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome.";
 			var nickNameInput : InputElement = getInput(divName + NICK_NAME);
