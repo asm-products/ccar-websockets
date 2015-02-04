@@ -13,7 +13,7 @@ class Login {
 
 	}
 	public static function createLoginResponse(incomingMessage : Dynamic, person : Person) : Login {
-		trace("Creating login response " + incomingMessage);
+		//trace("Creating login response " + incomingMessage);
 		var commandType : String = incomingMessage.commandType;
 		var loginStatus : LoginStatus = Type.createEnum (LoginStatus, incomingMessage.loginStatus);
 		var p : Dynamic = incomingMessage.login;

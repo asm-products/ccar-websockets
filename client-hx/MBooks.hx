@@ -72,7 +72,7 @@ class MBooks {
 	}
 
 	public  function onOpen(ev: Event){
-		trace("Connection opened");
+		//trace("Connection opened");
 		initializeKeepAlive();
 	}
 	private function initializeKeepAlive() : Void {
@@ -80,23 +80,23 @@ class MBooks {
 			timer = new haxe.Timer(keepAliveInterval);
 			timer.run = keepAliveFunction;
 		}else {
-			trace("Timer already running. This should not happen");
+			//trace("Timer already running. This should not happen");
 		}
 	}
 	private function disableKeepAlive() : Void {
 		if(timer == null){
-			trace("Nothing to disable");
+			//trace("Nothing to disable");
 		}else {
-			trace("Stopping the timer");
+			//trace("Stopping the timer");
 			timer.stop();
 		}
 	}
 	private function parseCommandType(commandType : String) : CommandType {
-	 trace("Parsing command type " + commandType);
+	 //trace("Parsing command type " + commandType);
 		try {
 		return Type.createEnum(CommandType, commandType);
 		}catch(e : Dynamic){
-			trace("Error " + e);
+			//trace("Error " + e);
 			return Undefined;
 		}
 	}
@@ -162,26 +162,26 @@ class MBooks {
 
 	}
 	public  function onMessage(ev: MessageEvent) : Void{
-		trace("Received stream " + ev.data);
+		//trace("Received stream " + ev.data);
 		var incomingMessage = haxe.Json.parse(ev.data);
 		//XXX: Needed to parse the incoming message twice because
 		// of \",s in the response. This is a bug.
 		incomingMessage = haxe.Json.parse(incomingMessage);
-		trace("Printing incoming message " + incomingMessage);
+		//trace("Printing incoming message " + incomingMessage);
 		parseIncomingMessage(incomingMessage);
 	}
 
 	private function processLoginResponse(lR : Login){		
-		trace("Processing login object " + lR);
-		trace("Processing lR status " + lR.loginStatus);
+		//trace("Processing login object " + lR);
+		//trace("Processing lR status " + lR.loginStatus);
 		if(lR.loginStatus == null){
-			trace("Undefined state");
+			//trace("Undefined state");
 			return;
 		}
 		var lStatus : LoginStatus = Type.createEnum(LoginStatus, lR.loginStatus);
-		trace("Processing lStatus " + lStatus);
+		//trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
-			trace("User not found. Need to see why enum is not working " + lR);
+			//trace("User not found. Need to see why enum is not working " + lR);
 			createRegistrationForm(lR);
 		}
 		if(lStatus == UserExists){
@@ -205,7 +205,7 @@ class MBooks {
 		var ccar : view.CCAR = ccarViews.pop();
 		ccarViews.add(ccar); //This needs to be reviewed..Will this architecture ever make sense?
 		if(ccar == null){
-			trace("No view found??");
+			//trace("No view found??");
 		}else {
 			ccar.populateList(document, resultSet, ccarData);
 		}
@@ -218,13 +218,13 @@ class MBooks {
 	}
 
 	private function createUndefined() : Void {
-		trace("Undefined as response..should not happen");
+		//trace("Undefined as response..should not happen");
 	}
 	private function createRegistrationForm(lr : Login) : Void{
 		if(lr.login == null){			
 			person.registerForm();
 		}else {
-			trace("Login not null : Login  " + lr.login);
+			//trace("Login not null : Login  " + lr.login);
 			var p : model.Person = lr.login;		
 			//Copy the 
 			person.registerForm();
@@ -238,11 +238,11 @@ class MBooks {
 		person.createLoginForm(p);
 	}
 	private function createInvalidPassword(lr : Login) : Void{
-		trace("Processing invalid login" + lr);
+		//trace("Processing invalid login" + lr);
 	}
 
 	public  function onError(ev : Event){
-		trace("Error " + haxe.Json.stringify(ev));
+		//trace("Error " + haxe.Json.stringify(ev));
 	}
 
 	/**
@@ -250,14 +250,14 @@ class MBooks {
 	* Clients could be sending json 
 	*/
 	public  function doSendJSON(aMessage : String){
-		trace("Sending " + aMessage);
+		//trace("Sending " + aMessage);
 		var d : Dynamic = haxe.Json.parse(aMessage);
 		websocket.send(aMessage);
-		trace("Sent " + aMessage);
+		//trace("Sent " + aMessage);
 	}
 	private function createConnectionForm() : Void {
 		try {
-		trace("Creating connection form");
+		//trace("Creating connection form");
 		var document = Browser.document;
 		var p : model.Person  = new model.Person("", 
 						"",
@@ -266,23 +266,23 @@ class MBooks {
 
 		person.createNickNameForm(p);
 		initializeConnection();
-		trace("Connection form created");
+		//trace("Connection form created");
 		} catch(msg:DOMCoreException){
-			trace("Exception " + msg);
+			//trace("Exception " + msg);
 		} 
 	}
 
 
 	public function logout() : Void{
-		trace("Logging out ");
+		//trace("Logging out ");
 		if(websocket != null){
 			websocket.close();
 		}else {
-			trace("No valid connection found");
+			//trace("No valid connection found");
 		}
 	}
 	public function showDashboard(p : view.Person) : Void {
-		trace("Showing dashboard");		
+		//trace("Showing dashboard");		
 		var ccarM : model.CCAR = new model.CCAR("", "", p.modelPerson.nickName);
 		var ccar : view.CCAR = new view.CCAR(ccarM);
 		ccarViews.add(ccar);
@@ -293,7 +293,7 @@ class MBooks {
 			ccar.createCCARForm(div);
 			ccar.queryAllCCARs();
 		}else {
-			trace("Not creating the div element " + div);
+			//trace("Not creating the div element " + div);
 		}
 	}
 	private function keepAliveFunction() : Void {
@@ -322,7 +322,7 @@ class MBooks {
 		singleton.createConnectionForm();
 	}
 	public function onClose(ev: Event){
-		trace("Connection closed");
+		//trace("Connection closed");
 		disableKeepAlive();
 
 	}

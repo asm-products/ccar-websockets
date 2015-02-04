@@ -19,3 +19,55 @@
 	width :  600px;
 	background : green;	
 }
+
+/*
+"Creating DIV tag Person-Nickname" mbooks.js:2483
+"Creating DIV tag DIV_Person-NicknameNickname" mbooks.js:2483
+Use of getPreventDefault() is deprecated.  Use defaultPrevented instead. mbooks.html
+"Creating DIV tag Person-Login" mbooks.js:2483
+"Creating DIV tag DIV_Person.LoginNickname" mbooks.js:2483
+"Creating DIV tag DIV_Person.LoginPassword" mbooks.js:2483
+"Creating DIV tag Dashboard.Logout" mbooks.js:2483
+"Creating DIV tag CCAR.ROOT" mbooks.js:2483
+"Creating DIV tag CCAR.Scenario" mbooks.js:2483
+"Creating DIV tag DIV_CCAR.Scenario.Name" mbooks.js:2483
+"Creating DIV tag Scenario Text" mbooks.js:2483
+"Creating DIV tag Parsed JSON output" mbooks.js:2483
+"Creating DIV tag CCAR.Scenario.List" mbooks.js:2483
+"Creating DIV tag CCAR.Scenario.Button"*/
+
+.Person-Login {
+	top  :   300px;
+	left :   300px ;
+	height : 400px ;
+	width :  400px;
+	background : blue;
+}
+
+.DIV_Person.LoginNickname {
+
+}
+.DIV_Person.LoginPassword {
+
+}
+.Dashboard.Logout{
+
+}
+.CCAR.ROOT {
+
+}
+.CCAR.Scenario {
+
+}
+.DIV_CCAR.Scenario.Name {
+
+}
+.CCAR.Scenario.List {
+
+}
+.CCAR.Scenario.Button {
+
+}
+
+
+

@@ -32,12 +32,12 @@
 		private static var CCAR_DIV_TAG : String = "CCAR.Scenario";
 		private static var NAME_CLASS  : String = "CCAR.Scenario.Name";
 		private static var TEXT_CLASS : String = "CCAR.Scenario.Text";
-		private static var PARSED_SCENARIO : String = "CCAR.Scenario.ParsedScenario";
+		private static var PARSED_CLASS : String = "CCAR.Scenario.ParsedScenario";
 		private static var LIST_CLASS : String = "CCAR.Scenario.List";
 		private static var UPLOAD_BUTTON_CLASS : String =  "CCAR.Scenario.Button";
 		private static var NAME : String = "Scenario Name";
 		private static var TEXT : String = "Scenario Text";
-		private static var PARSED_SCENARIO_TEXT : String = "Parsed JSON output";
+		private static var PARSED_TEXT : String = "Parsed output";
 		private static var LIST : String = "Scenario List";
 		private static var UPLOAD_BUTTON : String = "Save Scenario";
 		private var document : Document;
@@ -77,7 +77,7 @@
 		} 
 
 		public function createCCARForm(parent : DivElement){
-			trace("Creating CCAR form ");
+			//trace("Creating CCAR form ");
 			var div : DivElement = Util.createDivTag(document, CCAR_DIV_TAG);
 			Util.createElementWithLabel(document, div
 				, NAME_CLASS
@@ -85,9 +85,10 @@
 			Util.createTextAreaElementWithLabel(document, div 
 				, TEXT_CLASS
 				, TEXT);
+			trace("Class name " + PARSED_CLASS);
 			Util.createTextAreaElementWithLabel(document, div
-				, PARSED_SCENARIO
-				, PARSED_SCENARIO_TEXT);
+				, PARSED_CLASS
+				, PARSED_TEXT);
 			Util.createSelectElement(document, div , LIST_CLASS, CCAR_DIV_TAG + LIST);
 			Util.createButtonElement(document, div, UPLOAD_BUTTON_CLASS, UPLOAD_BUTTON);
 			var selectElement : SelectElement = getCCARListElement();
@@ -114,15 +115,15 @@
 		//the name is not in the dictionary, then the list box should be disabled,
 		//or we may lose the scenario
 		public function scenarioNameUpdate(ev : KeyboardEvent) : Void {
-			trace("Inside scenario name update " + ev + "->" + ev.keyCode);
+			//trace("Inside scenario name update " + ev + "->" + ev.keyCode);
 			if(ev.keyCode == 10 || ev.keyCode == 13 || ev.keyCode == 9){
 				var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
 				if(!scenarioNameExists(scenarioNameElement.value)){
-					trace("New element " + scenarioNameElement.value);
+					//trace("New element " + scenarioNameElement.value);
 					var selectElement : SelectElement = getCCARListElement();
 					selectElement.disabled = true;
 					}else {
-						trace("Element found so we are going to update an existing element " + scenarioNameElement.value);
+						//trace("Element found so we are going to update an existing element " + scenarioNameElement.value);
 					}
 				}
 			}
@@ -158,7 +159,7 @@
 						throw ("This should not happen. " + sName);
 					}
 					private function sendParseRequest(ccarModel : model.CCAR) {
-						trace("Sending parse request");
+						//trace("Sending parse request");
 						var commandType : String = "ParsedCCARText";
 						var payload  = {
 							commandType : commandType
@@ -169,7 +170,7 @@
 						MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 					}
 					public function uploadCCARData(ev : Event) {
-						trace("Uploading ccar data");
+						//trace("Uploading ccar data");
 						var commandType : String = "CCARUpload";
 						var scenarioName = getScenarioName();
 						var ccarOperation = getOperation(scenarioName);
@@ -186,24 +187,26 @@
 					}
 
 					private function selectScenario(ev : Event){
-						trace("Selecting ccar element " + ev);
+						//trace("Selecting ccar element " + ev);
 						var selectElement : SelectElement = cast ev.target;
-						trace("Event target " + ev.target + " " + selectElement.value);
+						//trace("Event target " + ev.target + " " + selectElement.value);
 						var ccarText = ccarDictionary.get(selectElement.value);
 						var textAreaElement : TextAreaElement = cast document.getElementById(TEXT_CLASS);
-						trace("Selected text " + ccarText.scenarioText);
-						trace("textAreaElement dimensions " + textAreaElement.rows + " -> " + textAreaElement.cols);
+						//trace("Selected text " + ccarText.scenarioText);
+						//trace("textAreaElement dimensions " + textAreaElement.rows + " -> " + textAreaElement.cols);
 						textAreaElement.value = ccarText.scenarioText;
 						var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
 						scenarioNameElement.value = selectElement.value;
 						sendParseRequest(ccarText);
 					}
 					public function setParsedScenarioText(jsonString : String) : Void {
-						var parsed : TextAreaElement = cast document.getElementById(PARSED_SCENARIO);
+						trace("Setting json string " + jsonString);
+						var parsed : TextAreaElement = cast document.getElementById(PARSED_CLASS);
+						trace("Using " + parsed + "-> " + PARSED_CLASS);
 						parsed.value = jsonString;
 					}
 					public function queryAllCCARs() {
-						trace("Querying all ccar objects");
+						//trace("Querying all ccar objects");
 						var commandType : String = "CCARUpload";
 						var ccarOperation = {
 	 				tag : "QueryAll" , //Tag is needed for the aeson objects.
@@ -221,11 +224,11 @@
 
 	 		public function populateList(document: Document
 	 			, elements : Array<model.CCAR>, newElement : model.CCAR){
-	 			trace("Populate the elements in the list " + elements.length);
+	 			//trace("Populate the elements in the list " + elements.length);
 	 			for (i in elements){
-	 				trace("Dictionary " + i);
+	 				//trace("Dictionary " + i);
 	 				ccarDictionary[i.scenarioName] = i;
-	 				trace("Element added "+ ccarDictionary.get(i.scenarioName) + " " + i.scenarioName);
+	 				//trace("Element added "+ ccarDictionary.get(i.scenarioName) + " " + i.scenarioName);
 	 			}
 	 			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
 	 			var options : List<OptionElement> = new List<OptionElement>();
@@ -246,7 +249,7 @@
 	 							list.appendChild(option);
 	 						}
 	 						}else {
-	 							trace("Ignoring empty scenario name " + i);
+	 							//trace("Ignoring empty scenario name " + i);
 	 						}
 	 						index = index + 1;
 	 					}

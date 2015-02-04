@@ -57,7 +57,7 @@ class Person {
 
 	public function createLoginForm(m : model.Person) : Person {
 		try {
-			trace("Creating login form " + m);
+			//trace("Creating login form " + m);
 			this.modelPerson = m; //XXX: Overwriting existing reference??
 			popStack();
 			var document = Browser.document;
@@ -119,12 +119,12 @@ class Person {
 		}
 
 	private function logoutUser(ev : Event){
-		trace("Logout user " + ev);
+		//trace("Logout user " + ev);
 		MBooks.getMBooks().logout();
 	}
 
 	private function registerUser(ev: Event){
-		trace("Register user " + ev);
+		//trace("Register user " + ev);
 		var commandType : String = "ManageUser";
 		var operation : UserOperation = new UserOperation("Create");
 
@@ -144,11 +144,11 @@ class Person {
 			
 			var document = Browser.document;
 			popStack();
-			trace("Setting status ");
+			//trace("Setting status ");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Let me sign you up";
 			var document = Browser.document;
-			trace("Creating the div tags");
+			//trace("Creating the div tags");
 			var div : DivElement = Util.createDivTag(document, "Person.Registration");
 			createFormElements(document, div);
 			createRegisterButton(document, div);
@@ -156,7 +156,7 @@ class Person {
 			document.body.appendChild(div);
 			pushStack(div);
 		}catch(msg : DOMCoreException){
-			trace("Exception " + msg);
+			//trace("Exception " + msg);
 		}
 	}
 	private function createFormElements(document : Document
@@ -172,7 +172,7 @@ class Person {
 
 	private function deleteElement(document : Document, elementId : String, 
 		elementLabelId : String){
-		trace("Deleting element if exists -> " + elementId);	
+		//trace("Deleting element if exists -> " + elementId);	
 		var element : Element = document.getElementById(elementId);
 		if (element != null){
 			element.parentNode.removeChild(element);
@@ -188,7 +188,7 @@ class Person {
 			var divName : String = "Person.Login";
 			var passwordTest : String = getInput(divName + PASSWORD).value;
 
-			trace("Password ?? " + passwordTest);
+			//trace("Password ?? " + passwordTest);
 			if(passwordTest != this.modelPerson.password){
 				js.Lib.alert("Invalid password. Try again");
 				attempts++;
@@ -214,24 +214,24 @@ class Person {
 			var lStatus : LoginStatus = Undefined;
 			var cType : String = Std.string(CommandType.Login);
 			var l : Login = new Login(cType, this.modelPerson, lStatus);
-			trace("Sending login status " + l);
+			//trace("Sending login status " + l);
 			MBooks.getMBooks().doSendJSON(Json.stringify(l));
 		}
 	}
 	private function getInput(id : String) : InputElement{
-		trace("Querying " + id);
+		//trace("Querying " + id);
 		var result : InputElement = cast document.getElementById(id);
-		trace("Result " + result.id);
+		//trace("Result " + result.id);
 		return result;
 	}
 	//Pop before manipulating the current window, hide the window
 	private function popStack() : Void {
 		var prev : DivElement = MBooks.pop();
 		if(prev != null) {
-			trace("Popping " + prev + " -> " +  prev.id);
+			//trace("Popping " + prev + " -> " +  prev.id);
 		}
 		if(prev != null) {
-			trace("Hiding div " + prev);
+			//trace("Hiding div " + prev);
 			prev.hidden = true;			
 		}		
 	}
@@ -239,10 +239,10 @@ class Person {
 		if(div == null){
 			return;
 		}
-		trace("Pushing " + div + "->" + div.id);
+		//trace("Pushing " + div + "->" + div.id);
 		div.hidden = false;
 		MBooks.push(div);
-		trace("Div element pushed" + div);
+		//trace("Div element pushed" + div);
 	}
 
 

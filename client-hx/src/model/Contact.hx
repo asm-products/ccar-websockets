@@ -8,7 +8,7 @@ class Contact {
 		firstName = aName;
 		lastName = lName;
 		login = aLogin;
-		trace("Creating contact with " + aName + "->" + lName + " -> " + aLogin);
+		//trace("Creating contact with " + aName + "->" + lName + " -> " + aLogin);
 	}
 
 }

@@ -30,11 +30,15 @@ class Util {
 		return (code == TAB() || code == NEW_LINE() || code == CR());
 	}
 	public static function createDivTag(document : Document, className : String) : DivElement {
+		trace("Creating DIV tag "  + className);
 		var div : DivElement = cast document.getElementById(className);
 		if (div == null) {
 			div = cast document.createDivElement();
 			div.className = className;
+			div.id = "DIV" +  "_" + className;
 			document.body.appendChild(div);
+		}else {
+			trace("Div tag exists -> " + className);
 		}
 		return div;
 	}
@@ -43,7 +47,7 @@ class Util {
 	public static function createInputElement(document : Document, 
 		parent : DivElement, elementClass : String
 		, elementName : String): Void {
-		trace("Creating input element " + elementName);
+		//trace("Creating input element " + elementName);
 		var div = createDivTag(document, elementClass);
 		var inputElement = document.createInputElement();
 		inputElement.id = elementName;
@@ -55,7 +59,7 @@ class Util {
 		, parent : DivElement 
 		, elementName : String
 		, elementClass : String) : Void {
-			trace("Creating text area element");
+			//trace("Creating text area element");
 			var div = createDivTag(document, elementClass);
 			var areaElement = document.createTextAreaElement();
 			areaElement.id = elementName;
@@ -69,7 +73,7 @@ class Util {
 		, parent : DivElement
 		, elementClass : String
 		, elementName : String) : Void {
-			trace("Creating list element");
+			//trace("Creating list element");
 			var div = createDivTag(document, elementClass);
 			var listElement = document.createUListElement();
 			listElement.id = elementName;
@@ -80,7 +84,7 @@ class Util {
 		, parent : DivElement
 		, elementClass : String
 		, elementName : String): Void {
-			trace("Creating button element");
+			//trace("Creating button element");
 			var div = createDivTag(document, elementClass);
 			var element : ButtonElement = document.createButtonElement();
 			element.value = elementName;
@@ -93,7 +97,7 @@ class Util {
 					, parent : DivElement
 					, elementClass : String
 					, elementName : String){
-			trace("Create selection element");
+			//trace("Create selection element");
 			var div = createDivTag(document, elementClass);
 			var element : SelectElement = document.createSelectElement();
 			element.id = elementName;
@@ -103,7 +107,7 @@ class Util {
 
 	public static function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
-			trace("Element id " + elementId + "->" + "Label " + elementLabel);
+			//trace("Element id " + elementId + "->" + "Label " + elementLabel);
 			var div = Util.createDivTag(document, DIV + elementId);
 
 			var inputLabel = document.createLabelElement();
@@ -125,7 +129,8 @@ class Util {
 			var inputLabel = document.createLabelElement();
 			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
-			createTextAreaElement(document, parent, elementId, elementLabel);			
+			trace("Element id before calling textareaelement " + elementId);
+			createTextAreaElement(document, parent, elementId, elementId);			
 			var textAreaElement : Text = cast document.getElementById(elementId);
 
 	}
