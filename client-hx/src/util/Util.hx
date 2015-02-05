@@ -104,7 +104,6 @@ class Util {
 			input.id = elementId;
 			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
-			inputLabel.className = LABEL + elementId;
 			parent.appendChild(inputLabel);
             parent.appendChild(input);
 
