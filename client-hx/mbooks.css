@@ -54,20 +54,24 @@ Use of getPreventDefault() is deprecated.  Use defaultPrevented instead. mbooks.
 
 }
 .CCAR.ROOT {
-
+	top: 300px;
+	left : 700px;
+	height: 800px;
+	width : 800px;
+	background : yellow;
 }
+
+
 .CCAR.Scenario {
-
+	top: 300px;
+	left : 700px;
+	height: 800px;
+	width : 800px;
+	background : yellow;
 }
+
 .DIV_CCAR.Scenario.Name {
 
 }
-.CCAR.Scenario.List {
-
-}
-.CCAR.Scenario.Button {
-
-}
-
 
 

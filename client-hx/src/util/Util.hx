@@ -48,11 +48,9 @@ class Util {
 		parent : DivElement, elementClass : String
 		, elementName : String): Void {
 		//trace("Creating input element " + elementName);
-		var div = createDivTag(document, elementClass);
 		var inputElement = document.createInputElement();
 		inputElement.id = elementName;
-		div.appendChild(inputElement);
-		parent.appendChild(div);
+		parent.appendChild(inputElement);
 	}
 
 	public static function createTextAreaElement(document : Document
@@ -60,13 +58,11 @@ class Util {
 		, elementName : String
 		, elementClass : String) : Void {
 			//trace("Creating text area element");
-			var div = createDivTag(document, elementClass);
 			var areaElement = document.createTextAreaElement();
 			areaElement.id = elementName;
 			areaElement.rows = DEFAULT_ROWS;
 			areaElement.cols = DEFAULT_COLS;
-			div.appendChild(areaElement);
-			parent.appendChild(div);
+			parent.appendChild(areaElement);
 	}
 
 	public static function createListElement(document : Document
@@ -74,41 +70,34 @@ class Util {
 		, elementClass : String
 		, elementName : String) : Void {
 			//trace("Creating list element");
-			var div = createDivTag(document, elementClass);
 			var listElement = document.createUListElement();
 			listElement.id = elementName;
-			div.appendChild(listElement);
-			parent.appendChild(div);
+			parent.appendChild(listElement);
 		}
 	public static function createButtonElement (document : Document
 		, parent : DivElement
 		, elementClass : String
 		, elementName : String): Void {
 			//trace("Creating button element");
-			var div = createDivTag(document, elementClass);
 			var element : ButtonElement = document.createButtonElement();
 			element.value = elementName;
 			element.id = elementName;
 			element.innerHTML = elementName;
-			div.appendChild(element);
-			parent.appendChild(div);
+			parent.appendChild(element);
 		}
 	public static function createSelectElement(document : Document 
 					, parent : DivElement
 					, elementClass : String
 					, elementName : String){
 			//trace("Create selection element");
-			var div = createDivTag(document, elementClass);
 			var element : SelectElement = document.createSelectElement();
 			element.id = elementName;
-			div.appendChild(element);
-			parent.appendChild(div);
+			parent.appendChild(element);
 		}
 
 	public static function createElementWithLabel(document : Document
 			, parent : DivElement, elementId : String, elementLabel : String) : Void{
 			//trace("Element id " + elementId + "->" + "Label " + elementLabel);
-			var div = Util.createDivTag(document, DIV + elementId);
 
 			var inputLabel = document.createLabelElement();
 			var input = document.createInputElement();
@@ -116,9 +105,9 @@ class Util {
 			inputLabel.id = LABEL + elementId;
 			inputLabel.innerHTML = elementLabel;
 			inputLabel.className = LABEL + elementId;
-			div.appendChild(inputLabel);
-            div.appendChild(input);
-            parent.appendChild(div);
+			parent.appendChild(inputLabel);
+            parent.appendChild(input);
+
 	}
 
 	public static function createTextAreaElementWithLabel(document : Document
