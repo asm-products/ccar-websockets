@@ -36,7 +36,7 @@ class MBooks {
 	var connect : ButtonElement;
 	var timer : Timer;
 	public var divStack (default, null) : GenericStack<DivElement>;
-
+	var outputEventStream : Deferred<String>;
 
 
 	function new (){
@@ -49,20 +49,36 @@ class MBooks {
 						"",
 						"",
 						"");
-
+		outputEventStream = new Deferred<String>();
+		var stream = getOutputEventStream();
 	}
 
+	private function sendEvents(aMessage : String){
+		//trace("Sending " + aMessage);
+		if(aMessage == "") {
+			trace("Empty string. Not sending the message");
+		}
+		var d : Dynamic = haxe.Json.parse(aMessage);
+		websocket.send(aMessage);
+		//trace("Sent " + aMessage);
+
+	}
+	public function getOutputEventStream() {
+		return outputEventStream.stream();
+	}
 	public function initializeElementStream(ws : Element, event : String
 				, ?useCapture: Bool) : Stream<Dynamic>{
 		var def = new Deferred<Dynamic> ();
 		ws.addEventListener(event, def.resolve, useCapture);
 		return def.stream();
 	}
-	function initializeConnection(){
+	public function initializeConnection(){
 		websocket = new WebSocket(connectionString());
 		websocket.onclose = onClose;
 		websocket.onerror = onError;
-		websocket.onopen = onOpen;
+		
+		var openStream = initializeElementStream(cast websocket, "open");
+		openStream.then(onOpen);
 		var eventStream = initializeElementStream(cast websocket, "message");
 		eventStream.then(onMessage);
 	}
@@ -71,8 +87,10 @@ class MBooks {
 		return protocol + "://" + serverHost + ":" + portNumber;
 	}
 
+
 	public  function onOpen(ev: Event){
-		//trace("Connection opened");
+		trace("Connection opened");
+		getOutputEventStream().then(sendEvents);
 		initializeKeepAlive();
 	}
 	private function initializeKeepAlive() : Void {
@@ -250,10 +268,8 @@ class MBooks {
 	* Clients could be sending json 
 	*/
 	public  function doSendJSON(aMessage : String){
-		//trace("Sending " + aMessage);
-		var d : Dynamic = haxe.Json.parse(aMessage);
-		websocket.send(aMessage);
-		//trace("Sent " + aMessage);
+		trace("Resolving message " + aMessage);
+		this.outputEventStream.resolve(aMessage);
 	}
 	private function createConnectionForm() : Void {
 		try {
@@ -265,7 +281,7 @@ class MBooks {
 						"");
 
 		person.createNickNameForm(p);
-		initializeConnection();
+		
 		//trace("Connection form created");
 		} catch(msg:DOMCoreException){
 			//trace("Exception " + msg);

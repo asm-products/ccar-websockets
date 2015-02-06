@@ -214,7 +214,8 @@ class Person {
 			var lStatus : LoginStatus = Undefined;
 			var cType : String = Std.string(CommandType.Login);
 			var l : Login = new Login(cType, this.modelPerson, lStatus);
-			//trace("Sending login status " + l);
+			trace("Sending login status " + l);
+			MBooks.getMBooks().initializeConnection();
 			MBooks.getMBooks().doSendJSON(Json.stringify(l));
 		}
 	}

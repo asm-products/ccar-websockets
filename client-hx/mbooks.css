@@ -250,7 +250,7 @@ Use of getPreventDefault() is deprecated.  Use defaultPrevented instead. mbooks.
 }
 .CCAR.ROOT {
 	top: 0px;
-	left : 700px;
+	left : 0px;
 	height: 1800px;
 	width : 1800px;
 	position: relative;
@@ -259,6 +259,13 @@ Use of getPreventDefault() is deprecated.  Use defaultPrevented instead. mbooks.
 
 
 .CCAR.Scenario {
+	top: 0px;
+	left : 0px;
+	height: 1800px;
+	width : 1800px;
+	position: relative;
+	background : yellow;
+
 }
 
 .DIV_CCAR.Scenario.Name {
