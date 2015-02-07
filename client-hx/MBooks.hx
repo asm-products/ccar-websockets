@@ -103,9 +103,9 @@ class MBooks {
 	}
 	private function disableKeepAlive() : Void {
 		if(timer == null){
-			//trace("Nothing to disable");
+			trace("Nothing to disable");
 		}else {
-			//trace("Stopping the timer");
+			trace("Stopping the timer");
 			timer.stop();
 		}
 	}
@@ -318,6 +318,7 @@ class MBooks {
 			commandType : commandType
 			, keepAlive : "Ping"
 		};
+		trace("Sending keep alive " + payload);
 		doSendJSON(haxe.Json.stringify(payload));
 
 	}
