@@ -1,0 +1,92 @@
+/*Styles for the various elements*/
+.Person-NickName
+,.DIV_Person-NicknameNickname
+, .CCAR.ROOT
+, .CCAR.Scenario
+
+
+.Person-NickName {
+	top    :  0;
+	left   : 0;
+	right  : 0;
+	height : 600px;
+	width :  1500px;
+	background : red;
+	border : 4px;
+}
+
+.DIV_Person-NicknameNickname {
+	top    :  0;
+	left   : 0;
+	right  : 0;
+	height : 40px;
+	width :  600px;
+	background : green;	
+	border : 4px;
+}
+
+/*
+"Creating DIV tag Person-Nickname" mbooks.js:2483
+"Creating DIV tag DIV_Person-NicknameNickname" mbooks.js:2483
+Use of getPreventDefault() is deprecated.  Use defaultPrevented instead. mbooks.html
+"Creating DIV tag Person-Login" mbooks.js:2483
+"Creating DIV tag DIV_Person.LoginNickname" mbooks.js:2483
+"Creating DIV tag DIV_Person.LoginPassword" mbooks.js:2483
+"Creating DIV tag Dashboard.Logout" mbooks.js:2483
+"Creating DIV tag CCAR.ROOT" mbooks.js:2483
+"Creating DIV tag CCAR.Scenario" mbooks.js:2483
+"Creating DIV tag DIV_CCAR.Scenario.Name" mbooks.js:2483
+"Creating DIV tag Scenario Text" mbooks.js:2483
+"Creating DIV tag Parsed JSON output" mbooks.js:2483
+"Creating DIV tag CCAR.Scenario.List" mbooks.js:2483
+"Creating DIV tag CCAR.Scenario.Button"*/
+
+.Person-Login {
+	top  :   300px;
+	left :   300px ;
+	height : 40px ;
+	width :  400px;
+	background : blue;
+	border : 4px;
+}
+
+.DIV_Person.LoginNickname {
+
+}
+.DIV_Person.LoginPassword {
+
+}
+.Dashboard.Logout{
+	position : relative;
+	top : 500px;
+	left : 0px;
+	height : 40px;
+	width : 120px;
+}
+
+.CCAR.ROOT {
+	top: 0px;
+	left : 0px;
+	height: 1800px;
+	width : 1800px;
+	position: relative;
+	background : green;
+	border: 4px;
+}
+
+
+.CCAR.Scenario {
+	top: 0px;
+	left : 40px;
+	height: 400px;
+	width : 600px;
+	position: relative;
+	background : yellow;
+
+}
+
+.DIV_CCAR.Scenario.Name {
+
+}
+
+
