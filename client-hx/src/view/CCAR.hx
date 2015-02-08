@@ -116,11 +116,16 @@
 		//or we may lose the scenario
 		public function scenarioNameUpdate(ev : KeyboardEvent) : Void {
 			//trace("Inside scenario name update " + ev + "->" + ev.keyCode);
-			if(ev.keyCode == 10 || ev.keyCode == 13 || ev.keyCode == 9){
-				var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+			var selectElement : SelectElement = getCCARListElement();
+
+			if(Util.isBackspace(ev.keyCode)){
+				scenarioNameElement.value = "";
+				selectElement.disabled = false;
+			}
+			if(Util.isSignificantWS(ev.keyCode)){
 				if(!scenarioNameExists(scenarioNameElement.value)){
 					//trace("New element " + scenarioNameElement.value);
-					var selectElement : SelectElement = getCCARListElement();
 					selectElement.disabled = true;
 					}else {
 						//trace("Element found so we are going to update an existing element " + scenarioNameElement.value);

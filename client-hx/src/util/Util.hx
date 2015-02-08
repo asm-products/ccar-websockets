@@ -16,6 +16,8 @@ import js.html.OptionElement;
 class Util {
 	public static var DEFAULT_ROWS : Int = 10;
 	public static var DEFAULT_COLS : Int = 50;
+	public static var BACKSPACE : Int = 8;
+
 	public static function NEW_LINE () : Int {
 		return 10;
 	}
@@ -24,6 +26,9 @@ class Util {
 	}
 	public static function CR() : Int {
 		return 13;
+	}
+	public static function isBackspace(code : Int) {
+		return code == BACKSPACE;
 	}
 	public static function isSignificantWS(code : Int) {
 		//newline, tab or carriage return
