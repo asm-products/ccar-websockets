@@ -85,6 +85,10 @@
 			Util.createTextAreaElementWithLabel(document, div 
 				, TEXT_CLASS
 				, TEXT);
+			var scenarioAreaElement : TextAreaElement = cast document.getElementById(TEXT_CLASS);
+			var scenarioAreaElementStream = MBooks.getMBooks().initializeElementStream(scenarioAreaElement, "change");
+			scenarioAreaElementStream.then(scenarioAreaElementUpdate);
+
 			trace("Class name " + PARSED_CLASS);
 			Util.createTextAreaElementWithLabel(document, div
 				, PARSED_CLASS
@@ -110,6 +114,11 @@
 			var selectElement : SelectElement = 
 			cast document.getElementById(CCAR_DIV_TAG + LIST);
 			return selectElement;			
+		}
+
+		public function scenarioAreaElementUpdate(ev: Event) : Void {
+			trace("scenario area element update " + ev);
+			uploadCCARData(ev);
 		}
 		//When the user modifies the scenario name directly, if the 
 		//the name is not in the dictionary, then the list box should be disabled,

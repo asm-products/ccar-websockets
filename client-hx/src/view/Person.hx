@@ -208,8 +208,11 @@ class Person {
 
 
 	public function sendLogin (ev: KeyboardEvent){
-		if(ev.keyCode == 10 || ev.keyCode == 13 || ev.keyCode == 9){
-			var inputElement : InputElement = cast ev.target;
+		var inputElement : InputElement = cast ev.target;
+		if(Util.isBackspace(ev.keyCode)){
+			inputElement.value = "";
+		}
+		if(Util.isSignificantWS(ev.keyCode)){
 			this.modelPerson.setNickName(inputElement.value);
 			var lStatus : LoginStatus = Undefined;
 			var cType : String = Std.string(CommandType.Login);
