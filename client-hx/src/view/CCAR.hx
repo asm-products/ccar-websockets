@@ -265,7 +265,7 @@
  			}
  			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
  			var options : List<OptionElement> = new List<OptionElement>();
- 			var index : Int = 1;
+ 			var index : Int = 0;
  			var selectedModel : model.CCAR = null;
  			for ( key in ccarDictionary.keys()){
  				var i : model.CCAR = ccarDictionary[key];
@@ -277,17 +277,19 @@
  						option.id = OPTION + i.scenarioName;
  						option.text = i.scenarioName;
  						if(newElement == null) {
- 							list.selectedIndex = index;
- 							selectedModel = i;
- 							}else {
+ 							if(selectedModel == null) {
+ 								selectedModel = i; 
+ 							}
+
+ 						}else {
  							}
  							list.appendChild(option);
  						}
- 						}else {
+ 				}else {
  							//trace("Ignoring empty scenario name " + i);
- 						}
- 						index = index + 1;
- 					}
+ 				}
+ 				index = index + 1;
+ 			}
 				
 			if(newElement != null){
 				sendParseRequest(newElement);
