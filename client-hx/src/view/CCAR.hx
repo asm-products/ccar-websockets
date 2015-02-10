@@ -98,13 +98,15 @@
 			var selectElement : SelectElement = getCCARListElement();
 			var buttonElement : ButtonElement = 
 			cast document.getElementById(UPLOAD_BUTTON);
-			var listStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(selectElement, "click");
-			listStream.then(selectScenario);			
+			var listStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(selectElement, "change");
+			listStream.then(selectScenario);	
+			var keyboardListStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(selectElement, "keydown");
+			keyboardListStream.then(selectScenarioKb);		
 			parent.appendChild(div);
 			buttonElement.onclick = uploadCCARData;
 			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
 			var scenarioNameStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keyup");
-			var keydownStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keydownn");
+			var keydownStream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(scenarioNameElement, "keydown");
 			scenarioNameStream.then(scenarioNameUpdate);
 			scenarioNameElement.focus();
 			keydownStream.then(scenarioNameUpdate);
@@ -200,6 +202,23 @@
 						selectElement.disabled = false;
 					}
 
+					private function selectScenarioKb(ev : KeyboardEvent){
+						trace("Keydown event " + ev.keyCode);
+						if(Util.isUpOrDown(ev.keyCode)){
+							var selectElement : SelectElement = cast ev.target;
+							trace("Event target " + ev.target + " " + selectElement.value);
+							var ccarText = ccarDictionary.get(selectElement.value);
+							var textAreaElement : TextAreaElement = cast document.getElementById(TEXT_CLASS);
+							//trace("Selected text " + ccarText.scenarioText);
+							//trace("textAreaElement dimensions " + textAreaElement.rows + " -> " + textAreaElement.cols);
+							textAreaElement.value = ccarText.scenarioText;
+							var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+							scenarioNameElement.value = selectElement.value;
+							sendParseRequest(ccarText);
+
+						}
+
+					}
 					private function selectScenario(ev : Event){
 						//trace("Selecting ccar element " + ev);
 						var selectElement : SelectElement = cast ev.target;
@@ -236,41 +255,59 @@
 	 		}
 
 
-	 		public function populateList(document: Document
-	 			, elements : Array<model.CCAR>, newElement : model.CCAR){
-	 			//trace("Populate the elements in the list " + elements.length);
-	 			for (i in elements){
-	 				//trace("Dictionary " + i);
-	 				ccarDictionary[i.scenarioName] = i;
-	 				//trace("Element added "+ ccarDictionary.get(i.scenarioName) + " " + i.scenarioName);
-	 			}
-	 			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
-	 			var options : List<OptionElement> = new List<OptionElement>();
-	 			var index : Int = 1;
-	 			for ( key in ccarDictionary.keys()){
-	 				var i : model.CCAR = ccarDictionary[key];
-	 				if(i.scenarioName != "") {
-	 					var option : OptionElement = 
-	 					cast document.getElementById(i.scenarioName);
-	 					if (option == null){
-	 						option = document.createOptionElement();
-	 						option.id = OPTION + i.scenarioName;
-	 						option.text = i.scenarioName;
-	 						if(newElement == null) {
-	 							list.selectedIndex = index;
-	 							}else {
-	 							}
-	 							list.appendChild(option);
-	 						}
-	 						}else {
-	 							//trace("Ignoring empty scenario name " + i);
-	 						}
-	 						index = index + 1;
-	 					}
+ 	public function populateList(document: Document
+ 			, elements : Array<model.CCAR>, newElement : model.CCAR){
+ 			//trace("Populate the elements in the list " + elements.length);
+ 			for (i in elements){
+ 				//trace("Dictionary " + i);
+ 				ccarDictionary[i.scenarioName] = i;
+ 				//trace("Element added "+ ccarDictionary.get(i.scenarioName) + " " + i.scenarioName);
+ 			}
+ 			var list : SelectElement = cast document.getElementById(CCAR_DIV_TAG + LIST);
+ 			var options : List<OptionElement> = new List<OptionElement>();
+ 			var index : Int = 1;
+ 			var selectedModel : model.CCAR = null;
+ 			for ( key in ccarDictionary.keys()){
+ 				var i : model.CCAR = ccarDictionary[key];
+ 				if(i.scenarioName != "") {
+ 					var option : OptionElement = 
+ 					cast document.getElementById(i.scenarioName);
+ 					if (option == null){
+ 						option = document.createOptionElement();
+ 						option.id = OPTION + i.scenarioName;
+ 						option.text = i.scenarioName;
+ 						if(newElement == null) {
+ 							list.selectedIndex = index;
+ 							selectedModel = i;
+ 							}else {
+ 							}
+ 							list.appendChild(option);
+ 						}
+ 						}else {
+ 							//trace("Ignoring empty scenario name " + i);
+ 						}
+ 						index = index + 1;
+ 					}
+				
+			if(newElement != null){
+				sendParseRequest(newElement);
+				}else {
+					newElement = selectedModel; 
+					updateUIModel(newElement);
+					sendParseRequest(newElement);
+				}
+ 		}
 
-	 					if(newElement != null){
-	 						sendParseRequest(newElement);
-	 					}
-	 				}
 
-	 			}
+ 	private function updateUIModel(aModel : model.CCAR) {
+			var ccarText = ccarDictionary.get(aModel.scenarioName);
+			var textAreaElement : TextAreaElement = cast document.getElementById(TEXT_CLASS);
+			//trace("Selected text " + ccarText.scenarioText);
+			//trace("textAreaElement dimensions " + textAreaElement.rows + " -> " + textAreaElement.cols);
+			textAreaElement.value = ccarText.scenarioText;
+			var scenarioNameElement : InputElement = cast document.getElementById(NAME_CLASS);
+			scenarioNameElement.value = aModel.scenarioName;
+
+ 	}
+}
+

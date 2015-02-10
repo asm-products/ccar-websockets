@@ -17,6 +17,10 @@ class Util {
 	public static var DEFAULT_ROWS : Int = 10;
 	public static var DEFAULT_COLS : Int = 50;
 	public static var BACKSPACE : Int = 8;
+
+	//XXX:This will bite!
+	public static var UP_ARROW : Int = 38;
+	public static var DOWN_ARROW : Int = 40;
 	public static function NEW_LINE () : Int {
 		return 10;
 	}
@@ -26,7 +30,15 @@ class Util {
 	public static function CR() : Int {
 		return 13;
 	}
-
+	public static function isUpOrDown(code : Int){
+		return code == UP_ARROW || code == DOWN_ARROW;
+	}
+	public static function isUP(code : Int) {
+		return code == UP_ARROW;
+	}
+	public static function issDown(code : Int) {
+		return code == DOWN_ARROW;
+	}
 	public static function isTab(code : Int){
 		return code == TAB();
 	}
