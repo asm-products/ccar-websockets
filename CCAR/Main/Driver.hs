@@ -314,8 +314,11 @@ queryCCAR pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
                     get pid 
 
 deleteCCAR :: CCAR -> IO (Maybe CCAR)
-deleteCCAR p = updateCCAR p { cCARDeleted = True}
-
+deleteCCAR c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+    liftIO $ do
+            flip runSqlPersistMPool pool $ do
+                DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
+                return $ Just $ c {cCARDeleted = True} 
 
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
@@ -418,9 +421,9 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
         CC.Delete  -> do 
-                deleteCCAR ccar 
+                res <- deleteCCAR ccar 
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
+                        $ CommandCCARUpload $ CCARUpload nickName operation (res) []
         CC.Query ccarId -> do 
                 maybeCCAR <- queryCCAR (ccarId)
                 case maybeCCAR of 

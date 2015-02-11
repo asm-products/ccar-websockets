@@ -129,6 +129,7 @@ class MBooks {
 				processLoginResponse(login);
 			}
 			case CCARUpload : {
+				trace("Parsing ccar upload " + incomingMessage);
 				var ccarUpload : model.CCAR = incomingMessage.ccarData;
 				var resultSet : Array<model.CCAR> = cast incomingMessage.ccarResultSet;
 				processCCARUpload(ccarUpload, resultSet);
@@ -218,6 +219,7 @@ class MBooks {
 
 		var document : Document = Browser.document;
 		if(ccarData != null) {
+			trace("Adding model " + ccarData.scenarioName + " -> " + ccarData.deleted);
 			resultSet.push(ccarData);
 		}
 		var ccar : view.CCAR = ccarViews.pop();
@@ -225,6 +227,8 @@ class MBooks {
 		if(ccar == null){
 			//trace("No view found??");
 		}else {
+
+			
 			ccar.populateList(document, resultSet, ccarData);
 		}
 		
