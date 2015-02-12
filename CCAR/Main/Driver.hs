@@ -4,7 +4,8 @@ module CCAR.Main.Driver
 where 
 
 import Yesod.Core
-import Yesod.WebSockets
+import Yesod.WebSockets as YWS
+import Network.WebSockets.Connection as WSConn
 import Yesod.Static
 import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
@@ -498,25 +499,22 @@ processIncomingMessage aCommand =
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
 
 
+instance Show WSConn.Connection where
+    show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
 ccarApp :: WebSocketsT Handler ()
 ccarApp = do
-        command <- receiveData
+        connection <- ask
+        command <- YWS.receiveData
+        liftIO $ putStrLn $ "Connection " ++ (show connection)
         liftIO $ putStrLn $ "Incoming text " ++ (T.unpack (command :: T.Text))
         liftIO $ putStrLn $ show $ incomingDictionary (command :: T.Text)
         nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
         liftIO $ putStrLn $ show nickNameExists
-        sendTextData nickNameExists
-        App writeChan _ <- getYesod
-        readChan <- atomically $ do
-            writeTChan writeChan $ command <> " has joined the chat"
-            dupTChan writeChan
-        race_
-            (forever $ atomically (readTChan readChan) >>= sendTextData)
-            (sourceWS $$ mapM_C (\msg -> do 
-                x <- liftIO $ processIncomingMessage $ incomingDictionary msg 
-                liftIO $ putStrLn $ "Sending " ++ show x ++ ("To the wire : sourceWS")
-                atomically $ do
-                        writeTChan writeChan x))
+        YWS.sendTextData nickNameExists
+        forever $ do 
+            msg <- YWS.receiveData
+            x <- liftIO $ processIncomingMessage $ incomingDictionary msg
+            YWS.sendTextData x
         where
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 getHomeR :: Handler Html
