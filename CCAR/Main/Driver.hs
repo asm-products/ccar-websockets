@@ -5,14 +5,16 @@ where
 
 import Yesod.Core
 import Yesod.WebSockets as YWS
+import Control.Monad.Trans.Control    (MonadBaseControl (liftBaseWith, restoreM))
 import Network.WebSockets.Connection as WSConn
 import Yesod.Static
 import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
 import CCAR.Parser.CCARParsec
-import Control.Monad (forever)
+import Control.Monad (forever, void, when)
 import Control.Monad.Trans.Reader
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay, forkIO)
+import Control.Concurrent.Async as A (waitSTM, wait, async)
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
@@ -555,12 +557,19 @@ ccarApp = do
         nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
         liftIO $ putStrLn $ show nickNameExists
         YWS.sendTextData nickNameExists
-        forever $ do 
-            msg <- YWS.receiveData
-            x <- liftIO $ processIncomingMessage $ incomingDictionary msg
-            YWS.sendTextData x
+        --race_ (forever loop) (forever (liftIO $ do threadDelay 1000000; putStr "."))
+        a <- liftBaseWith (\run -> A.async $ run loop)
+        liftBaseWith (\run -> A.wait a)
+        liftIO $ putStrLn "Thread exiting"
         where
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+            loop = do
+                msg <- YWS.receiveData
+                x <- liftIO $ processIncomingMessage $ incomingDictionary msg
+                YWS.sendTextData x
+                loop
+
+
 getHomeR :: Handler Html
 getHomeR = do
     webSockets ccarApp
