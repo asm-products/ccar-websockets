@@ -36,6 +36,7 @@ import GHC.Generics
 import Data.Data
 import Data.Typeable 
 import Database.Persist.Postgresql as DB
+import Data.Map as IMap
 
 
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
@@ -270,12 +271,12 @@ decoderM a = return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 
 
 
-
-
-
+type NickName = T.Text
+type ConnectionMap = TVar (IMap.Map NickName WSConn.Connection)
 
 data App = App { chan :: (TChan T.Text)
-                , getStatic :: Static}
+                , getStatic :: Static
+                , connectionMap :: ConnectionMap}
 
 instance Yesod App
 
@@ -291,7 +292,7 @@ insertCCAR c = do
         runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
-                        cid <- insert c
+                        cid <- DB.insert c
                         liftIO $ putStrLn ("Returning " ++ (show cid))
                         return cid
 
@@ -333,7 +334,7 @@ insertPerson p = do
         runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
-                        pid <- insert p
+                        pid <- DB.insert p
                         liftIO $ putStrLn ("Returning " ++ (show pid))
                         return pid
 
@@ -499,12 +500,55 @@ processIncomingMessage aCommand =
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
 
 
+
+sendPrivateMessage :: App -> Login -> Login -> IO ()
+sendPrivateMessage app source destination = undefined 
+sendMessage :: App -> Login -> [Login] -> IO ()
+sendMessage app source destinations = undefined
+
+
+deleteConnection :: App -> WSConn.Connection -> Login -> IO  () 
+deleteConnection app conn lo@(Login p status) = do
+    case p of
+        Just x -> atomically $ do 
+                cMap <- readTVar $ connectionMap app                
+                _ <- writeTVar (connectionMap app) (IMap.delete (personNickName x) cMap)
+                return ()
+        Nothing -> return ()
+
+addConnection :: App -> WSConn.Connection ->  Login -> IO ()
+addConnection app aConn lo@(Login p status) =do
+    case p of
+        Just x -> atomically $ do 
+                cMap <- readTVar $ connectionMap app
+                _ <- writeTVar (connectionMap app) (IMap.insert (personNickName x) aConn cMap)
+                return ()
+        Nothing -> return ()
+
+
+handleInitialLogin :: WSConn.Connection -> T.Text -> App -> IO Command
+handleInitialLogin aConn aText app@(App a b c) = 
+        do 
+            case aCommand of 
+                Nothing -> return $ CommandError $ genericErrorCommand ("Login has errors")
+                Just (Object a) -> do
+                    c <- return $ processCommandWrapper(Object a) 
+                    case c of 
+                        (CommandLogin r) -> do 
+                                addConnection app aConn r
+                                return c 
+                        _ -> return $ CommandError $ genericErrorCommand ("Invalid command during login")
+            where 
+                aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
 instance Show WSConn.Connection where
     show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
 ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
+        app <- getYesod
         command <- YWS.receiveData
+        _ <- liftIO $ handleInitialLogin connection command app 
         liftIO $ putStrLn $ "Connection " ++ (show connection)
         liftIO $ putStrLn $ "Incoming text " ++ (T.unpack (command :: T.Text))
         liftIO $ putStrLn $ show $ incomingDictionary (command :: T.Text)
@@ -576,7 +620,8 @@ driver = do
                 runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
-    warp 3000 $ App chan static
+    connMap <- newTVarIO $ IMap.empty
+    warp 3000 $ App chan static connMap
 
 instance ToJSON LoginStatus
 instance FromJSON LoginStatus
