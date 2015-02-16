@@ -14,7 +14,7 @@ import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay, forkIO)
-import Control.Concurrent.Async as A (waitSTM, wait, async)
+import Control.Concurrent.Async as A (waitSTM, wait, async, cancel)
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
@@ -39,6 +39,7 @@ import Data.Data
 import Data.Typeable 
 import Database.Persist.Postgresql as DB
 import Data.Map as IMap
+import CCAR.Main.GroupCommunication as GroupCommunication
 
 
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
@@ -265,7 +266,7 @@ iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
 
 pJSON :: (FromJSON a) => T.Text -> IO (Either String (Maybe a))
 pJSON  aText = do
-    putStrLn $ "pJSON " ++ (T.unpack aText)
+    putStrLn $  "pJSON " ++ (T.unpack aText)
     return $ iParseJSON aText
  
 decoder = L.toStrict . E.decodeUtf8 . En.encode        
@@ -274,11 +275,11 @@ decoderM a = return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 
 
 type NickName = T.Text
-type ConnectionMap = TVar (IMap.Map NickName WSConn.Connection)
+type ClientMap = GroupCommunication.ClientIdentifierMap
 
 data App = App { chan :: (TChan T.Text)
                 , getStatic :: Static
-                , connectionMap :: ConnectionMap}
+                , nickNameMap :: ClientMap}
 
 instance Yesod App
 
@@ -295,7 +296,7 @@ insertCCAR c = do
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
                         cid <- DB.insert c
-                        liftIO $ putStrLn ("Returning " ++ (show cid))
+                        $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
                         return cid
 
 updateCCAR :: CCAR -> IO (Maybe CCAR)
@@ -332,12 +333,12 @@ checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $
 
 insertPerson :: Person -> IO ((Key Person)) 
 insertPerson p = do 
-        putStrLn $ "Inside insert person " ++ (show p)
+        putStrLn $ show $ "Inside insert person " ++ (show p)
         runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
                         pid <- DB.insert p
-                        liftIO $ putStrLn ("Returning " ++ (show pid))
+                        $(logInfo) $ T.pack $ show  ("Returning " ++ (show pid))
                         return pid
 
 updatePerson :: PersonId -> Person -> IO (Maybe Person)
@@ -360,7 +361,7 @@ deletePerson pid p = updatePerson pid p {personDeleted = True}
 processCommand :: Maybe Command  -> IO T.Text
 processCommand (Just (CommandLogin aLogin)) = do 
     chk <- checkLoginExists (personNickName p)
-    putStrLn $ "Login exists " ++ (show chk)
+    putStrLn $ show $ "Login exists " ++ (show chk)
     case chk of 
         Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandLogin $ Login {login = Just p, 
             loginStatus = Just UserNotFound}
@@ -381,11 +382,11 @@ processCommand (Just (CommandKeepAlive a)) =
         return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandKeepAlive a 
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
-    putStrLn $ "Processing processCommand " ++ (show uo)
+    putStrLn $ show $ "Processing processCommand " ++ (show uo)
     case uo of
         Us.Create  -> do
                 personId <- insertPerson person
-                liftIO $ putStrLn  $ "Person inserted " ++ (show personId)
+                putStrLn $ show $ "Person inserted " ++ (show personId)
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
                         $ UserOperations Us.Create (Just person)
         Us.Update personId -> do
@@ -412,11 +413,11 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
 
 
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
-    putStrLn $ "Processing command ccar upload " ++ (show ccar)
+    putStrLn $ show $ "Processing command ccar upload " ++ (show ccar)
     case operation of 
         CC.Create -> do 
                 ccarId <- insertCCAR ccar
-                liftIO $ putStrLn $ "CCAR created " ++ (show ccar)
+                putStrLn $ show $ "CCAR created " ++ (show ccar)
                 return $ L.toStrict $ E.decodeUtf8 $ J.encode 
                         $ CommandCCARUpload $ CCARUpload nickName operation 
                                 (Just ccar) []
@@ -485,19 +486,34 @@ processCommandWrapper (Object a)   =
 
 processCommandWrapper _ = CommandError $ genericErrorCommand "Not yet implemented"
 
+getNickName :: Maybe Value -> IO (Maybe T.Text, T.Text)
+getNickName aCommand = 
+    do
+        case aCommand of
+            Nothing -> return $ (Nothing, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand "Unknown error")
+            Just (Object a) -> 
+                  case nn of
+                    Nothing -> return (Nothing, "Nickname tag not found")
+                    Just x -> 
+                        case x of
+                            String x -> return (Just "found it", x)
+                            _ -> return (Nothing, T.pack $ "Invalid " ++ (show x))
+                where 
+                    nn = LH.lookup "nickName" a 
+
 processIncomingMessage :: Maybe Value -> IO T.Text
 processIncomingMessage aCommand = 
     do 
-        putStrLn $ "Processing incoming message " ++ (show aCommand)
+        putStrLn $  "Processing incoming message " ++ (show aCommand)
         case aCommand of 
             Nothing -> do
                     putStrLn $ "Processing error..."
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode   
                         (CommandError $ genericErrorCommand ("Unknown error"))
             Just (Object a) -> do 
-                    liftIO $ putStrLn $ "Processing command type " ++ (show (LH.lookup "commandType" a))
+                    putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
                     c <- return $ processCommandWrapper (Object a)
-                    liftIO $ putStrLn $ "Processing command " ++ (show c)
+                    putStrLn $ show $ "Processing command " ++ (show c)
                     reply <- processCommand (Just c)
                     return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
 
@@ -513,8 +529,8 @@ deleteConnection :: App -> WSConn.Connection -> Login -> IO  ()
 deleteConnection app conn lo@(Login p status) = do
     case p of
         Just x -> atomically $ do 
-                cMap <- readTVar $ connectionMap app                
-                _ <- writeTVar (connectionMap app) (IMap.delete (personNickName x) cMap)
+                cMap <- readTVar $ nickNameMap app                
+                _ <- writeTVar (nickNameMap app) (IMap.delete (personNickName x) cMap)
                 return ()
         Nothing -> return ()
 
@@ -522,11 +538,23 @@ addConnection :: App -> WSConn.Connection ->  Login -> IO ()
 addConnection app aConn lo@(Login p status) =do
     case p of
         Just x -> atomically $ do 
-                cMap <- readTVar $ connectionMap app
-                _ <- writeTVar (connectionMap app) (IMap.insert (personNickName x) aConn cMap)
+                nMap <- readTVar $ nickNameMap app
+                r <- newTChan 
+                w <- newTChan
+                clientState <- return ClientState{nickName = (personNickName x)
+                        , connection = aConn
+                        , readChan = r 
+                        , writeChan = w 
+                }
+                _ <- writeTVar (nickNameMap app) (IMap.insert (personNickName x) clientState nMap)
                 return ()
         Nothing -> return ()
 
+getClientState :: T.Text -> App -> IO ClientState
+getClientState nickName app@(App a b c) = 
+    atomically $ do
+        nMap <- readTVar c
+        return $ nMap ! nickName
 
 handleInitialLogin :: WSConn.Connection -> T.Text -> App -> IO Command
 handleInitialLogin aConn aText app@(App a b c) = 
@@ -543,32 +571,56 @@ handleInitialLogin aConn aText app@(App a b c) =
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 
+
 instance Show WSConn.Connection where
     show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
+
 ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
         app <- getYesod
         command <- YWS.receiveData
-        _ <- liftIO $ handleInitialLogin connection command app 
-        liftIO $ putStrLn $ "Connection " ++ (show connection)
-        liftIO $ putStrLn $ "Incoming text " ++ (T.unpack (command :: T.Text))
-        liftIO $ putStrLn $ show $ incomingDictionary (command :: T.Text)
-        nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
-        liftIO $ putStrLn $ show nickNameExists
-        YWS.sendTextData nickNameExists
-        --race_ (forever loop) (forever (liftIO $ do threadDelay 1000000; putStr "."))
-        a <- liftBaseWith (\run -> A.async $ run loop)
-        liftBaseWith (\run -> A.wait a)
-        liftIO $ putStrLn "Thread exiting"
+        _ <- liftIO $ handleInitialLogin connection command app  
+        $(logInfo) $ T.pack $ show $ "Connection " `mappend` (show connection)
+        $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
+        $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
+        -- The nick name at startup
+        -- The commands should always have a nickName for the source of the cohmands.
+
+        (result, nickNameStartup) <- liftIO $ getNickName $ incomingDictionary command
+        case result of 
+                Nothing -> 
+                    do
+                        liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                Just x -> do
+                        nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
+                        $(logInfo) nickNameExists
+                        YWS.sendTextData nickNameExists
+                        a <- liftBaseWith (\run -> A.async $ run writer)
+                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameStartup)
+                        liftBaseWith (\run -> A.wait a)
+                        liftBaseWith (\run -> A.wait b)
+                        $(logInfo) "Thread exiting"
         where
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
-            loop = do
+            
+            -- Writer writes to the write channel 
+            -- with source being the websocket
+            writer = do
+                app <- getYesod
                 msg <- YWS.receiveData
+                (_, nickNameLatest) <- liftIO $ getNickName $ incomingDictionary msg
+                liftIO $ putStrLn $ "Latest nickName " `mappend` (show nickNameLatest)
+                clientState <- liftIO $ getClientState nickNameLatest app
                 x <- liftIO $ processIncomingMessage $ incomingDictionary msg
-                YWS.sendTextData x
-                loop
-
+                atomically $ writeTChan (writeChan clientState) x
+                writer
+            reader app nickName= do
+                clientState <- liftIO $ getClientState nickName app
+                textData <- atomically $ readTChan (readChan clientState) 
+                WSConn.sendTextData (connection clientState) textData    
+                liftIO $ putStrLn $ "Wrote " `mappend` (show textData)
+                reader app nickName
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -629,8 +681,8 @@ driver = do
                 runMigration migrateAll
     chan <- atomically newBroadcastTChan
     static@(Static settings) <- static "static"
-    connMap <- newTVarIO $ IMap.empty
-    warp 3000 $ App chan static connMap
+    nickNameMap <- newTVarIO $ IMap.empty
+    warp 3000 $ App chan static nickNameMap
 
 instance ToJSON LoginStatus
 instance FromJSON LoginStatus

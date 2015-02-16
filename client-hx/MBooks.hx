@@ -5,6 +5,7 @@ import haxe.Timer;
 import js.html.Element;
 import haxe.ds.GenericStack;
 import js.html.Event;
+import js.html.CloseEvent;
 import js.html.MessageEvent;
 import js.html.WebSocket;
 import js.html.DOMCoreException;
@@ -342,8 +343,8 @@ class MBooks {
 		singleton = new MBooks();
 		singleton.createConnectionForm();
 	}
-	public function onClose(ev: Event){
-		//trace("Connection closed");
+	public function onClose(ev: CloseEvent){
+		trace("Connection closed " + ev.code + "->" + ev.reason);
 		disableKeepAlive();
 
 	}
