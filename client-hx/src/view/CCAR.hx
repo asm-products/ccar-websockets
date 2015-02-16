@@ -200,7 +200,8 @@
 		//trace("Sending parse request");
 		var commandType : String = "ParsedCCARText";
 		var payload  = {
-			commandType : commandType
+			 nickName : MBooks.getMBooks().getNickName()
+			, commandType : commandType
 			, uploadedBy : ccarModel.creator
 			, scenarioName : ccarModel.scenarioName
 			, ccarText  : ccarModel.scenarioText
@@ -212,12 +213,14 @@
 
 	public function deleteScenario(ev : Event){
 		trace("Deleting ccar data");
+		var nickName : String = MBooks.getMBooks().getNickName();
 		var commandType : String = "CCARUpload";
 		var scenarioName = getScenarioName();
 		var ccarOperation = getDeleteOperation(scenarioName);
 		copyValues();
 		var payload = {
-			commandType : commandType
+			nickName : nickName
+			, commandType : commandType
 			, ccarOperation : ccarOperation
 			, uploadedBy : this.model.creator
 			, ccarData : this.model
@@ -233,7 +236,8 @@
 		var ccarOperation = getOperation(scenarioName);
 		copyValues();
 		var payload = {
-			commandType : commandType
+			nickName : MBooks.getMBooks().getNickName()
+			, commandType : commandType
 			, ccarOperation : ccarOperation
 			, uploadedBy : this.model.creator
 			, ccarData : this.model
@@ -287,7 +291,8 @@
 			contents : this.model.creator
 		};
 		var payload = {
-			commandType : commandType
+			nickName : MBooks.getMBooks().getNickName()
+			, commandType : commandType
 			, ccarOperation : ccarOperation
 			, uploadedBy : this.model.creator
 			, ccarData : this.model

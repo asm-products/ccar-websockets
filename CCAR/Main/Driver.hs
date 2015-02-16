@@ -538,9 +538,9 @@ addConnection :: App -> WSConn.Connection ->  Login -> IO ()
 addConnection app aConn lo@(Login p status) =do
     case p of
         Just x -> atomically $ do 
-                nMap <- readTVar $ nickNameMap app
-                r <- newTChan 
+                nMap <- readTVar $ nickNameMap app 
                 w <- newTChan
+                r <- dupTChan w 
                 clientState <- return ClientState{nickName = (personNickName x)
                         , connection = aConn
                         , readChan = r 
@@ -615,12 +615,15 @@ ccarApp = do
                 x <- liftIO $ processIncomingMessage $ incomingDictionary msg
                 atomically $ writeTChan (writeChan clientState) x
                 writer
-            reader app nickName= do
-                clientState <- liftIO $ getClientState nickName app
-                textData <- atomically $ readTChan (readChan clientState) 
+            reader app nickN= do
+                putStrLn "Reading starting thread.."
+                clientState <- liftIO $ getClientState nickN app
+                putStrLn $ "Read client state " ++ (T.unpack (nickName clientState))
+                textData <- atomically $ readTChan (readChan clientState)
+                putStrLn $ "Sending text data " `mappend` (T.unpack textData)
                 WSConn.sendTextData (connection clientState) textData    
                 liftIO $ putStrLn $ "Wrote " `mappend` (show textData)
-                reader app nickName
+                reader app nickN
 
 getHomeR :: Handler Html
 getHomeR = do

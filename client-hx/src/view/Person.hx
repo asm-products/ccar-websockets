@@ -215,6 +215,7 @@ class Person {
 		if(Util.isSignificantWS(ev.keyCode)){
 			this.modelPerson.setNickName(inputElement.value);
 			var lStatus : LoginStatus = Undefined;
+			
 			var cType : String = Std.string(CommandType.Login);
 			var l : Login = new Login(cType, this.modelPerson, lStatus);
 			trace("Sending login status " + l);

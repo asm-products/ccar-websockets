@@ -284,7 +284,6 @@ class MBooks {
 						"",
 						"",
 						"");
-
 		person.createNickNameForm(p);
 		
 		//trace("Connection form created");
@@ -320,12 +319,21 @@ class MBooks {
 	private function keepAliveFunction() : Void {
 		var commandType : String = "KeepAlive";
 		var payload = {
-			commandType : commandType
+			nickName : this.getNickName()
+			, commandType : commandType
 			, keepAlive : "Ping"
 		};
 		trace("Sending keep alive " + payload);
 		doSendJSON(haxe.Json.stringify(payload));
-
+	}
+	//Why does it happen that every private function becomes public as soon as I implement this
+	//kills me!
+	public function getNickName() : String{
+		if(person != null){
+			return person.modelPerson.nickName;
+		}else {
+			return "No nick name defined";
+		}
 	}
 	private var ccarViews : GenericStack<view.CCAR>;
 	private var person : view.Person;
