@@ -550,9 +550,8 @@ addConnection app aConn lo@(Login p status) =do
                 return ()
         Nothing -> return ()
 
-getClientState :: T.Text -> App -> IO ClientState
-getClientState nickName app@(App a b c) = 
-    atomically $ do
+getClientState :: T.Text -> App -> STM ClientState
+getClientState nickName app@(App a b c) = do
         nMap <- readTVar c
         return $ nMap ! nickName
 
@@ -611,17 +610,20 @@ ccarApp = do
                 msg <- YWS.receiveData
                 (_, nickNameLatest) <- liftIO $ getNickName $ incomingDictionary msg
                 liftIO $ putStrLn $ "Latest nickName " `mappend` (show nickNameLatest)
-                clientState <- liftIO $ getClientState nickNameLatest app
                 x <- liftIO $ processIncomingMessage $ incomingDictionary msg
-                atomically $ writeTChan (writeChan clientState) x
+                atomically $ do 
+                            clientState <- getClientState nickNameLatest app
+                            writeTChan (writeChan clientState) x
                 writer
             reader app nickN= do
-                putStrLn "Reading starting thread.."
-                clientState <- liftIO $ getClientState nickN app
-                putStrLn $ "Read client state " ++ (T.unpack (nickName clientState))
-                textData <- atomically $ readTChan (readChan clientState)
-                putStrLn $ "Sending text data " `mappend` (T.unpack textData)
-                WSConn.sendTextData (connection clientState) textData    
+                putStrLn "Waiting for messages..."
+                
+                (connection, textData) <- atomically $ do
+                        clientState <- getClientState nickN app        
+                        textData <- readTChan (readChan clientState)                        
+                        return (connection clientState, textData)
+                --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
+                WSConn.sendTextData (connection) textData    
                 liftIO $ putStrLn $ "Wrote " `mappend` (show textData)
                 reader app nickN
 
