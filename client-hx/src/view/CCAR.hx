@@ -61,7 +61,10 @@
 		ccarDictionary = new Map<String, model.CCAR>();
 	}
 
-
+	public function updateMessageAreaText(aValue) {
+		var inputElement : InputElement = cast document.getElementById(SEND_MESSAGE_TEXT_AREA_CLASS);
+		inputElement.value = inputElement.value + aValue;
+	}
 	private function getMessageTextAreaContents() : String {
 		var inputElement : InputElement = cast document.getElementById(SEND_MESSAGE_TEXT_AREA_CLASS);
 		return inputElement.value;
@@ -120,6 +123,8 @@
 		Util.createButtonElement(document, div, DELETE_BUTTON_CLASS, DELETE_BUTTON);
 		Util.createTextAreaElementWithLabel(document, div, SEND_MESSAGE_TEXT_AREA_CLASS, SEND_MESSAGE_TEXT_AREA);
 		Util.createTextAreaElementWithLabel(document, div, SEND_MESSAGE_INPUT_AREA_CLASS, SEND_MESSAGE_INPUT_AREA);
+		var messageInputElement : TextAreaElement = cast document.getElementById(SEND_MESSAGE_INPUT_AREA_CLASS);
+		messageInputElement.rows = 2;
 		Util.createButtonElement(document, div, SEND_MESSAGE_BUTTON_CLASS, SEND_MESSAGE_BUTTON);
 		var sendButtonElement : ButtonElement = cast document.getElementById(SEND_MESSAGE_BUTTON);
 		var sendButtonStream = MBooks.getMBooks().initializeElementStream(sendButtonElement, "click");
@@ -258,15 +263,12 @@
 	public function sendPrivateMessage(ev : Event) {
 		var commandType : String = "SendMessage";
 		var nickName : String = MBooks.getMBooks().getNickName();
-		var message = {
-			from : nickName
-			, to : nickName
-			, message : getMessageInputAreaContents()
-		};
 		var payload = {
 			commandType : commandType
 			, nickName : nickName
-			, message : message
+			, from : nickName
+			, to : nickName 
+			, privateMessage : getMessageInputAreaContents()
 		}
 		MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 

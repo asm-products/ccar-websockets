@@ -14,6 +14,7 @@ A haxe based websocket client interacting with a yesod websockets server.
 	##### Apply a scenario to a trade
 	##### Create groups for traders - allow group/p2p communication of all entities
 	##### Share scenarios, entities with groups.
+	#####
 
 
 ### UI 
@@ -57,5 +58,22 @@ A haxe based websocket client interacting with a yesod websockets server.
 	who are in the trusted circle of the user. 
 
 
-### Data model
+### General requirements 
+##### If the app is launched as part of assembly, tie the validation to assembly's oauth (one screen less for the  user).
+##### Each user receives some currency as part of signup with a wallet.
+##### How does a user ask for more currency? By simply going to a bank or some such entity: I am not sure. At this point, I dont see a
+	  need for a bank. As long as coins exist, we issue them. But each request for coins will be a transaction, loan of some sort. 
+##### Each user also gets an account created with the above wallet.
+##### A single user can have multiple accounts to conduct transactions with the community.
+##### User can indicate if they would like to sell products. If yes, then they will be allowed to add products to the marketplace.
+
+##### Products, currently, are defined as scenarios, r analyses files or stata files, socrata filters etc. Although there is no
+	  real restriction of the kind of products one can manage in the market place.
+
+##### Market auction. 
+
+
+
+
+#### Data model
 	

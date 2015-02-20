@@ -85,8 +85,8 @@ data CCARText = CCARText { textUploadedBy :: T.Text
                             , scenarioName :: T.Text
                            , ccarText :: T.Text} deriving  (Show, Eq)
 
-data SendMessage = SendMessage { from :: From 
-                                , to :: To
+data SendMessage = SendMessage { from :: T.Text
+                                , to :: T.Text
                                 , privateMessage ::  T.Text} deriving (Show, Eq)
 instance ToJSON CCARText where 
     toJSON (CCARText u s cc) = object ["textUploadedBy" .= u 
@@ -150,7 +150,8 @@ genCommandKeepAlive a  = object ["keepAlive" .= a
 
 genSendMessage (SendMessage f t m) = object ["from" .= f
                     , "to" .= t
-                    , "message" .= m]
+                    , "privateMessage" .= m
+                    , "commandType" .= ("SendMessage" :: T.Text)]
 
 instance ToJSON Person where
     toJSON  = genPerson 
@@ -246,7 +247,7 @@ parseLogin v = Login <$>
 parseSendMessage v = SendMessage <$> 
                     v .: "from" <*>
                     v .: "to" <*>
-                    v .: "message"
+                    v .: "privateMessage"
 
 parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "title" <*>

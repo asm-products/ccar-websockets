@@ -177,6 +177,9 @@ class MBooks {
 			case Undefined : {
 				//processUndefinedCommandType();
 			}
+			case SendMessage : {
+				processSendMessage(incomingMessage);
+			}
 
 		}
 
@@ -215,6 +218,12 @@ class MBooks {
 		}
 	}
 
+
+	private function processSendMessage(incomingMessage) {
+		var ccar : view.CCAR = ccarViews.pop();
+		ccarViews.add(ccar);
+		ccar.updateMessageAreaText(incomingMessage);
+	}
 	private function processCCARUpload( ccarData: model.CCAR,  resultSet : Array<model.CCAR>)
 	{
 

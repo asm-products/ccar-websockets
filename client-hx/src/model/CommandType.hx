@@ -3,6 +3,7 @@ package model;
 enum CommandType {
 	RegisterUser;
 	Login;
+	SendMessage;
 	QueryUser;
 	DeleteUser;
 	UpdateUser;
