@@ -24,7 +24,7 @@ A haxe based websocket client interacting with a yesod websockets server.
 						<----------------------- User saved successfully
 	Show the dashboard  -----------------------> User registered and logged in successfully
 
-##### Login (User registered)
+##### Login (User registered) 
 	User leaves nickname field ------------------------> Server checks for the nickname
 						<------------------------------- User found
 	Show password form  -------------------------------> Validate user (three attempts at login)
@@ -32,7 +32,7 @@ A haxe based websocket client interacting with a yesod websockets server.
 	User valid (display dashboard)
 
 
-##### Dashboard 
+##### Dashboard  - The core workbench
 	Query notifications --------------------------------> 
 						<-------------------------------  Sends all notifications
 	Get user design templates --------------------------> 
@@ -42,3 +42,20 @@ A haxe based websocket client interacting with a yesod websockets server.
 					<----------------------------------- Return all off line messages
 	Get all scenarios ------------------------------->
 					<-----------------------------------  Return all scenarios
+
+
+#### Send private messages - Send private messages to the each other.
+	
+	###### Parameters
+	Message : Text
+	From : The Sender
+	To : THe recepient
+	###### Issues/exceptions
+	If the sender is offline after the message is sent, the user who sent the message will get an error.
+	If the user is offline before the message is sent, the user will be provided with a private store of 
+	messages that will be replayed when the user log back in. Offline messages should only be sent by users
+	who are in the trusted circle of the user. 
+
+
+### Data model
+	

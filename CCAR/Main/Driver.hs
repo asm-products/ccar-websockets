@@ -85,6 +85,9 @@ data CCARText = CCARText { textUploadedBy :: T.Text
                             , scenarioName :: T.Text
                            , ccarText :: T.Text} deriving  (Show, Eq)
 
+data SendMessage = SendMessage { from :: From 
+                                , to :: To
+                                , privateMessage ::  T.Text} deriving (Show, Eq)
 instance ToJSON CCARText where 
     toJSON (CCARText u s cc) = object ["textUploadedBy" .= u 
                                         , "scenarioName" .= s
@@ -92,6 +95,12 @@ instance ToJSON CCARText where
                                         , "commandType" .= ("ParsedCCARText" :: T.Text)]
 
 type KeepAliveCommand = T.Text
+type From = T.Text
+type To = T.Text
+
+
+-- Chose not to name the Message component as Message and left as T.Text ??
+-- Will bite me.
 data Command = CommandLogin Login 
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
@@ -99,6 +108,7 @@ data Command = CommandLogin Login
                 | CommandError ErrorCommand 
                 | CommandKeepAlive KeepAliveCommand
                 | ParseCCARText CCARText
+                | CommandSendMessage SendMessage
                 deriving(Show, Eq)
 
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
@@ -138,6 +148,10 @@ genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
 genCommandKeepAlive a  = object ["keepAlive" .= a
                                 , "commandType" .= ("keepAlive" :: T.Text)]
 
+genSendMessage (SendMessage f t m) = object ["from" .= f
+                    , "to" .= t
+                    , "message" .= m]
+
 instance ToJSON Person where
     toJSON  = genPerson 
 
@@ -159,6 +173,8 @@ instance ToJSON CCARUpload where
 
 instance ToJSON CCAR where
     toJSON = genCCAR 
+instance ToJSON SendMessage where
+    toJSON (SendMessage f t m ) = genSendMessage (SendMessage f t m)
 
 instance ToJSON Command where
     toJSON aCommand = 
@@ -169,6 +185,7 @@ instance ToJSON Command where
             CommandCCARUpload a  -> genCCARUpload a
             CommandKeepAlive a -> genCommandKeepAlive a
             ParseCCARText a -> toJSON a
+            CommandSendMessage m -> genSendMessage m
             _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
@@ -191,6 +208,7 @@ parseCommand value = do
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
+                    "SendMessage" -> CommandSendMessage <$> parseSendMessage value
                     _       -> CommandError <$> parseErrorCommand value
 
 
@@ -225,6 +243,10 @@ parseLogin v = Login <$>
                 v .: "login" <*>
                 (v .: "loginStatus")
 
+parseSendMessage v = SendMessage <$> 
+                    v .: "from" <*>
+                    v .: "to" <*>
+                    v .: "message"
 
 parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "title" <*>
@@ -260,6 +282,10 @@ instance FromJSON Command where
 instance FromJSON CCARText where
     parseJSON (Object v) = parseCCARText  v 
     parseJSON _          = Appl.empty
+
+instance FromJSON SendMessage where 
+    parseJSON (Object v ) = parseSendMessage v 
+    parseJSON _           = Appl.empty
 
 iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
 iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
@@ -411,7 +437,6 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
                 Nothing -> emptyPerson
                 Just a -> a        
 
-
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
     putStrLn $ show $ "Processing command ccar upload " ++ (show ccar)
     case operation of 
@@ -453,6 +478,10 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
 processCommand (Just a) = return $ L.toStrict $ E.decodeUtf8 
                                 $ J.encode $ a
 
+
+iProcessCommandWrapper :: Maybe Value -> Command
+iProcessCommandWrapper (Just (Object a)) = undefined
+iProcessCommandWrapper Nothing = undefined
 processCommandWrapper :: Value -> Command 
 processCommandWrapper (Object a)   = 
     case cType of 
@@ -479,6 +508,10 @@ processCommandWrapper (Object a)   =
                         case (parse parseCCARText a) of
                             Success r -> ParseCCARText r 
                             Error s -> CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
+                String "SendMessage" -> 
+                        case (parse parseSendMessage a) of
+                            Success r -> CommandSendMessage r   
+                            Error s -> CommandError $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a)
                 _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
     where 
         cType =  LH.lookup "commandType" a
@@ -501,21 +534,23 @@ getNickName aCommand =
                 where 
                     nn = LH.lookup "nickName" a 
 
-processIncomingMessage :: Maybe Value -> IO T.Text
+processIncomingMessage :: Maybe Value -> IO (Command , T.Text)
 processIncomingMessage aCommand = 
     do 
         putStrLn $  "Processing incoming message " ++ (show aCommand)
         case aCommand of 
             Nothing -> do
                     putStrLn $ "Processing error..."
-                    return $ L.toStrict $ E.decodeUtf8 $ En.encode   
-                        (CommandError $ genericErrorCommand ("Unknown error"))
+                    result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
+                    return $ (result, L.toStrict $ E.decodeUtf8 $ En.encode  result)
+                        
             Just (Object a) -> do 
                     putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
                     c <- return $ processCommandWrapper (Object a)
                     putStrLn $ show $ "Processing command " ++ (show c)
                     reply <- processCommand (Just c)
-                    return $ L.toStrict $ E.decodeUtf8 $ En.encode reply
+                    return $ (c, L.toStrict $ E.decodeUtf8 $ En.encode reply)
+
 
 
 
@@ -592,7 +627,7 @@ ccarApp = do
                     do
                         liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just x -> do
-                        nickNameExists <- liftIO $ processIncomingMessage $ incomingDictionary command
+                        (command, nickNameExists) <- liftIO $ processIncomingMessage $ incomingDictionary command
                         $(logInfo) nickNameExists
                         YWS.sendTextData nickNameExists
                         a <- liftBaseWith (\run -> A.async $ run writer)
@@ -609,15 +644,18 @@ ccarApp = do
                 app <- getYesod
                 msg <- YWS.receiveData
                 (_, nickNameLatest) <- liftIO $ getNickName $ incomingDictionary msg
-                liftIO $ putStrLn $ "Latest nickName " `mappend` (show nickNameLatest)
-                x <- liftIO $ processIncomingMessage $ incomingDictionary msg
+                liftIO $ putStrLn $ "Last nickName " `mappend` (show nickNameLatest)
+                (command, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
                 atomically $ do 
-                            clientState <- getClientState nickNameLatest app
-                            writeTChan (writeChan clientState) x
+                                clientState <- case command of 
+                                    CommandSendMessage (SendMessage f t m) ->
+                                        getClientState t app
+                                    _ ->
+                                        getClientState nickNameLatest app
+                                writeTChan (writeChan clientState) x
                 writer
             reader app nickN= do
                 putStrLn "Waiting for messages..."
-                
                 (connection, textData) <- atomically $ do
                         clientState <- getClientState nickN app        
                         textData <- readTChan (readChan clientState)                        

@@ -43,6 +43,15 @@
 	private static var LIST : String = "Scenario List";
 	private static var UPLOAD_BUTTON : String = "Save Scenario";
 	private static var DELETE_BUTTON : String = "Delete Scenario";
+
+	private static var SEND_MESSAGE_TEXT_AREA : String = "Messages";
+	private static var SEND_MESSAGE_TEXT_AREA_CLASS : String = "CCAR.Scenario.GroupCommunication.MessageArea";
+	private static var SEND_MESSAGE_INPUT_AREA : String = "Input message";
+	private static var SEND_MESSAGE_INPUT_AREA_CLASS : String = "CCAR.Scenario.GroupCommunication.InputArea";
+	private static var SEND_MESSAGE_BUTTON_CLASS : String = "CCAR.Scenario.GroupCommunication.SendMessageButton";
+	private static var SEND_MESSAGE_BUTTON : String = "Send";
+	private static var MEMBER_LIST : String = "Members List";
+
 	private var document : Document;
 	private var model : model.CCAR;
 	private var ccarDictionary : Map<String, model.CCAR>;
@@ -50,6 +59,16 @@
 		this.model = a;
 		document = Browser.document;
 		ccarDictionary = new Map<String, model.CCAR>();
+	}
+
+
+	private function getMessageTextAreaContents() : String {
+		var inputElement : InputElement = cast document.getElementById(SEND_MESSAGE_TEXT_AREA_CLASS);
+		return inputElement.value;
+	}
+	private function getMessageInputAreaContents() : String {
+		var inputElement : InputElement = cast document.getElementById(SEND_MESSAGE_INPUT_AREA_CLASS);
+		return inputElement.value;
 	}
 	private function getScenarioName() : String {
 		var inputElement : InputElement = cast document.getElementById(NAME_CLASS);
@@ -99,6 +118,12 @@
 		Util.createSelectElement(document, div , LIST_CLASS, CCAR_DIV_TAG + LIST);
 		Util.createButtonElement(document, div, UPLOAD_BUTTON_CLASS, UPLOAD_BUTTON);
 		Util.createButtonElement(document, div, DELETE_BUTTON_CLASS, DELETE_BUTTON);
+		Util.createTextAreaElementWithLabel(document, div, SEND_MESSAGE_TEXT_AREA_CLASS, SEND_MESSAGE_TEXT_AREA);
+		Util.createTextAreaElementWithLabel(document, div, SEND_MESSAGE_INPUT_AREA_CLASS, SEND_MESSAGE_INPUT_AREA);
+		Util.createButtonElement(document, div, SEND_MESSAGE_BUTTON_CLASS, SEND_MESSAGE_BUTTON);
+		var sendButtonElement : ButtonElement = cast document.getElementById(SEND_MESSAGE_BUTTON);
+		var sendButtonStream = MBooks.getMBooks().initializeElementStream(sendButtonElement, "click");
+		sendButtonStream.then(sendPrivateMessage);
 		var selectElement : SelectElement = getCCARListElement();
 		var buttonElement : ButtonElement = 
 		cast document.getElementById(UPLOAD_BUTTON);
@@ -226,6 +251,23 @@
 			, ccarData : this.model
 		};
 		trace("Payload " + Json.stringify(payload));
+		MBooks.getMBooks().doSendJSON(Json.stringify(payload));
+
+	}
+
+	public function sendPrivateMessage(ev : Event) {
+		var commandType : String = "SendMessage";
+		var nickName : String = MBooks.getMBooks().getNickName();
+		var message = {
+			from : nickName
+			, to : nickName
+			, message : getMessageInputAreaContents()
+		};
+		var payload = {
+			commandType : commandType
+			, nickName : nickName
+			, message : message
+		}
 		MBooks.getMBooks().doSendJSON(Json.stringify(payload));
 
 	}

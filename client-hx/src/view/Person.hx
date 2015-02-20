@@ -68,10 +68,8 @@ class Person {
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
 			Util.createElementWithLabel(document, div, divName + PASSWORD, PASSWORD_LABEL);
 			getInput(divName + NICK_NAME).value = m.nickName;
-			getInput(divName + NICK_NAME).focus();
 			var stream : Stream<Dynamic> = MBooks.getMBooks().initializeElementStream(getInput(divName + PASSWORD), "keyup");			
 			stream.then(validatePassword);
-			getInput(divName + PASSWORD).focus();
 			pushStack(div);
 			return this;
 		}catch(msg : DOMCoreException){
