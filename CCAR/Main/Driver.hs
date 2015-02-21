@@ -644,15 +644,16 @@ ccarApp = do
             writer = do
                 app <- getYesod
                 msg <- YWS.receiveData
-                (_, nickNameLatest) <- liftIO $ getNickName $ incomingDictionary msg
-                liftIO $ putStrLn $ "Last nickName " `mappend` (show nickNameLatest)
+                (_, nickName) <- liftIO $ getNickName $ incomingDictionary msg
+                liftIO $ putStrLn $ "Message nickName " `mappend` (show nickName)
                 (command, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
+                liftIO $ putStrLn $ "Writing commang " ++ (show command)
                 atomically $ do 
                                 clientState <- case command of 
                                     CommandSendMessage (SendMessage f t m) ->
                                         getClientState t app
                                     _ ->
-                                        getClientState nickNameLatest app
+                                        getClientState nickName app
                                 writeTChan (writeChan clientState) x
                 writer
             reader app nickN= do

@@ -138,8 +138,8 @@ class MBooks {
 			case ParsedCCARText : {
 				processParsedCCARText(incomingMessage);
 			}
-			case RegisterUser: {
-				//processRegisterUser(incomingMessage);
+			case ManageUser: {
+				processManageUser(incomingMessage);
 			}
 			case QueryUser : {
 				//processQueryUser(incomingMessage);
@@ -193,7 +193,11 @@ class MBooks {
 		//trace("Printing incoming message " + incomingMessage);
 		parseIncomingMessage(incomingMessage);
 	}
-
+	private function processManageUser(p : Dynamic) {
+		trace ("Processing manage user" + Json.stringify(p));
+		this.person.setModelPerson(p.person);
+		MBooks.getMBooks().showDashboard(this.person);
+	}
 	private function processLoginResponse(lR : Login){		
 		//trace("Processing login object " + lR);
 		//trace("Processing lR status " + lR.loginStatus);
@@ -222,7 +226,7 @@ class MBooks {
 	private function processSendMessage(incomingMessage) {
 		var ccar : view.CCAR = ccarViews.pop();
 		ccarViews.add(ccar);
-		ccar.updateMessageAreaText(incomingMessage);
+		ccar.updateMessageAreaText(Json.stringify(incomingMessage));
 	}
 	private function processCCARUpload( ccarData: model.CCAR,  resultSet : Array<model.CCAR>)
 	{
@@ -253,20 +257,19 @@ class MBooks {
 		//trace("Undefined as response..should not happen");
 	}
 	private function createRegistrationForm(lr : Login) : Void{
+		trace("Login " + lr.login);
 		if(lr.login == null){			
-			person.registerForm();
+			person.registerForm(null);
 		}else {
-			//trace("Login not null : Login  " + lr.login);
+			trace("Login not null : Login  " + lr.login);
 			var p : model.Person = lr.login;		
-			//Copy the 
-			person.registerForm();
+			//Copy the values
+			person.registerForm(p);
 		}
 	}
 
 	public function createLoginForm(lr : Login) : Void{
 		var p : model.Person = lr.login;		
-		//Copy the person object from the incoming message.
-		
 		person.createLoginForm(p);
 	}
 	private function createInvalidPassword(lr : Login) : Void{
@@ -335,8 +338,6 @@ class MBooks {
 		trace("Sending keep alive " + payload);
 		doSendJSON(haxe.Json.stringify(payload));
 	}
-	//Why does it happen that every private function becomes public as soon as I implement this
-	//kills me!
 	public function getNickName() : String{
 		if(person != null){
 			return person.modelPerson.nickName;

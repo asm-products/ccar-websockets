@@ -1,9 +1,9 @@
 package model;
 
 enum CommandType {
-	RegisterUser;
 	Login;
 	SendMessage;
+	ManageUser;
 	QueryUser;
 	DeleteUser;
 	UpdateUser;

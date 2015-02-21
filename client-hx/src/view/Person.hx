@@ -62,7 +62,7 @@ class Person {
 			popStack();
 			var document = Browser.document;
 			var divName : String = "Person.Login";
-			var div : DivElement = Util.createDivTag(document, "Person-Login");
+			var div : DivElement = Util.createDivTag(document, divName);
 			status = cast document.getElementById("status");
 			status.innerHTML = "Welcome back. The last time you logged in: Fix this";
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
@@ -107,6 +107,7 @@ class Person {
 			parent.appendChild(register);
 			register.onclick = registerUser;			
 		}
+
 	private function createLogoutButton(document : Document 
 		, parent : DivElement) : Void {
 			logout = document.createButtonElement();
@@ -124,24 +125,43 @@ class Person {
 	private function registerUser(ev: Event){
 		//trace("Register user " + ev);
 		var commandType : String = "ManageUser";
+		var div : DivElement = Util.createDivTag(document, "Person.Registration");
+		copyValues(div);
 		var operation : UserOperation = new UserOperation("Create");
-
 		var uo = {
-			commandType : "ManageUser", 
-			operation:  {
+			commandType : "ManageUser"
+			, nickName : MBooks.getMBooks().getNickName()
+			, operation:  {
 				tag : "Create" , //Tag is needed for the aeson objects.
 				contents : []
-			},
-			person : modelPerson
+			}
+			, person : modelPerson
 		};
 		MBooks.getMBooks().doSendJSON(haxe.Json.stringify(uo));
 	}
 
-	public function registerForm() : Void{
+	private function updateUserDetails(ev : Event) {
+		var commandType : String = "ManageUser";
+		var operation : UserOperation = new UserOperation("Create");
+
+		var uo = {
+			commandType : "ManageUser"
+			, nickName : MBooks.getMBooks().getNickName()
+			, operation:  {
+				tag : "Update" , //Tag is needed for the aeson objects.
+				contents : []
+			}
+			, person : modelPerson
+		};
+		MBooks.getMBooks().doSendJSON(haxe.Json.stringify(uo));
+	}
+
+	public function registerForm(p : model.Person) : Void{
 		try {
 			
 			var document = Browser.document;
 			popStack();
+			this.modelPerson = p;
 			//trace("Setting status ");
 			status = cast document.getElementById("status");
 			status.innerHTML = "Let me sign you up";
@@ -151,11 +171,20 @@ class Person {
 			createFormElements(document, div);
 			createRegisterButton(document, div);
 			createLogoutButton(document, div);
+			updateNickName(div, p);
 			document.body.appendChild(div);
 			pushStack(div);
 		}catch(msg : DOMCoreException){
 			//trace("Exception " + msg);
 		}
+	}
+
+
+	private function updateNickName(div : DivElement, p : model.Person) : Void {
+		trace("Div id " + div.id);
+		var inputElement : InputElement = cast document.getElementById(div.id + NICK_NAME);
+		inputElement.value = p.nickName;
+
 	}
 	private function createFormElements(document : Document
 		, parent : DivElement) : Void{
@@ -163,10 +192,21 @@ class Person {
 		Util.createElementWithLabel(document, parent, parent.id + FIRST_NAME, FIRST_NAME_LABEL);
         Util.createElementWithLabel(document, parent, parent.id + LAST_NAME, LAST_NAME_LABEL);
         Util.createElementWithLabel(document, parent, parent.id + PASSWORD, PASSWORD_LABEL);
-			
+				
 	}
 
-
+	private function copyValues(divTag : DivElement)  {
+		var divId : String = divTag.id;
+		var inputElement : InputElement = cast document.getElementById(divId + NICK_NAME);
+		var nickName : String = inputElement.value;
+		inputElement = cast document.getElementById(divId + FIRST_NAME);
+		var firstName : String = inputElement.value;
+		inputElement = cast document.getElementById(divId + LAST_NAME);
+		var lastName : String = inputElement.value;
+		inputElement = cast document.getElementById(divId + PASSWORD);
+		var password : String = inputElement.value;
+		copyInput(firstName, lastName, nickName, password);
+	}
 
 	private function deleteElement(document : Document, elementId : String, 
 		elementLabelId : String){
@@ -202,7 +242,7 @@ class Person {
 
 				}
 			}
-		}
+	}
 
 
 	public function sendLogin (ev: KeyboardEvent){
@@ -250,10 +290,10 @@ class Person {
 
 
 	public function copyInput(fName: String, lName : String, nName : String, pwd : String) : Void{
-		this.modelPerson.setFirstName(fName);
-		this.modelPerson.setLastName(lName);
-		this.modelPerson.setNickName(nName);
-		this.modelPerson.setPassword(pwd);
+		trace("Model person  " + this.modelPerson);
+		modelPerson = new model.Person(fName, lName, nName, pwd);
 	}
-
+	public function setModelPerson(p : model.Person) : Void {
+		this.modelPerson = p;
+	}
 }
