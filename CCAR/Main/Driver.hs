@@ -1,6 +1,5 @@
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, TypeFamilies, OverloadedStrings #-}
 module CCAR.Main.Driver
-    (driver)
 where 
 
 import Yesod.Core
@@ -295,7 +294,8 @@ pJSON :: (FromJSON a) => T.Text -> IO (Either String (Maybe a))
 pJSON  aText = do
     putStrLn $  "pJSON " ++ (T.unpack aText)
     return $ iParseJSON aText
- 
+
+decoder :: Command -> T.Text 
 decoder = L.toStrict . E.decodeUtf8 . En.encode        
 decoderM a = return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 
@@ -384,16 +384,18 @@ queryPerson pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
 deletePerson :: PersonId -> Person -> IO (Maybe Person)
 deletePerson pid p = updatePerson pid p {personDeleted = True}
 
+
 {- Read the message, parse and then send it back. -}
-processCommand :: Maybe Command  -> IO T.Text
+processCommand :: Maybe Command  -> IO Command
 processCommand (Just (CommandLogin aLogin)) = do 
     chk <- checkLoginExists (personNickName p)
     putStrLn $ show $ "Login exists " ++ (show chk)
+
     case chk of 
-        Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandLogin $ Login {login = Just p, 
+        Nothing -> return $ CommandLogin $ Login {login = Just p, 
             loginStatus = Just UserNotFound}
         Just (Entity aid a)  -> 
-            return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandLogin $ 
+            return $ CommandLogin $ 
                 Login {login = Just a, loginStatus = Just UserExists}
     where
         p = case (login aLogin) of
@@ -401,12 +403,13 @@ processCommand (Just (CommandLogin aLogin)) = do
                 Just a -> a 
 
 processCommand (Just (CommandError error)) = 
-        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandError error
-processCommand Nothing = return 
-         $ decoder $ genericErrorCommand "Unable to process command"
+        return $ CommandError error
+processCommand Nothing = return $  
+                        CommandError $ 
+                            genericErrorCommand "Unable to process command"
 
 processCommand (Just (CommandKeepAlive a)) = 
-        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandKeepAlive a 
+        return $ CommandKeepAlive a 
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ show $ "Processing processCommand " ++ (show uo)
@@ -414,25 +417,21 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
         Us.Create  -> do
                 personId <- insertPerson person
                 putStrLn $ show $ "Person inserted " ++ (show personId)
-                return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
-                        $ UserOperations Us.Create (Just person)
+                return $ CommandUO $ UserOperations Us.Create (Just person)
         Us.Update personId -> do
                 updatePerson personId person
-                return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO 
+                return $ CommandUO 
                             $ UserOperations (Us.Update personId) (Just person)
         Us.Delete personId -> do 
                 deletePerson personId person
-                return $ L.toStrict $ E.decodeUtf8 $ J.encode $ 
-                        CommandUO $ UserOperations (Us.Delete personId) (Just person)
+                return $ CommandUO $ UserOperations (Us.Delete personId) (Just person)
         Us.Query personId -> do 
                 maybePerson <- queryPerson (personId)
                 case maybePerson of
                     Nothing -> 
-                        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO  
-                                $ UserOperations (Us.Query personId) Nothing
+                        return $ CommandUO  $ UserOperations (Us.Query personId) Nothing
                     Just (p) -> 
-                        return $ L.toStrict $ E.decodeUtf8 $ J.encode $ CommandUO  
-                                $ UserOperations (Us.Query personId) (Just p)
+                        return $ CommandUO  $ UserOperations (Us.Query personId) (Just p)
     where
         person = case aPerson of
                 Nothing -> emptyPerson
@@ -444,30 +443,24 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
         CC.Create -> do 
                 ccarId <- insertCCAR ccar
                 putStrLn $ show $ "CCAR created " ++ (show ccar)
-                return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName operation 
+                return $ CommandCCARUpload $ CCARUpload nickName operation 
                                 (Just ccar) []
         CC.Update  -> do
                 updateCCAR ccar 
-                return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
+                return $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
         CC.Delete  -> do 
                 res <- deleteCCAR ccar 
-                return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName operation (res) []
+                return $ CommandCCARUpload $ CCARUpload nickName operation (res) []
         CC.Query ccarId -> do 
                 maybeCCAR <- queryCCAR (ccarId)
                 case maybeCCAR of 
-                    Nothing -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing []
-                    Just x -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []
+                    Nothing -> return $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing []
+                    Just x -> return $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []
         CC.QueryAll nickName -> do
                 maybeCCAR <- queryAllCCAR nickName
                 case maybeCCAR of 
-                    [] -> return $ L.toStrict $ E.decodeUtf8 $ J.encode 
-                        $ CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing []
-                    aList -> return $ L.toStrict $ E.decodeUtf8 $ J.encode $ 
+                    [] -> return $ CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing []
+                    aList -> return $ 
                             CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList)
                     where
                         ccarList aList = Prelude.map( \(Entity y  x) -> Just x) aList
@@ -476,8 +469,7 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                     Nothing -> emptyCCAR
                     Just a -> a
 
-processCommand (Just a) = return $ L.toStrict $ E.decodeUtf8 
-                                $ J.encode $ a
+processCommand (Just a) = return a
 
 
 iProcessCommandWrapper :: Maybe Value -> Command
@@ -654,7 +646,7 @@ ccarApp = do
                                         getClientState t app
                                     _ ->
                                         getClientState nickName app
-                                writeTChan (writeChan clientState) x
+                                writeTChan (writeChan clientState) (x)
                 writer
             reader app nickN= do
                 putStrLn "Waiting for messages..."

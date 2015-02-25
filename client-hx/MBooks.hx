@@ -189,7 +189,7 @@ class MBooks {
 		var incomingMessage = haxe.Json.parse(ev.data);
 		//XXX: Needed to parse the incoming message twice because
 		// of \",s in the response. This is a bug.
-		incomingMessage = haxe.Json.parse(incomingMessage);
+		//incomingMessage = haxe.Json.parse(incomingMessage);
 		//trace("Printing incoming message " + incomingMessage);
 		parseIncomingMessage(incomingMessage);
 	}
