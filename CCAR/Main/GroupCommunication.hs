@@ -34,3 +34,6 @@ data ClientState = ClientState {
 			, writeChan :: TChan T.Text
 	}
 type ClientIdentifierMap = TVar (IMap.Map ClientIdentifier ClientState)
+type GroupIdentifier = T.Text
+data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier
+

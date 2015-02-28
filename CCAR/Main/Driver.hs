@@ -385,31 +385,31 @@ deletePerson :: PersonId -> Person -> IO (Maybe Person)
 deletePerson pid p = updatePerson pid p {personDeleted = True}
 
 
-{- Read the message, parse and then send it back. -}
-processCommand :: Maybe Command  -> IO Command
+processCommand :: Maybe Command  -> IO (DestinationType, Command)
 processCommand (Just (CommandLogin aLogin)) = do 
     chk <- checkLoginExists (personNickName p)
     putStrLn $ show $ "Login exists " ++ (show chk)
-
     case chk of 
-        Nothing -> return $ CommandLogin $ Login {login = Just p, 
-            loginStatus = Just UserNotFound}
+        Nothing -> return $ (Reply, 
+                CommandLogin $ Login {login = Just p, 
+                loginStatus = Just UserNotFound})
         Just (Entity aid a)  -> 
-            return $ CommandLogin $ 
-                Login {login = Just a, loginStatus = Just UserExists}
+            return $ (Broadcast, CommandLogin $ 
+                Login {login = Just a, loginStatus = Just UserExists})
     where
         p = case (login aLogin) of
                 Nothing -> emptyPerson
                 Just a -> a 
 
 processCommand (Just (CommandError error)) = 
-        return $ CommandError error
+        return $ (Reply, CommandError error)
+
 processCommand Nothing = return $  
-                        CommandError $ 
-                            genericErrorCommand "Unable to process command"
+                        (Reply, CommandError $ 
+                            genericErrorCommand "Unable to process command")
 
 processCommand (Just (CommandKeepAlive a)) = 
-        return $ CommandKeepAlive a 
+        return $ (Reply, CommandKeepAlive a)
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ show $ "Processing processCommand " ++ (show uo)
@@ -417,51 +417,52 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
         Us.Create  -> do
                 personId <- insertPerson person
                 putStrLn $ show $ "Person inserted " ++ (show personId)
-                return $ CommandUO $ UserOperations Us.Create (Just person)
+                return $ (Reply, CommandUO $ UserOperations Us.Create (Just person))
         Us.Update personId -> do
                 updatePerson personId person
-                return $ CommandUO 
-                            $ UserOperations (Us.Update personId) (Just person)
+                return $ (Reply, CommandUO 
+                            $ UserOperations (Us.Update personId) (Just person))
         Us.Delete personId -> do 
                 deletePerson personId person
-                return $ CommandUO $ UserOperations (Us.Delete personId) (Just person)
+                return $ (Reply, CommandUO $ UserOperations (Us.Delete personId) (Just person))
         Us.Query personId -> do 
                 maybePerson <- queryPerson (personId)
                 case maybePerson of
                     Nothing -> 
-                        return $ CommandUO  $ UserOperations (Us.Query personId) Nothing
+                        return $ (Reply, CommandUO  $ UserOperations (Us.Query personId) Nothing)
                     Just (p) -> 
-                        return $ CommandUO  $ UserOperations (Us.Query personId) (Just p)
+                        return $ (Reply, CommandUO  $ UserOperations (Us.Query personId) (Just p))
     where
         person = case aPerson of
                 Nothing -> emptyPerson
                 Just a -> a        
 
+-- | Query operations are replies and db operations are broadcast. | --
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
     putStrLn $ show $ "Processing command ccar upload " ++ (show ccar)
     case operation of 
         CC.Create -> do 
                 ccarId <- insertCCAR ccar
                 putStrLn $ show $ "CCAR created " ++ (show ccar)
-                return $ CommandCCARUpload $ CCARUpload nickName operation 
-                                (Just ccar) []
+                return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation 
+                                (Just ccar) [])
         CC.Update  -> do
                 updateCCAR ccar 
-                return $ CommandCCARUpload $ CCARUpload nickName operation (Just ccar) []
+                return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation (Just ccar) [])
         CC.Delete  -> do 
                 res <- deleteCCAR ccar 
-                return $ CommandCCARUpload $ CCARUpload nickName operation (res) []
+                return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation (res) [])
         CC.Query ccarId -> do 
                 maybeCCAR <- queryCCAR (ccarId)
                 case maybeCCAR of 
-                    Nothing -> return $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing []
-                    Just x -> return $ CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []
+                    Nothing -> return $ (Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing [])
+                    Just x -> return $  (Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []) 
         CC.QueryAll nickName -> do
                 maybeCCAR <- queryAllCCAR nickName
                 case maybeCCAR of 
-                    [] -> return $ CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing []
+                    [] -> return $ (Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing [])
                     aList -> return $ 
-                            CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList)
+                            (Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList))
                     where
                         ccarList aList = Prelude.map( \(Entity y  x) -> Just x) aList
         where
@@ -469,12 +470,8 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                     Nothing -> emptyCCAR
                     Just a -> a
 
-processCommand (Just a) = return a
+processCommand (Just a) = return (Reply, a)
 
-
-iProcessCommandWrapper :: Maybe Value -> Command
-iProcessCommandWrapper (Just (Object a)) = undefined
-iProcessCommandWrapper Nothing = undefined
 processCommandWrapper :: Value -> Command 
 processCommandWrapper (Object a)   = 
     case cType of 
@@ -527,7 +524,7 @@ getNickName aCommand =
                 where 
                     nn = LH.lookup "nickName" a 
 
-processIncomingMessage :: Maybe Value -> IO (Command , T.Text)
+processIncomingMessage :: Maybe Value -> IO (DestinationType , T.Text)
 processIncomingMessage aCommand = 
     do 
         putStrLn $  "Processing incoming message " ++ (show aCommand)
@@ -535,22 +532,15 @@ processIncomingMessage aCommand =
             Nothing -> do
                     putStrLn $ "Processing error..."
                     result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
-                    return $ (result, L.toStrict $ E.decodeUtf8 $ En.encode  result)
+                    return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
                         
             Just (Object a) -> do 
                     putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
                     c <- return $ processCommandWrapper (Object a)
                     putStrLn $ show $ "Processing command " ++ (show c)
-                    reply <- processCommand (Just c)
-                    return $ (c, L.toStrict $ E.decodeUtf8 $ En.encode reply)
-
-
-
-
-sendPrivateMessage :: App -> Login -> Login -> IO ()
-sendPrivateMessage app source destination = undefined 
-sendMessage :: App -> Login -> [Login] -> IO ()
-sendMessage app source destinations = undefined
+                    (d,  command) <- processCommand (Just c)
+                    return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
+                    
 
 
 deleteConnection :: App -> WSConn.Connection -> Login -> IO  () 
@@ -611,38 +601,34 @@ ccarApp = do
         $(logInfo) $ T.pack $ show $ "Connection " `mappend` (show connection)
         $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
         $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
-        -- The nick name at startup
-        -- The commands should always have a nickName for the source of the cohmands.
 
-        (result, nickNameStartup) <- liftIO $ getNickName $ incomingDictionary command
+        (result, nickName) <- liftIO $ getNickName $ incomingDictionary command
         case result of 
                 Nothing -> 
                     do
                         liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just x -> do
-                        (command, nickNameExists) <- liftIO $ processIncomingMessage $ incomingDictionary command
-                        $(logInfo) nickNameExists
-                        YWS.sendTextData nickNameExists
+                        (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary command
+                        $(logInfo) nickNameFound
+                        YWS.sendTextData nickNameFound
                         a <- liftBaseWith (\run -> A.async $ run writer)
-                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameStartup)
+                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickName)
                         liftBaseWith (\run -> A.wait a)
                         liftBaseWith (\run -> A.wait b)
                         $(logInfo) "Thread exiting"
         where
             incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
             
-            -- Writer writes to the write channel 
-            -- with source being the websocket
             writer = do
                 app <- getYesod
                 msg <- YWS.receiveData
                 (_, nickName) <- liftIO $ getNickName $ incomingDictionary msg
                 liftIO $ putStrLn $ "Message nickName " `mappend` (show nickName)
-                (command, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
-                liftIO $ putStrLn $ "Writing commang " ++ (show command)
+                (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
+                liftIO $ putStrLn $ "Writing command " ++ (show x)
                 atomically $ do 
-                                clientState <- case command of 
-                                    CommandSendMessage (SendMessage f t m) ->
+                                clientState <- case dest of 
+                                    PrivateMessage t ->
                                         getClientState t app
                                     _ ->
                                         getClientState nickName app
