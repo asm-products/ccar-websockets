@@ -186,7 +186,7 @@ class MBooks {
 
 	}
 	public  function onMessage(ev: MessageEvent) : Void{
-		//trace("Received stream " + ev.data);
+		trace("Received stream " + ev.data);
 		var incomingMessage = haxe.Json.parse(ev.data);
 		//XXX: Needed to parse the incoming message twice because
 		// of \",s in the response. This is a bug.

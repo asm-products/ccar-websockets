@@ -613,12 +613,21 @@ ccarApp = do
         
         command <- YWS.receiveData
         (destination, text) <- liftIO $ authenticate connection command app  
+
+
         liftIO $ putStrLn $ "Testing authenticate " `mappend` show (text :: T.Text)
         $(logInfo) $ T.pack $ show $ "Connection " `mappend` (show connection)
         $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
         $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
 
         (result, nickName) <- liftIO $ getNickName $ incomingDictionary command
+        atomically $ do 
+                        destinations <- case destination of 
+                            Broadcast -> getAllClients app nickName 
+                            _ ->
+                                getClientState nickName app                                        
+                        mapM_ (\cs -> writeTChan (writeChan cs) (text)) destinations
+
         case result of 
                 Nothing -> 
                     do
