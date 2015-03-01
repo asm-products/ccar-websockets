@@ -39,6 +39,7 @@ import Data.Typeable
 import Database.Persist.Postgresql as DB
 import Data.Map as IMap
 import CCAR.Main.GroupCommunication as GroupCommunication
+import CCAR.Main.UserJoined as UserJoined 
 
 
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
@@ -304,6 +305,7 @@ decoderM a = return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 type NickName = T.Text
 type ClientMap = GroupCommunication.ClientIdentifierMap
 
+-- the broadcast channel for the application.
 data App = App { chan :: (TChan T.Text)
                 , getStatic :: Static
                 , nickNameMap :: ClientMap}
@@ -568,23 +570,35 @@ addConnection app aConn lo@(Login p status) =do
                 return ()
         Nothing -> return ()
 
-getClientState :: T.Text -> App -> STM ClientState
+getAllClients :: App -> T.Text -> STM [ClientState]
+getAllClients app@(App a b c ) nn = do
+    nMap <- readTVar c 
+    return $ Prelude.filter (\x -> nn /= (nickName x)) $ elems nMap 
+getClientState :: T.Text -> App -> STM [ClientState]
 getClientState nickName app@(App a b c) = do
         nMap <- readTVar c
-        return $ nMap ! nickName
+        return $ [nMap ! nickName]
 
-handleInitialLogin :: WSConn.Connection -> T.Text -> App -> IO Command
-handleInitialLogin aConn aText app@(App a b c) = 
+getPersonNickName :: Maybe Person -> IO T.Text
+getPersonNickName a = do
+    case a of 
+        Just x -> return $  personNickName x
+        Nothing -> return "Invalid nick name"
+authenticate :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text)
+authenticate aConn aText app@(App a b c) = 
         do 
             case aCommand of 
-                Nothing -> return $ CommandError $ genericErrorCommand ("Login has errors")
+                Nothing -> return (Reply, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
                 Just (Object a) -> do
                     c <- return $ processCommandWrapper(Object a) 
                     case c of 
-                        (CommandLogin r) -> do 
+                        (CommandLogin r@(Login a b)) -> do 
                                 addConnection app aConn r
-                                return c 
-                        _ -> return $ CommandError $ genericErrorCommand ("Invalid command during login")
+                                nickName <- getPersonNickName a 
+                                userJoined <- UserJoined.userJoined nickName 
+                                return (Broadcast, userJoined)
+                        _ -> return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
+                                            $ CommandError $ genericErrorCommand ("Invalid command during login"))
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 
@@ -596,8 +610,10 @@ ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
         app <- getYesod
+        
         command <- YWS.receiveData
-        _ <- liftIO $ handleInitialLogin connection command app  
+        (destination, text) <- liftIO $ authenticate connection command app  
+        liftIO $ putStrLn $ "Testing authenticate " `mappend` show (text :: T.Text)
         $(logInfo) $ T.pack $ show $ "Connection " `mappend` (show connection)
         $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
         $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
@@ -612,7 +628,7 @@ ccarApp = do
                         $(logInfo) nickNameFound
                         YWS.sendTextData nickNameFound
                         a <- liftBaseWith (\run -> A.async $ run writer)
-                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickName)
+                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickName)                        
                         liftBaseWith (\run -> A.wait a)
                         liftBaseWith (\run -> A.wait b)
                         $(logInfo) "Thread exiting"
@@ -627,17 +643,18 @@ ccarApp = do
                 (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
                 liftIO $ putStrLn $ "Writing command " ++ (show x)
                 atomically $ do 
-                                clientState <- case dest of 
+                                clientStates <- case dest of 
+                                    Broadcast -> getAllClients app nickName 
                                     PrivateMessage t ->
                                         getClientState t app
                                     _ ->
-                                        getClientState nickName app
-                                writeTChan (writeChan clientState) (x)
+                                        getClientState nickName app                                        
+                                mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
                 writer
             reader app nickN= do
                 putStrLn "Waiting for messages..."
                 (connection, textData) <- atomically $ do
-                        clientState <- getClientState nickN app        
+                        clientState : _ <- getClientState nickN app        
                         textData <- readTChan (readChan clientState)                        
                         return (connection clientState, textData)
                 --putStrLn $ "Sending text data " `mappend` (T.unpack textData)

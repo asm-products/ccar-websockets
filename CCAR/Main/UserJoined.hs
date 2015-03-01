@@ -1,7 +1,5 @@
 module CCAR.Main.UserJoined 
-	(UserJoined 
-	 , parseUserJoined
-	 , genUserJoined)
+	(UserJoined, userJoined)
 where 
 
 import Data.Text as T  hiding(foldl, foldr)
@@ -11,7 +9,6 @@ import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
-
 
 {-- -
 	Creating different files for different types is probably is the right way. We can't impose structure
@@ -37,14 +34,8 @@ instance FromJSON UserJoined where
     parseJSON _          = Appl.empty
 
 
-{-
--- What are the steps in our processing:
-. Parse json values
-. Decode to the type of the command we want.
-. Process the command.
-. Send response. : the application object
 
-. 
--}
+userJoined :: T.Text -> IO T.Text
+userJoined aText = return $ L.toStrict $ E.decodeUtf8 $ En.encode $ UserJoined aText
 
 

@@ -121,6 +121,7 @@ class MBooks {
 	}
 
 	public function parseIncomingMessage(incomingMessage : Dynamic) : Void {
+		trace("Incoming message " + incomingMessage);
 		var commandType : CommandType = 
 			parseCommandType(incomingMessage.commandType);
 		switch(commandType){
