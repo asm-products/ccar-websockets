@@ -15,6 +15,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastName Text 
             nickName Text 
             password Text
+            lastLoginTime UTCTime default=CURRENT_TIMESTAMP
             deleted Bool default=False
             PersonUniqueNickName nickName
             deriving Show Eq

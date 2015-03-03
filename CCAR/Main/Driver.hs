@@ -10,7 +10,7 @@ import Yesod.Static
 import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
 import CCAR.Parser.CCARParsec
-import Control.Monad (forever, void, when)
+import Control.Monad (forever, void, when, liftM)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async as A (waitSTM, wait, async, cancel)
@@ -44,10 +44,14 @@ import CCAR.Main.UserJoined as UserJoined
 
 connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 
-emptyPerson = Person {personFirstName = "Not known"
+emptyPerson :: IO Person 
+emptyPerson = do 
+                time <- getCurrentTime
+                return $ Person {personFirstName = "Not known"
                     , personLastName = "Not known"
                     , personNickName = "undefined"
                     , personPassword = "Not known"
+                    , personLastLoginTime = time 
                     , personDeleted = False}
 
 
@@ -114,11 +118,12 @@ data Command = CommandLogin Login
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
 
 
-genPerson (Person a b c d e) = object ["firstName" .= a
+genPerson (Person a b c d e f) = object ["firstName" .= a
                                        , "lastName" .= b
                                        , "nickName" .= c
                                        , "password" .= d
-                                       , "deleted" .= e]
+                                       , "lastLoginTime" .= e
+                                       , "deleted" .= f]
 
 genCCAR (CCAR a b person del)  = object ["scenarioName" .= a 
                                     , "scenarioText" .= b
@@ -228,13 +233,14 @@ parseCCAR v = CCAR <$>
                 v .: "creator" <*>
                 v .: "deleted"
 
-parsePerson v = Person <$>
-                    v .: "firstName" <*>
-                    v .: "lastName" <*>
-                    v .: "nickName" <*>
-                    v .: "password"  <*>
-                    v .: "deleted"
-
+parsePerson v = do 
+                firstName <- v .: "firstName"
+                lastName <- v .: "lastName"
+                nickName <- v .: "nickName"
+                password <- v .: "password"
+                deleted <- v .: "deleted"
+                time <- v .: "lastLoginTime"
+                return $ Person firstName lastName nickName password time deleted
 
 
 parseCreateUser v = UserOperations <$>
@@ -354,6 +360,13 @@ deleteCCAR c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
                 DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
                 return $ Just $ c {cCARDeleted = True} 
 
+updateLogin :: Person -> IO (Maybe Person) 
+updateLogin p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+                liftIO $ do 
+                    now <- getCurrentTime
+                    flip runSqlPersistMPool pool $ do 
+                        DB.updateWhere [PersonNickName ==. (personNickName p)][PersonLastLoginTime =. now] 
+                    return $ Just p 
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
         liftIO $ do
@@ -389,19 +402,20 @@ deletePerson pid p = updatePerson pid p {personDeleted = True}
 
 processCommand :: Maybe Command  -> IO (DestinationType, Command)
 processCommand (Just (CommandLogin aLogin)) = do 
+    p <- case (login aLogin) of
+            Nothing -> emptyPerson
+            Just a -> return a 
     chk <- checkLoginExists (personNickName p)
     putStrLn $ show $ "Login exists " ++ (show chk)
     case chk of 
         Nothing -> return $ (Reply, 
                 CommandLogin $ Login {login = Just p, 
                 loginStatus = Just UserNotFound})
-        Just (Entity aid a)  -> 
-            return $ (Broadcast, CommandLogin $ 
-                Login {login = Just a, loginStatus = Just UserExists})
-    where
-        p = case (login aLogin) of
-                Nothing -> emptyPerson
-                Just a -> a 
+        Just (Entity aid a)  -> do 
+                _ <- updateLogin a 
+                return $ (Broadcast, CommandLogin $ 
+                    Login {login = Just a, loginStatus = Just UserExists})
+
 
 processCommand (Just (CommandError error)) = 
         return $ (Reply, CommandError error)
@@ -415,6 +429,9 @@ processCommand (Just (CommandKeepAlive a)) =
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ show $ "Processing processCommand " ++ (show uo)
+    person <- case aPerson of
+                Nothing -> emptyPerson
+                Just a -> return a        
     case uo of
         Us.Create  -> do
                 personId <- insertPerson person
@@ -434,10 +451,6 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
                         return $ (Reply, CommandUO  $ UserOperations (Us.Query personId) Nothing)
                     Just (p) -> 
                         return $ (Reply, CommandUO  $ UserOperations (Us.Query personId) (Just p))
-    where
-        person = case aPerson of
-                Nothing -> emptyPerson
-                Just a -> a        
 
 -- | Query operations are replies and db operations are broadcast. | --
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do

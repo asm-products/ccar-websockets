@@ -22,6 +22,7 @@ class Person {
 	public var password (default, null) : String;
 	public var firstName (default, null): String;
 	public var lastName (default, null): String;
+	public var lastLoginTime (default, default) : Date;
 	private var deleted : Bool;
 	public function new(fName : String
 		, lName : String
@@ -31,6 +32,7 @@ class Person {
 		lastName = lName;
 		nickName = nName;
 		password = pwd;
+		lastLoginTime  = Date.now();
 		deleted = false; // Should be default..
 	}
 	public function setNickName(n : String): Void {

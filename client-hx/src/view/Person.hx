@@ -64,7 +64,7 @@ class Person {
 			var divName : String = "Person.Login";
 			var div : DivElement = Util.createDivTag(document, divName);
 			status = cast document.getElementById("status");
-			status.innerHTML = "Welcome back. The last time you logged in: Fix this";
+			status.innerHTML = "Welcome back. The last time you logged in: " + m.lastLoginTime;
 			Util.createElementWithLabel(document, div, divName + NICK_NAME, NICK_NAME_LABEL);
 			Util.createElementWithLabel(document, div, divName + PASSWORD, PASSWORD_LABEL);
 			getInput(divName + NICK_NAME).value = m.nickName;

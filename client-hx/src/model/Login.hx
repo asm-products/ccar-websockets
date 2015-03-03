@@ -12,7 +12,6 @@ class Login {
 		login = p;
 		this.nickName = p.nickName;
 		loginStatus = Std.string(s);
-
 	}
 	public static function createLoginResponse(incomingMessage : Dynamic, person : Person) : Login {
 		//trace("Creating login response " + incomingMessage);
