@@ -95,9 +95,11 @@ A haxe based websocket client interacting with a yesod websockets server.
 	ability to a user to share a workbench. Sharing will have a cost associated with it. The sharer 
 	gets a sharing initiative that is equally divided by the number of members in the sharing list. If 
 	the sharing is individual, then the script has the price set by the creator.	
+
+
 ### General requirements 
 ##### If the app is launched as part of assembly, tie the validation to assembly's oauth (one screen less for the  user).
-##### Each user receives some currency as part of signup with a wallet.
+##### Each user receives some initial reputation as part of signup with a wallet.
 ##### How does a user ask for more currency? By simply going to a bank or some such entity: I am not sure. At this point, I dont see a
 	  need for a bank. As long as coins exist, we issue them. But each request for coins will be a transaction, loan of some sort. 
 ##### Each user also gets an account created with the above wallet.

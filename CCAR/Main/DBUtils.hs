@@ -52,6 +52,15 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastModified UTCTime default=CURRENT_TIMESTAMP
             ownerId PersonId 
             deriving Show Eq
+        WorkbenchGroup
+            workbenchId WorkbenchId 
+            personId PersonId -- List of users who share a workbench with reod only comments
+            deriving Show Eq 
+        WorkbenchComments 
+            workbenchId 
+            comment Text 
+            commenter PersonId 
+            deriving Show Eq
         Wallet 
             name Text 
             passphrase Text 
@@ -89,5 +98,41 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             responseComments Text
             surveyCostLimit Double -- a function that decides how many times a responder can vote 
             deriving Show Eq
-
-            |]
+        Marketplace 
+            description Text 
+            creator PersonId 
+            coverCharge Double -- As a means to establish trust 
+            category MarketCategory 
+            deriving Show Eq 
+        Product 
+            description Text 
+            creator PersonId 
+            cost Double 
+            unitOfMeasure Text 
+            defaultImageUrl Text 
+            deriving Show Eq 
+        ProductImage
+            productId ProductId 
+            imageUrl Text 
+            deriving Show Eq 
+        ProductDiscount 
+            productId ProductId 
+            discountAmount Double -- number between 0 - 100 
+            startDate UTCTime 
+            endDate UTCTime 
+            deriving Show Eq 
+        PassphraseManager 
+            passphrase Text 
+            passphraseKey Text 
+            deriving Show Eq
+        Portfolio 
+            symbol Text
+            quantity Double
+            symbolType PortfolioSymbolType 
+            deriving Show Eq
+        MarketDataSubscription 
+            ownerId PersonId
+            sourceName Text 
+            realtimeInterval Amount 
+            deriving Show Eq 
+        |]
