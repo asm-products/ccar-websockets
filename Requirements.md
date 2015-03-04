@@ -57,7 +57,44 @@ A haxe based websocket client interacting with a yesod websockets server.
 	messages that will be replayed when the user log back in. Offline messages should only be sent by users
 	who are in the trusted circle of the user. 
 
+#### Send a gift
+	Send a request to send a gift and and amount
+	Giftee accepts the requset for the gift.
+	Sender receives a notification.
+	Sender and Giftee receive a gift cerficate for records.
+#### List a product
+	Create a product, description and the market place to participate
 
+#### List a service
+
+#### Marketplace
+	Create a marketplace : description, (optional) barrier to entry in SWBench 
+	Some marketplaces have no barrier to entry or cover charge. 
+
+#### Create surveys
+	Survey name
+	Survey parameters (loaded, unbiased or somewhere in between)
+	Survey cost per user in SWBench
+	Total survay cost
+
+#### Survey Tally
+	Individual transactions that made up the result maintaining anonymity and integrity.
+
+#### Load rscripts.
+	Load a set of scripts that the user would like to add to his portfolio. 
+	Passphrase used to encode the script - this could get cumbersome to the user.
+	A user will be provided with a passphrase that was used to save the file.
+	Cost of the script for sharing.
+
+#### Load rjobs
+	Load a set of jobs using the pdbr library. The user can specify the script, the source of the data
+	and the number of processors desirable to complete the task.
+
+#### Share workbench
+	This is sort of the core functionality, for the system as we would like to be able to provide the 
+	ability to a user to share a workbench. Sharing will have a cost associated with it. The sharer 
+	gets a sharing initiative that is equally divided by the number of members in the sharing list. If 
+	the sharing is individual, then the script has the price set by the creator.	
 ### General requirements 
 ##### If the app is launched as part of assembly, tie the validation to assembly's oauth (one screen less for the  user).
 ##### Each user receives some currency as part of signup with a wallet.
