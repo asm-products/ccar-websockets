@@ -358,14 +358,15 @@ class MBooks {
 	public static function getMBooks() : MBooks {
 		return singleton;
 	}
-	static function main() {
-		singleton = new MBooks();
-		singleton.createConnectionForm();
-	}
 	public function onClose(ev: CloseEvent){
 		trace("Connection closed " + ev.code + "->" + ev.reason);
 		disableKeepAlive();
 
+	}
+
+	static function main() {
+		singleton = new MBooks();
+		singleton.createConnectionForm();
 	}
 
 
