@@ -33,12 +33,17 @@ class MBooks_im {
 
 	private static var singleton : MBooks_im;
 
+	private var maxAttempts : Int = 3;
 	function new (){
 		trace("Calling MBooks_im");
 		person = new model.Person("", "", "", "");
 		outputEventStream = new Deferred<String>();
 		var stream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "keyup");
 		stream.then(sendLogin);
+		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
+		pStream.then(validatePassword);
+
+
 	}
 
 	static function main() {
@@ -67,6 +72,14 @@ class MBooks_im {
 		var errorStream = initializeElementStream(cast websocket, "error");
 		errorStream.then(onError);
 
+	}
+	public function logout() : Void{
+		//trace("Logging out ");
+		if(websocket != null){
+			websocket.close();
+		}else {
+			//trace("No valid connection found");
+		}
 	}
 
 	//Server publish queue
@@ -187,6 +200,14 @@ class MBooks_im {
 			return;
 		}
 		var lStatus : LoginStatus = Type.createEnum(LoginStatus, lR.loginStatus);
+		if(this.getNickName() == lR.login.nickName){
+			this.person.setPassword(lR.login.password);
+			this.person.setFirstName(lR.login.firstName);
+			this.person.setLastName(lR.login.lastName);
+		}else {
+			throw ("Nick name and responses dont match!!!! -> " + this.getNickName() + " not the same as " + lR.login.nickName);
+
+		}
 		//trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
 			//User not found, so enable the registration fields
@@ -278,6 +299,9 @@ class MBooks_im {
 	//UI
 	//In this version, I want to keep everything in one file.
 	private static var NICK_NAME = "nickName";
+	private static var PASSWORD = "password";
+	private static var FIRST_NAME = "firstName";
+	private static var LAST_NAME = "lastName";
 	private static var DIV_PASSWORD = "passwordDiv";
 	private static var DIV_FIRST_NAME = "firstNameDiv";
 	private static var DIV_LAST_NAME = "lastNameDiv";
@@ -288,6 +312,13 @@ class MBooks_im {
 	private function getNickNameElement() : InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(NICK_NAME);
 		return inputElement;
+	}
+	private function getPasswordElement() : InputElement {
+		var inputElement : InputElement = cast Browser.document.getElementById(PASSWORD);
+		return inputElement;
+	}
+	private function getPassword() : String {
+		return getPasswordElement().value;
 	}
 	
 	private function sendLogin (ev: KeyboardEvent){
@@ -305,9 +336,22 @@ class MBooks_im {
 		}
 	}
 
+	private function validatePassword(ev : KeyboardEvent){
+		if(Util.isSignificantWS(ev.keyCode)){		
+
+			if(getPassword() != this.person.password){
+				js.Lib.alert("Invalid password. Try again");
+				attempts++;
+				if(attempts > maxAttempts){
+					js.Lib.alert("Too many attempts. Logging you out.");
+					logout();
+				}
+			}
+		}
+	}
 
 
-
+	var attempts : Int = 0;
 	var serverHost : String = "localhost";
 	var protocol : String = "ws";
 	var portNumber : Int = 3000;
