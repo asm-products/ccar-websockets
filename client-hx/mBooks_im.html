@@ -23,28 +23,28 @@
 			</div>
 		</div>
 		<form>
-			<div class="col_12">
+			<div id="nickNameDiv" class="col_12">
 				<label for="nickName">Nickname (needs to be unique)</label>
 				<input id="nickName" type="text" />
 			</div>
-			<div class="col_12">
+			<div id="passwordDiv" class="col_12" style="display:none">
 				<!-- Placeholder Text -->
 				<label for="password">Password</label>
 				<input id="password" type="text" placeholder="Password" />
 			</div>
-			<div class="col_12" style="display:normal">
+			<div id="firstNameDiv" class="col_12" style="display:none">
 				<!-- Disabled Field -->
 				<label for="firstName" >First Name</label>
-				<input id="firstName" type="text" disabled="disabled"/>
+				<input id="firstName" type="text" />
 			</div>
-			<div class="col_12"
+			<div id="lastNameDiv" class="col_12" style="display:none">
 			<!-- Label with Right Hint -->
 			<label for="lastName">Last Name </label>
 			<input id="lastName" type="text"/>
 			</div>
 		</form>
 	</div>
-	<ul class="tabs">
+	<ul id ="workbench" class="tabs">
 	<li><a href="#workbench-messaging">Messaging</a></li>
 	<li><a href="#workbench-ccar">CCAR</a></li>
 	<li><a href="#workbench-mywallet">MyWallet</a></li>
@@ -56,8 +56,7 @@
 	<li><a href="#workbench-profile">Profile</a> </li>
 	</ul>
 
-	<div id="workbench-messaging" class="tab-content"><h1> Messaging</h1> 
-
+	<div id="workbench-messaging" class="tab-content"><h1> Messaging</h1>
 	</div>
 	<div id="workbench-ccar" class="tab-content"> <h1>CCAR</h1></div>
 	<div id="workbench-mywallet" class="tab-content"><h1> My Wallet</h1></div>

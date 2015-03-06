@@ -289,6 +289,7 @@ class MBooks {
 		trace("Resolving message " + aMessage);
 		this.outputEventStream.resolve(aMessage);
 	}
+
 	private function createConnectionForm() : Void {
 		try {
 		//trace("Creating connection form");
@@ -358,6 +359,7 @@ class MBooks {
 	public static function getMBooks() : MBooks {
 		return singleton;
 	}
+
 	public function onClose(ev: CloseEvent){
 		trace("Connection closed " + ev.code + "->" + ev.reason);
 		disableKeepAlive();

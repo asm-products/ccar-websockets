@@ -3,5 +3,5 @@
 -cp /usr/share/haxe/lib/promhx/1,0,16/src/main/
 -lib promhx
 -lib munit
--js mbooks.js
--main MBooks
+-js mbooks_im.js
+-main MBooks_im
