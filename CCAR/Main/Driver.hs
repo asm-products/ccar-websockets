@@ -674,11 +674,13 @@ ccarApp = do
                                         -- send it to the current connection
                                         -- XXX: Need to clean this up
                                         currentClientState <- getClientState nickNameV app
+                                        allClients <- getAllClients app nickNameV
                                         mapM_ (\conn -> 
-                                                mapM_ (\cs -> writeTChan (writeChan conn)
-                                                    (UserJoined.userLoggedIn (nickName cs))) clientStates)
-                                                    currentClientState
-
+                                                mapM_ (\cs -> 
+                                                        writeTChan (writeChan conn) 
+                                                            (UserJoined.userLoggedIn (nickName cs)) 
+                                                        ) allClients
+                                                ) currentClientState
                         a <- liftBaseWith (\run -> A.async $ run writer)
                         b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameV)                        
                         liftBaseWith (\run -> A.wait a)

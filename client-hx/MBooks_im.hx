@@ -392,6 +392,7 @@ class MBooks_im {
 				};
 				doSendJSON(Json.stringify(userLoggedIn));
 				showDivField("statusMessageDiv");
+				this.initializeKeepAlive();
 			}
 		}
 	}
