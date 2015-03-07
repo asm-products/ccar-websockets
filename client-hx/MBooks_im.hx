@@ -97,7 +97,6 @@ class MBooks_im {
 	public  function onOpen(ev: Event){
 		trace("Connection opened");
 		getOutputEventStream().then(sendEvents);
-		initializeKeepAlive();
 	}
 
 	public function onClose(ev: CloseEvent){
@@ -372,8 +371,7 @@ class MBooks_im {
 	}
 
 	private function validatePassword(ev : KeyboardEvent){
-		if(Util.isSignificantWS(ev.keyCode)){		
-
+		if(Util.isSignificantWS(ev.keyCode)){
 			if(getPassword() != this.person.password){
 				js.Lib.alert("Invalid password. Try again");
 				attempts++;
@@ -381,6 +379,13 @@ class MBooks_im {
 					js.Lib.alert("Too many attempts. Logging you out.");
 					logout();
 				}
+			}else {
+				trace("Password works!");
+				var userLoggedIn = {
+					userName : getNickName()
+					, commandType : "UserLoggedIn"
+				};
+				doSendJSON(Json.stringify(userLoggedIn));
 			}
 		}
 	}

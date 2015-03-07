@@ -1,5 +1,6 @@
 module CCAR.Main.UserJoined 
-	(UserJoined(..), userJoined, parseUserJoined, userLoggedIn)
+	(UserJoined(..), userJoined, parseUserJoined, userLoggedIn, UserLoggedIn(..)
+	 , parseUserLoggedIn)
 where 
 
 import Data.Text as T  hiding(foldl, foldr)
@@ -50,11 +51,11 @@ instance FromJSON UserLoggedIn where
 	parseJSON (Object v) = parseUserLoggedIn v 
 	parseJSON _ 		 = Appl.empty 
 
-userJoined :: T.Text -> IO T.Text
-userJoined aText = return $ L.toStrict $ E.decodeUtf8 $ En.encode $ UserJoined aText
+userJoined :: T.Text -> T.Text
+userJoined aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserJoined aText
 
 {-- When the user has successfully logged in --}
-userLoggedIn :: T.Text -> IO T.Text 
-userLoggedIn aText = return $ L.toStrict $ E.decodeUtf8 $ En.encode $ UserLoggedIn aText 
+userLoggedIn :: T.Text -> T.Text 
+userLoggedIn aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLoggedIn aText 
 
 

@@ -10,7 +10,7 @@ import Yesod.Static
 import qualified GHC.Conc as GHCConc
 import qualified Data.Text.Lazy as TL
 import CCAR.Parser.CCARParsec
-import Control.Monad (forever, void, when, liftM)
+import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async as A (waitSTM, wait, async, cancel)
@@ -534,7 +534,7 @@ getNickName aCommand =
                     Nothing -> return (Nothing, "Nickname tag not found")
                     Just x -> 
                         case x of
-                            String x -> return (Just "found it", x)
+                            String x -> return (Just "found nickName", x)
                             _ -> return (Nothing, T.pack $ "Invalid " ++ (show x))
                 where 
                     nn = LH.lookup "nickName" a 
@@ -567,21 +567,19 @@ deleteConnection app conn lo@(Login p status) = do
                 return ()
         Nothing -> return ()
 
-addConnection :: App -> WSConn.Connection ->  Login -> IO ()
-addConnection app aConn lo@(Login p status) =do
-    case p of
-        Just x -> atomically $ do 
+addConnection :: App -> WSConn.Connection ->  T.Text -> IO ()
+addConnection app aConn nn = atomically $ do 
                 nMap <- readTVar $ nickNameMap app 
                 w <- newTChan
                 r <- dupTChan w 
-                clientState <- return ClientState{nickName = (personNickName x)
+                clientState <- return ClientState{nickName = nn 
                         , connection = aConn
                         , readChan = r 
                         , writeChan = w 
                 }
-                _ <- writeTVar (nickNameMap app) (IMap.insert (personNickName x) clientState nMap)
+                _ <- writeTVar (nickNameMap app) (IMap.insert nn clientState nMap)
                 return ()
-        Nothing -> return ()
+
 
 getAllClients :: App -> T.Text -> STM [ClientState]
 getAllClients app@(App a b c ) nn = do
@@ -606,10 +604,25 @@ authenticate aConn aText app@(App a b c) =
                     c <- return $ processCommandWrapper(Object a) 
                     case c of 
                         (CommandLogin r@(Login a b)) -> do 
-                                addConnection app aConn r
                                 nickName <- getPersonNickName a 
-                                userJoined <- UserJoined.userJoined nickName 
-                                return (Broadcast, userJoined)
+                                userJoined <- return $ UserJoined.userJoined nickName 
+                                return (Reply, userJoined)
+                        _ -> return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
+                                            $ CommandError $ genericErrorCommand ("Invalid command during login"))
+            where 
+                aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
+processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
+processUserLoggedIn aConn aText app@(App a b c) = 
+    do
+        case aCommand of 
+                Nothing -> return (Reply, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
+                Just (Object a) -> do
+                    c <- return $ parse UserJoined.parseUserLoggedIn a  
+                    case c of 
+                        Success (u@(UserJoined.UserLoggedIn a)) -> do 
+                                addConnection app aConn a 
+                                return $ (Broadcast, UserJoined.userLoggedIn a)
                         _ -> return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
                                             $ CommandError $ genericErrorCommand ("Invalid command during login"))
             where 
@@ -633,14 +646,7 @@ ccarApp = do
         $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
         $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
 
-        (result, nickName) <- liftIO $ getNickName $ incomingDictionary command
-        atomically $ do 
-                        destinations <- case destination of 
-                            Broadcast -> getAllClients app nickName 
-                            _ ->
-                                getClientState nickName app                                        
-                        mapM_ (\cs -> writeTChan (writeChan cs) (text)) destinations
-
+        (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary command
         case result of 
                 Nothing -> 
                     do
@@ -649,8 +655,26 @@ ccarApp = do
                         (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary command
                         $(logInfo) nickNameFound
                         YWS.sendTextData nickNameFound
+                        command <- YWS.receiveData 
+                        $(logInfo) command
+                        (dest, text) <- liftIO $ processUserLoggedIn connection command app 
+
+                        atomically $ do 
+                                        clientStates <- case dest of 
+                                            Broadcast -> getAllClients app nickNameV
+                                            PrivateMessage t ->
+                                                getClientState t app
+                                            _ ->
+                                                getClientState nickNameV app           
+                                        --                              
+                                        mapM_ (\cs -> writeTChan (writeChan cs) (text)) clientStates                                        
+                                        clientStates <- getClientState nickNameV app 
+                                        restOfUs <- filterM (\cs -> return (nickNameV /= nickName cs)) clientStates
+                                        mapM_ (\cs -> writeTChan (writeChan cs) (UserJoined.userLoggedIn (nickName cs)))
+                                              restOfUs
+
                         a <- liftBaseWith (\run -> A.async $ run writer)
-                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickName)                        
+                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameV)                        
                         liftBaseWith (\run -> A.wait a)
                         liftBaseWith (\run -> A.wait b)
                         $(logInfo) "Thread exiting"
