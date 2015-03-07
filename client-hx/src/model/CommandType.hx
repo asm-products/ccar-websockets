@@ -20,4 +20,5 @@ enum CommandType {
 	Undefined;
 	UserJoined;
 	UserLeft;
+	UserLoggedIn;
 }

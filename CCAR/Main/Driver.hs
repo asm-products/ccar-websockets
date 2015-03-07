@@ -658,7 +658,6 @@ ccarApp = do
                         command <- YWS.receiveData 
                         $(logInfo) command
                         (dest, text) <- liftIO $ processUserLoggedIn connection command app 
-
                         atomically $ do 
                                         clientStates <- case dest of 
                                             Broadcast -> getAllClients app nickNameV
@@ -669,9 +668,16 @@ ccarApp = do
                                         --                              
                                         mapM_ (\cs -> writeTChan (writeChan cs) (text)) clientStates                                        
                                         clientStates <- getClientState nickNameV app 
-                                        restOfUs <- filterM (\cs -> return (nickNameV /= nickName cs)) clientStates
-                                        mapM_ (\cs -> writeTChan (writeChan cs) (UserJoined.userLoggedIn (nickName cs)))
-                                              restOfUs
+                                        mapM_ (\cs -> writeTChan (writeChan cs) 
+                                                (UserJoined.userLoggedIn (nickName cs))) clientStates
+                                        -- Now send the list of users to the current connection
+                                        -- send it to the current connection
+                                        -- XXX: Need to clean this up
+                                        currentClientState <- getClientState nickNameV app
+                                        mapM_ (\conn -> 
+                                                mapM_ (\cs -> writeTChan (writeChan conn)
+                                                    (UserJoined.userLoggedIn (nickName cs))) clientStates)
+                                                    currentClientState
 
                         a <- liftBaseWith (\run -> A.async $ run writer)
                         b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameV)                        
@@ -705,7 +711,7 @@ ccarApp = do
                         return (connection clientState, textData)
                 --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
                 WSConn.sendTextData (connection) textData    
-                liftIO $ putStrLn $ "Wrote " `mappend` (show textData)
+                liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
                 reader app nickN
 
 getHomeR :: Handler Html

@@ -181,6 +181,9 @@ class MBooks_im {
 			case UserJoined : {
 				processUserJoined(incomingMessage);
 			}
+			case UserLoggedIn:{
+				processUserLoggedIn(incomingMessage);
+			}
 			case UserLeft : {
 				processUserLeft(incomingMessage);
 			}
@@ -242,8 +245,10 @@ class MBooks_im {
 	}
 
 	private function processUserJoined(incomingMessage){
-		var userNickName = incomingMessage.userNickName;
-		addToUsersOnline(userNickName);
+		trace("User joined " + Date.now());
+	}
+	private function processUserLoggedIn(incomingMessage) {
+		addToUsersOnline(incomingMessage.userName);
 	}
 	private function processUserLeft(incomingMessage) {
 		var userNickName = incomingMessage.userNickName;
@@ -386,6 +391,7 @@ class MBooks_im {
 					, commandType : "UserLoggedIn"
 				};
 				doSendJSON(Json.stringify(userLoggedIn));
+				showDivField("statusMessageDiv");
 			}
 		}
 	}
