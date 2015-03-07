@@ -18,4 +18,6 @@ enum CommandType {
 	CCARUpload;
 	ParsedCCARText;
 	Undefined;
+	UserJoined;
+	UserLeft;
 }

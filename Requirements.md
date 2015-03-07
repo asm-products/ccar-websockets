@@ -14,8 +14,9 @@ A haxe based websocket client interacting with a yesod websockets server.
 	* Connect to the server 
 	* nickName is the only field that is shown to the user
 	* Validate the password
-	* Success: notify the rest of the community 
-	* Wait for user list to populate the users in the community
+	* Success: broadcast the rest of the community 
+	* Server should send users online list to populate
+	* Send conversation history
 	* Begin processing server events
 
 ##### Login (First time user)

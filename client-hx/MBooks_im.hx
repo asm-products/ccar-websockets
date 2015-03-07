@@ -13,7 +13,8 @@ import js.html.DivElement;
 import js.html.Document;
 import js.html.KeyboardEvent;
 import js.html.InputElement;
-
+import js.html.SelectElement;
+import js.html.OptionElement;
 import model.Contact;
 import model.Login;
 import model.Person;
@@ -178,6 +179,12 @@ class MBooks_im {
 			case SendMessage : {
 				processSendMessage(incomingMessage);
 			}
+			case UserJoined : {
+				processUserJoined(incomingMessage);
+			}
+			case UserLeft : {
+				processUserLeft(incomingMessage);
+			}
 
 		}
 	}
@@ -235,7 +242,14 @@ class MBooks_im {
 		trace("Processing incoming message " + incomingMessage);
 	}
 
-
+	private function processUserJoined(incomingMessage){
+		var userNickName = incomingMessage.userNickName;
+		addToUsersOnline(userNickName);
+	}
+	private function processUserLeft(incomingMessage) {
+		var userNickName = incomingMessage.userNickName;
+		removeFromUsersOnline(userNickName);
+	}
 	private function showDivField(fieldName : String) {
 		var div : DivElement = cast (Browser.document.getElementById(fieldName));
 		div.setAttribute("style", "display:normal");
@@ -288,6 +302,8 @@ class MBooks_im {
 		websocket.send(aMessage);
 		//trace("Sent " + aMessage);
 	}
+
+
 	/**
 	* Clients could be sending json 
 	*/
@@ -297,7 +313,6 @@ class MBooks_im {
 	}
 
 	//UI
-	//In this version, I want to keep everything in one file.
 	private static var NICK_NAME = "nickName";
 	private static var PASSWORD = "password";
 	private static var FIRST_NAME = "firstName";
@@ -305,6 +320,7 @@ class MBooks_im {
 	private static var DIV_PASSWORD = "passwordDiv";
 	private static var DIV_FIRST_NAME = "firstNameDiv";
 	private static var DIV_LAST_NAME = "lastNameDiv";
+	private static var USERS_ONLINE = "usersOnline";
 	private function getNickName() : String{
 		return getNickNameElement().value;
 	}
@@ -321,6 +337,25 @@ class MBooks_im {
 		return getPasswordElement().value;
 	}
 	
+	private function addToUsersOnline(nickName : String) : Void {
+		var usersOnline : SelectElement = cast Browser.document.getElementById(USERS_ONLINE);
+		var nickNameId = "NICKNAME" + "_" + nickName;
+		var optionElement : OptionElement = cast Browser.document.getElementById(nickNameId);
+		if(optionElement == null){
+			optionElement = cast Browser.document.createOptionElement();
+			optionElement.id = nickNameId;
+			optionElement.text = nickName;
+			usersOnline.appendChild(optionElement);
+		}else {
+			throw "This user was alread online"  + nickName;
+		}
+
+	}
+	private function removeFromUsersOnline(nickName : String) : Void {
+
+	}
+
+	//Login and other stuff
 	private function sendLogin (ev: KeyboardEvent){
 		var inputElement : InputElement = cast ev.target;
 		if(Util.isBackspace(ev.keyCode)){

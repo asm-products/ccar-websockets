@@ -133,6 +133,6 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         MarketDataSubscription 
             ownerId PersonId
             sourceName Text 
-            realtimeInterval Amount 
+            realtimeInterval Double  
             deriving Show Eq 
         |]

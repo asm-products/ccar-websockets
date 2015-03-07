@@ -57,15 +57,32 @@
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content"><h1> Messaging</h1>
+			<div class="col_2">
+				<label for="usersOnline">Users Online (select users to for a group)</label>
+				<select id="usersOnline" multiple="multiple" class="fancy">
+				<option value="0">-- Users online --</option>
+				</select>
+			</div>
+			<div class="col_2">
+				<div class="col_2">
+					<label for="messageHistory"> Conversation </label>
+					<textarea id="messageHistory" rows="20"></textarea>
+				</div>
+				<div class="col_12">
+					<label for="messageInput"> Type here??</label>
+					<input id="messageInput"></input>
+				</div>
+
+			</div>
 	</div>
-	<div id="workbench-ccar" class="tab-content"> <h1>CCAR</h1></div>
-	<div id="workbench-mywallet" class="tab-content"><h1> My Wallet</h1></div>
-	<div id="workbench-gifts" class="tab-content"> <h1> Gifts </h1></div>
-	<div id="workbench-reputation" class="tab-content"> <h1> Reputation <h1></div>
-	<div id="workbench-transactions" class="tab-content"> <h1> Transactions </h1></div>
-	<div id="workbench-votes" class="tab-content"> <h1> Votes </h1></div>
-	<div id="workbench-marketplace" class="tab-content"> <h1> Marketplace </h1></div>
-	<div id="workbench-profile" class="tab-content"><h1> Profile </h1> </div>
+	<div id="workbench-ccar" class="tab-content" style="display:none"> <h1>CCAR</h1></div>
+	<div id="workbench-mywallet" class="tab-content" style="display:none"><h1> My Wallet</h1></div>
+	<div id="workbench-gifts" class="tab-content" style="display:none"> <h1> Gifts </h1></div>
+	<div id="workbench-reputation" class="tab-content" style="display:none"> <h1> Reputation <h1></div>
+	<div id="workbench-transactions" class="tab-content" style="display:none"> <h1> Transactions </h1></div>
+	<div id="workbench-votes" class="tab-content" style="display:none"> <h1> Votes </h1></div>
+	<div id="workbench-marketplace" class="tab-content" style="display:none"> <h1> Marketplace </h1></div>
+	<div id="workbench-profile" class="tab-content" style="display:none"><h1> Profile </h1> </div>
 </body>
 <div class="haxe:trace"></div>
 <script type="text/javascript" src="mbooks_im.js"></script>
