@@ -10,6 +10,10 @@ import Control.Exception
 import Control.Monad
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
+import Data.Aeson as J
+import GHC.Generics
+import Data.Data
+import Data.Typeable 
 
 
 {- 
@@ -35,5 +39,7 @@ data ClientState = ClientState {
 	}
 type ClientIdentifierMap = TVar (IMap.Map ClientIdentifier ClientState)
 type GroupIdentifier = T.Text
-data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier
+data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier deriving(Show, Typeable, Data, Generic, Eq)
 
+instance ToJSON DestinationType
+instance FromJSON DestinationType

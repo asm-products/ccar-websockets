@@ -91,7 +91,10 @@ data CCARText = CCARText { textUploadedBy :: T.Text
 
 data SendMessage = SendMessage { from :: T.Text
                                 , to :: T.Text
-                                , privateMessage ::  T.Text} deriving (Show, Eq)
+                                , privateMessage ::  T.Text
+                                , destination :: DestinationType } deriving (Show, Eq)
+
+-- Clever code warning: the json parsing does the parse (need to fix this)
 instance ToJSON CCARText where 
     toJSON (CCARText u s cc) = object ["textUploadedBy" .= u 
                                         , "scenarioName" .= s
@@ -153,10 +156,11 @@ genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
 genCommandKeepAlive a  = object ["keepAlive" .= a
                                 , "commandType" .= ("keepAlive" :: T.Text)]
 
-genSendMessage (SendMessage f t m) = object ["from" .= f
+genSendMessage (SendMessage f t m d) = object ["from" .= f
                     , "to" .= t
                     , "privateMessage" .= m
-                    , "commandType" .= ("SendMessage" :: T.Text)]
+                    , "commandType" .= ("SendMessage" :: T.Text)
+                    , "destination" .= d]
 
 instance ToJSON Person where
     toJSON  = genPerson 
@@ -180,7 +184,7 @@ instance ToJSON CCARUpload where
 instance ToJSON CCAR where
     toJSON = genCCAR 
 instance ToJSON SendMessage where
-    toJSON (SendMessage f t m ) = genSendMessage (SendMessage f t m)
+    toJSON (SendMessage f t m d ) = genSendMessage (SendMessage f t m d)
 
 instance ToJSON Command where
     toJSON aCommand = 
@@ -253,7 +257,8 @@ parseLogin v = Login <$>
 parseSendMessage v = SendMessage <$> 
                     v .: "from" <*>
                     v .: "to" <*>
-                    v .: "privateMessage"
+                    v .: "privateMessage" <*>
+                    v .: "destination"
 
 parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "title" <*>
@@ -485,7 +490,13 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                     Nothing -> emptyCCAR
                     Just a -> a
 
-processCommand (Just a) = return (Reply, a)
+processCommand (Just cm@(CommandSendMessage (SendMessage f t m d))) = do
+    case d of 
+        Broadcast -> return (Broadcast, cm)
+        _ -> return (Reply, cm) 
+
+
+procesmmand (Just a) = return (Reply, a)
 
 processCommandWrapper :: Value -> Command 
 processCommandWrapper (Object a)   = 

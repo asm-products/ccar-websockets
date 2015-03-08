@@ -74,6 +74,7 @@ A haxe based websocket client interacting with a yesod websockets server.
 	Survey cost per user in SWBench
 	Total survay cost
 
+
 ##### Survey Tally
 	Individual transactions that made up the result maintaining anonymity and integrity.
 
@@ -82,6 +83,8 @@ A haxe based websocket client interacting with a yesod websockets server.
 	Passphrase used to encode the script - this could get cumbersome to the user.
 	A user will be provided with a passphrase that was used to save the file.
 	Cost of the script for sharing.
+
+
 
 ##### Load rjobs
 	Load a set of jobs using the pdbr library. The user can specify the script, the source of the data
@@ -94,6 +97,28 @@ A haxe based websocket client interacting with a yesod websockets server.
 	the sharing is individual, then the script has the price set by the creator.	
 
 
+
+#### Create Ballot
+	Ballot name
+	Ballot Start time
+	Ballot End time
+	Ballot Size 
+	Ballot quorum 
+	Ballot Bias (number of votes allowed per user, *merican idol : looking at you)
+
+#### Send invite to user (send an invite to a user to participate in the ballot)
+
+#### Confirm invitation into the ballot
+
+#### The voting process is as follows:
+	Once an invitation in confirmed, each response is recorded as a vote.
+	The vote is confirmed after a successful confirmation.
+	During this time, the same user cannot vote more than the number of votes allowed and this number
+	can be more than the number of votes totally allowed per voter. Which is ok, because only
+	confirmed votes are counted. For example, if a voter is allowed 5 votes, the client is a bot
+	sending about 100 votes, before we receive any confirmations, is allowed and we will count it as such.
+	Once we have confirmations, only votes that are left will counted ensuring that each user cannot vote 
+	more than the number of votes allowed in the ballot per voter.
 
 
 

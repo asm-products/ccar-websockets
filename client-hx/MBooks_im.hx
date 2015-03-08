@@ -24,6 +24,7 @@ import model.CommandType;
 import util.Util;
 import js.Browser;
 import js.html.ButtonElement;
+import js.html.TextAreaElement;
 import promhx.Stream;
 import promhx.Promise;
 import massive.munit.TestRunner;
@@ -44,6 +45,9 @@ class MBooks_im {
 		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
 		pStream.then(validatePassword);
 
+		var mStream : Stream<Dynamic> = 
+			initializeElementStream(getMessageInput(), "keyup");
+		mStream.then(sendMessage);
 
 	}
 
@@ -241,7 +245,16 @@ class MBooks_im {
 		trace("Manage person");
 	}
 	private function processSendMessage(incomingMessage) {
-		trace("Processing incoming message " + incomingMessage);
+		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
+		textAreaElement.value = textAreaElement.value + "\n";
+		textAreaElement.value = textAreaElement.value + ": " + incomingMessage.from + "-" + incomingMessage.privateMessage;
+	
+	}
+	private function updateMessageHistory(localMessage) {
+		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
+		textAreaElement.value = textAreaElement.value + "\n";
+		textAreaElement.value = textAreaElement.value + ": " + getNickName() + "-" + localMessage;
+
 	}
 
 	private function processUserJoined(incomingMessage){
@@ -325,6 +338,8 @@ class MBooks_im {
 	private static var DIV_FIRST_NAME = "firstNameDiv";
 	private static var DIV_LAST_NAME = "lastNameDiv";
 	private static var USERS_ONLINE = "usersOnline";
+	private static var MESSAGE_HISTORY = "messageHistory";
+	private static var MESSAGE_INPUT = "messageInput";
 	private function getNickName() : String{
 		return getNickNameElement().value;
 	}
@@ -340,7 +355,20 @@ class MBooks_im {
 	private function getPassword() : String {
 		return getPasswordElement().value;
 	}
-	
+	private function getMessageInput() : InputElement {
+		var inputElement : InputElement = cast Browser.document.getElementById(MESSAGE_INPUT);
+		return inputElement;
+	}
+	private function getMessage() : String {
+		return getMessageInput().value;
+	}
+	private function getMessageHistoryElement() : InputElement {
+		var inputElement : InputElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
+		return inputElement;		
+	}
+	private function getMessageHistory() : String {
+		return getMessageHistoryElement().value;
+	}
 	private function addToUsersOnline(nickName : String) : Void {
 		var usersOnline : SelectElement = cast Browser.document.getElementById(USERS_ONLINE);
 		var nickNameId = "NICKNAME" + "_" + nickName;
@@ -372,9 +400,32 @@ class MBooks_im {
 			var l : Login = new Login(cType, this.person, lStatus);
 			trace("Sending login status " + l);
 			doSendJSON(Json.stringify(l));
+
 		}
 	}
 
+	private function sendMessage(ev : KeyboardEvent) {
+		var inputElement : InputElement = cast ev.target;
+		if(Util.isBackspace(ev.keyCode)){
+			inputElement.value = "";
+		}
+		if(Util.isSignificantWS(ev.keyCode)){
+			var payload = {
+				nickName : getNickName()
+				, from : getNickName()
+				, to : getNickName()
+				, privateMessage : getMessage()
+				, commandType : "SendMessage"
+				, destination :  {
+					tag : "Broadcast"
+					, contents : []
+				}
+			};
+			doSendJSON(Json.stringify(payload));
+			updateMessageHistory(getMessage());
+		}
+
+	}
 	private function validatePassword(ev : KeyboardEvent){
 		if(Util.isSignificantWS(ev.keyCode)){
 			if(getPassword() != this.person.password){
