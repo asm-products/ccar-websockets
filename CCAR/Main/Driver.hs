@@ -40,9 +40,29 @@ import Database.Persist.Postgresql as DB
 import Data.Map as IMap
 import CCAR.Main.GroupCommunication as GroupCommunication
 import CCAR.Main.UserJoined as UserJoined 
+import Data.ByteString as DBS hiding (putStrLn)
+import Data.ByteString.Char8 as C8 hiding(putStrLn) 
+import System.Environment
 
 
-connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
+getConnectionString :: IO ByteString 
+getConnectionString = do
+        host <- getEnv("PGHOST")
+        dbName <- getEnv("PGDATABASE")
+        user <- getEnv("PGUSER")
+        pass <- getEnv("PGPASS")
+        port <- getEnv("PGPORT")
+        return $ C8.pack ("host=" ++ host
+                    ++ " "
+                    ++ "dbname=" ++ dbName
+                    ++ " "
+                    ++ "user=" ++ user 
+                    ++ " " 
+                    ++ "password=" ++ pass 
+                    ++ " " 
+                    ++ "port=" ++ port)
+--connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
+connStr = getConnectionString
 
 emptyPerson :: IO Person 
 emptyPerson = do 
@@ -332,7 +352,8 @@ mkYesod "App" [parseRoutes|
 insertCCAR :: CCAR -> IO (Key CCAR) 
 insertCCAR c = do 
         putStrLn $ "Inside insert ccar"
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+        cStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
                         cid <- DB.insert c
@@ -340,40 +361,52 @@ insertCCAR c = do
                         return cid
 
 updateCCAR :: CCAR -> IO (Maybe CCAR)
-updateCCAR c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
-    liftIO $ do
-            flip runSqlPersistMPool pool $ do
-                DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
-                return $ Just c 
+updateCCAR c = do 
+        cStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool ->
+            liftIO $ do
+                flip runSqlPersistMPool pool $ do
+                    DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
+                    return $ Just c 
 
 queryAllCCAR :: T.Text -> IO [Entity CCAR]
-queryAllCCAR aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+queryAllCCAR aNickName = do 
+        cStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     selectList [] []
  
 queryCCAR :: CCARId -> IO (Maybe CCAR) 
-queryCCAR pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+queryCCAR pid = do 
+        connStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
 
 deleteCCAR :: CCAR -> IO (Maybe CCAR)
-deleteCCAR c = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
-    liftIO $ do
-            flip runSqlPersistMPool pool $ do
-                DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
-                return $ Just $ c {cCARDeleted = True} 
+deleteCCAR c = do 
+        connStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+            liftIO $ do
+                flip runSqlPersistMPool pool $ do
+                    DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
+                    return $ Just $ c {cCARDeleted = True} 
 
 updateLogin :: Person -> IO (Maybe Person) 
-updateLogin p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+updateLogin p = do
+        connStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
                 liftIO $ do 
                     now <- getCurrentTime
                     flip runSqlPersistMPool pool $ do 
                         DB.updateWhere [PersonNickName ==. (personNickName p)][PersonLastLoginTime =. now] 
                     return $ Just p 
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
-checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+checkLoginExists aNickName = do 
+    connStr <- getConnectionString
+    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do
                 getBy $ PersonUniqueNickName aNickName
@@ -381,6 +414,7 @@ checkLoginExists aNickName = runStderrLoggingT $ withPostgresqlPool connStr 10 $
 insertPerson :: Person -> IO ((Key Person)) 
 insertPerson p = do 
         putStrLn $ show $ "Inside insert person " ++ (show p)
+        connStr <- getConnectionString
         runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
@@ -389,14 +423,18 @@ insertPerson p = do
                         return pid
 
 updatePerson :: PersonId -> Person -> IO (Maybe Person)
-updatePerson pid p = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
-    liftIO $ do
+updatePerson pid p = do 
+    connStr <- getConnectionString
+    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+        liftIO $ do
             flip runSqlPersistMPool pool $ do
                 DB.replace (pid) p
                 get pid
 
 queryPerson :: PersonId -> IO (Maybe Person) 
-queryPerson pid = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+queryPerson pid = do
+        connStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
@@ -780,6 +818,7 @@ getHomeR = do
 driver :: IO ()
 driver = do
     hSetBuffering stdout NoBuffering
+    connStr <- getConnectionString
     runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do
