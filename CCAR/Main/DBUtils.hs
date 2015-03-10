@@ -38,12 +38,15 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deleted Bool default=False
             CCARUniqueName scenarioName
             deriving Show Eq
-        Messages 
+        MessageP -- Persistent version of messages. This table is only for general messages and private messages.
+                 -- MessageDestinationType is mainly, private message or broadcast.
+                 -- Group messages will be handled as part of group messages.
+                 -- Bite me??
             from NickName 
             to NickName 
-            message Text 
-            messageSentTime UTCTime 
-            messageReadTime UTCTime
+            message Text
+            iReadIt MessageCharacteristics
+            destination MessageDestinationType
             deriving Show Eq
         Workbench
             name Text

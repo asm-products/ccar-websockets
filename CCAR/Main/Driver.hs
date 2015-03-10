@@ -8,7 +8,6 @@ import Control.Monad.Trans.Control    (MonadBaseControl (liftBaseWith, restoreM)
 import Network.WebSockets.Connection as WSConn
 import Yesod.Static
 import qualified GHC.Conc as GHCConc
-import qualified Data.Text.Lazy as TL
 import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
@@ -43,7 +42,7 @@ import CCAR.Main.UserJoined as UserJoined
 import Data.ByteString as DBS hiding (putStrLn)
 import Data.ByteString.Char8 as C8 hiding(putStrLn) 
 import System.Environment
-
+import CCAR.Command.ErrorCommand 
 
 getConnectionString :: IO ByteString 
 getConnectionString = do
@@ -94,8 +93,6 @@ data UserOperations = UserOperations{operation :: Us.CRUD, person :: Maybe Perso
                 deriving (Show, Eq)
 data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD, terms :: Maybe TermsAndConditions} 
                 deriving(Show, Eq)
-data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
-                deriving (Show, Eq)
 
 -- There an absence of symmetry in this object: the result set can never be populated
 -- as part of the request. Another clever thought.
@@ -109,10 +106,6 @@ data CCARText = CCARText { textUploadedBy :: T.Text
                             , scenarioName :: T.Text
                            , ccarText :: T.Text} deriving  (Show, Eq)
 
-data SendMessage = SendMessage { from :: T.Text
-                                , to :: T.Text
-                                , privateMessage ::  T.Text
-                                , destination :: DestinationType } deriving (Show, Eq)
 
 -- Clever code warning: the json parsing does the parse (need to fix this)
 instance ToJSON CCARText where 
@@ -135,7 +128,6 @@ data Command = CommandLogin Login
                 | CommandError ErrorCommand 
                 | CommandKeepAlive KeepAliveCommand
                 | ParseCCARText CCARText
-                | CommandSendMessage SendMessage
                 deriving(Show, Eq)
 
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
@@ -167,8 +159,6 @@ genUserOperations (UserOperations o p) = object [
                         , "person" .= p
                         , "commandType" .= (String "ManageUser")]
 genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "terms" .= t]
-genErrorCommand (ErrorCommand e  m) = object ["errorCode" .= e
-                                              , "message" .= m]
 
 genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
                                             , "description" .= des
@@ -176,11 +166,6 @@ genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
 genCommandKeepAlive a  = object ["keepAlive" .= a
                                 , "commandType" .= ("keepAlive" :: T.Text)]
 
-genSendMessage (SendMessage f t m d) = object ["from" .= f
-                    , "to" .= t
-                    , "privateMessage" .= m
-                    , "commandType" .= ("SendMessage" :: T.Text)
-                    , "destination" .= d]
 
 instance ToJSON Person where
     toJSON  = genPerson 
@@ -195,16 +180,12 @@ instance ToJSON UserTermsOperations where
 
 instance ToJSON TermsAndConditions where
     toJSON = genTermsAndConditions
-instance ToJSON ErrorCommand where
-    toJSON = genErrorCommand
 
 instance ToJSON CCARUpload where
     toJSON = genCCARUpload 
 
 instance ToJSON CCAR where
     toJSON = genCCAR 
-instance ToJSON SendMessage where
-    toJSON (SendMessage f t m d ) = genSendMessage (SendMessage f t m d)
 
 instance ToJSON Command where
     toJSON aCommand = 
@@ -215,15 +196,9 @@ instance ToJSON Command where
             CommandCCARUpload a  -> genCCARUpload a
             CommandKeepAlive a -> genCommandKeepAlive a
             ParseCCARText a -> toJSON a
-            CommandSendMessage m -> genSendMessage m
             _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
-genericErrorCommand errorMessage = ErrorCommand {errorCode = T.pack "Error" 
-                                       , message = T.pack errorMessage}
-parseErrorCommand value= do
-        return $ ErrorCommand {errorCode = T.pack "Error"
-                               , message = T.pack $ show value}
 
 
 commandType = LH.lookup "commandType"
@@ -238,7 +213,6 @@ parseCommand value = do
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
-                    "SendMessage" -> CommandSendMessage <$> parseSendMessage value
                     _       -> CommandError <$> parseErrorCommand value
 
 
@@ -273,12 +247,6 @@ parseCreateUser v = UserOperations <$>
 parseLogin v = Login <$> 
                 v .: "login" <*>
                 (v .: "loginStatus")
-
-parseSendMessage v = SendMessage <$> 
-                    v .: "from" <*>
-                    v .: "to" <*>
-                    v .: "privateMessage" <*>
-                    v .: "destination"
 
 parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "title" <*>
@@ -315,9 +283,6 @@ instance FromJSON CCARText where
     parseJSON (Object v) = parseCCARText  v 
     parseJSON _          = Appl.empty
 
-instance FromJSON SendMessage where 
-    parseJSON (Object v ) = parseSendMessage v 
-    parseJSON _           = Appl.empty
 
 iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
 iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
@@ -451,7 +416,7 @@ processCommand (Just (CommandLogin aLogin)) = do
     chk <- checkLoginExists (personNickName p)
     putStrLn $ show $ "Login exists " ++ (show chk)
     case chk of 
-        Nothing -> return $ (Reply, 
+        Nothing -> return $ (GroupCommunication.Reply, 
                 CommandLogin $ Login {login = Just p, 
                 loginStatus = Just UserNotFound})
         Just (Entity aid a)  -> do 
@@ -461,14 +426,14 @@ processCommand (Just (CommandLogin aLogin)) = do
 
 
 processCommand (Just (CommandError error)) = 
-        return $ (Reply, CommandError error)
+        return $ (GroupCommunication.Reply, CommandError error)
 
 processCommand Nothing = return $  
-                        (Reply, CommandError $ 
+                        (GroupCommunication.Reply, CommandError $ 
                             genericErrorCommand "Unable to process command")
 
 processCommand (Just (CommandKeepAlive a)) = 
-        return $ (Reply, CommandKeepAlive a)
+        return $ (GroupCommunication.Reply, CommandKeepAlive a)
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ show $ "Processing processCommand " ++ (show uo)
@@ -479,21 +444,21 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
         Us.Create  -> do
                 personId <- insertPerson person
                 putStrLn $ show $ "Person inserted " ++ (show personId)
-                return $ (Reply, CommandUO $ UserOperations Us.Create (Just person))
+                return $ (GroupCommunication.Reply, CommandUO $ UserOperations Us.Create (Just person))
         Us.Update personId -> do
                 updatePerson personId person
-                return $ (Reply, CommandUO 
+                return $ (GroupCommunication.Reply, CommandUO 
                             $ UserOperations (Us.Update personId) (Just person))
         Us.Delete personId -> do 
                 deletePerson personId person
-                return $ (Reply, CommandUO $ UserOperations (Us.Delete personId) (Just person))
+                return $ (GroupCommunication.Reply, CommandUO $ UserOperations (Us.Delete personId) (Just person))
         Us.Query personId -> do 
                 maybePerson <- queryPerson (personId)
                 case maybePerson of
                     Nothing -> 
-                        return $ (Reply, CommandUO  $ UserOperations (Us.Query personId) Nothing)
+                        return $ (GroupCommunication.Reply, CommandUO  $ UserOperations (Us.Query personId) Nothing)
                     Just (p) -> 
-                        return $ (Reply, CommandUO  $ UserOperations (Us.Query personId) (Just p))
+                        return $ (GroupCommunication.Reply, CommandUO  $ UserOperations (Us.Query personId) (Just p))
 
 -- | Query operations are replies and db operations are broadcast. | --
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
@@ -513,14 +478,14 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
         CC.Query ccarId -> do 
                 maybeCCAR <- queryCCAR (ccarId)
                 case maybeCCAR of 
-                    Nothing -> return $ (Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing [])
-                    Just x -> return $  (Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []) 
+                    Nothing -> return $ (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing [])
+                    Just x -> return $  (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []) 
         CC.QueryAll nickName -> do
                 maybeCCAR <- queryAllCCAR nickName
                 case maybeCCAR of 
-                    [] -> return $ (Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing [])
+                    [] -> return $ (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing [])
                     aList -> return $ 
-                            (Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList))
+                            (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList))
                     where
                         ccarList aList = Prelude.map( \(Entity y  x) -> Just x) aList
         where
@@ -528,50 +493,70 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                     Nothing -> emptyCCAR
                     Just a -> a
 
-processCommand (Just cm@(CommandSendMessage (SendMessage f t m d))) = do
-    case d of 
-        Broadcast -> return (Broadcast, cm)
-        _ -> return (Reply, cm) 
 
+processCommand (Just a) = return (GroupCommunication.Reply, a)
 
-procesmmand (Just a) = return (Reply, a)
-
-processCommandWrapper :: Value -> Command 
-processCommandWrapper (Object a)   = 
+processCommandWrapper :: Value -> IO (DestinationType, T.Text)
+processCommandWrapper (Object a)   = do  
     case cType of 
-        Nothing -> CommandError $ genericErrorCommand "Unable to process command"
+        Nothing -> return $ (GroupCommunication.Reply, ser $ 
+                        CommandError $ genericErrorCommand "Unable to process command")
         Just aType -> 
             case aType of 
                 String "Login" -> 
                         case (parse parseLogin a) of
-                            Success r -> CommandLogin r
-                            Error s -> CommandError $ genericErrorCommand $ "parse login  failed "++ s
+                            Success r -> do 
+                                    (d, c) <- processCommand $ (Just (CommandLogin r))
+                                    return (d, ser c)
+                            Error s -> 
+                                    return (GroupCommunication.Reply,
+                                            ser $ CommandError $ genericErrorCommand $ "parse login  failed "++ s)
                 String "ManageUser" ->
                         case (parse parseCreateUser a) of
-                            Success r -> CommandUO r
-                            Error s -> CommandError $ genericErrorCommand $ "parse manage user failed " ++ s
+                            Success r -> do
+                                    (d, c) <- processCommand $ Just $ CommandUO r
+                                    return (d, ser c)
+                            Error s -> 
+                                return (GroupCommunication.Reply 
+                                    , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
                 String "CCARUpload" ->
                         case (parse parseCCARUpload a) of
-                            Success r -> CommandCCARUpload r 
-                            Error s -> CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s ++ (show a)
+                            Success r -> do  
+                                    (d, c) <- processCommand $ Just $ CommandCCARUpload r 
+                                    return (d, ser c)
+                            Error s -> 
+                                return (GroupCommunication.Reply 
+                                    , ser $ 
+                                        CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s ++ (show a))
                 String "KeepAlive" ->
                         case (parse parseKeepAlive a) of
-                            Success r -> CommandKeepAlive r 
-                            Error s -> CommandError $ genericErrorCommand $ "Parse Keep alive failed" ++ s ++ (show a)
+                            Success r -> do 
+                                    (d, c) <- processCommand $ Just $ CommandKeepAlive r 
+                                    return (d, ser c)
+                            Error s -> 
+                                return (
+                                    GroupCommunication.Reply, 
+                                    ser $ CommandError $ genericErrorCommand $ 
+                                        "Parse Keep alive failed" ++ s ++ (show a))
                 String "ParsedCCARText" ->
                         case (parse parseCCARText a) of
-                            Success r -> ParseCCARText r 
-                            Error s -> CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
-                String "SendMessage" -> 
-                        case (parse parseSendMessage a) of
-                            Success r -> CommandSendMessage r   
-                            Error s -> CommandError $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a)
-                _ -> CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType))
+                            Success r -> do 
+                                    (d, c) <- processCommand $ Just $ ParseCCARText r 
+                                    return (d, ser c)
+                            Error s -> 
+                                return (
+                                    GroupCommunication.Reply
+                                    , ser $ CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
+                                )
+                String "SendMessage" -> processSendMessage (Object a)
+                _ -> 
+                    return 
+                         ( GroupCommunication.Reply
+                         , ser $ CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType)))
     where 
         cType =  LH.lookup "commandType" a
+        ser a = L.toStrict $ E.decodeUtf8 $ En.encode a 
 
-
-processCommandWrapper _ = CommandError $ genericErrorCommand "Not yet implemented"
 
 getNickName :: Maybe Value -> IO (Maybe T.Text, T.Text)
 getNickName aCommand = 
@@ -596,14 +581,12 @@ processIncomingMessage aCommand =
             Nothing -> do
                     putStrLn $ "Processing error..."
                     result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
-                    return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
+                    return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
                         
             Just (Object a) -> do 
                     putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                    c <- return $ processCommandWrapper (Object a)
-                    putStrLn $ show $ "Processing command " ++ (show c)
-                    (d,  command) <- processCommand (Just c)
-                    return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
+                    processCommandWrapper (Object a)
+                    --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
 
 
@@ -648,31 +631,39 @@ authenticate :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Tex
 authenticate aConn aText app@(App a b c) = 
         do 
             case aCommand of 
-                Nothing -> return (Reply, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
+                Nothing -> return (GroupCommunication.Reply, 
+                            L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
                 Just (Object a) -> do
-                    c <- return $ processCommandWrapper(Object a) 
-                    case c of 
-                        (CommandLogin r@(Login a b)) -> do 
-                                nickName <- getPersonNickName a 
-                                userJoined <- return $ UserJoined.userJoined nickName 
-                                return (Reply, userJoined)
-                        _ -> return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
-                                            $ CommandError $ genericErrorCommand ("Invalid command during login"))
+                    (d, c) <- processCommandWrapper(Object a) 
+                    c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
+                    case c1 of 
+                        Just (Object a ) -> do  
+                            result <- return $ parse parseLogin a 
+                            case result of 
+                                Success (r@(Login a b)) -> do 
+                                        nickName <- getPersonNickName a 
+                                        userJoined <- return $ UserJoined.userJoined nickName 
+                                        return (GroupCommunication.Reply, userJoined)
+                                _ -> return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
+                                                    $ CommandError $ genericErrorCommand ("Invalid command during login"))
+                        _ -> return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
+                                                    $ CommandError $ genericErrorCommand ("Invalid command during login"))
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
 
 processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
 processUserLoggedIn aConn aText app@(App a b c) = 
     do
         case aCommand of 
-                Nothing -> return (Reply, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
+                Nothing -> return (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
                 Just (Object a) -> do
                     c <- return $ parse UserJoined.parseUserLoggedIn a  
                     case c of 
                         Success (u@(UserJoined.UserLoggedIn a)) -> do 
                                 addConnection app aConn a 
                                 return $ (Broadcast, UserJoined.userLoggedIn a)
-                        _ -> return $ (Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
+                        _ -> return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
                                             $ CommandError $ genericErrorCommand ("Invalid command during login"))
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value

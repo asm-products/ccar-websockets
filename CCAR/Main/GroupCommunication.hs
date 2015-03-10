@@ -1,6 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module CCAR.Main.GroupCommunication where
+module CCAR.Main.GroupCommunication 
+	(ClientState(..)
+	, ClientIdentifierMap(..)
+	, processSendMessage
+	, DestinationType(..) )
+where
 
 import Control.Concurrent
 import Control.Concurrent.STM.Lifted
@@ -10,11 +15,20 @@ import Control.Exception
 import Control.Monad
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
+import Data.Text.Lazy as L 
+import Database.Persist.Postgresql as DB
+import Data.Aeson.Encode as En
+import Data.Text.Lazy.Encoding as E
 import Data.Aeson as J
+import Control.Applicative as Appl
+import Data.Aeson.Encode as En
+import Data.Aeson.Types as AeTypes(Result(..), parse)
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
-
+import CCAR.Main.DBUtils
+import CCAR.Main.EnumeratedTypes as Et
+import CCAR.Command.ErrorCommand
 
 {- 
 	This websocket client needs to handle different kinds of messages that can broadly classified as
@@ -39,7 +53,61 @@ data ClientState = ClientState {
 	}
 type ClientIdentifierMap = TVar (IMap.Map ClientIdentifier ClientState)
 type GroupIdentifier = T.Text
-data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier deriving(Show, Typeable, Data, Generic, Eq)
+data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier
+		deriving(Show, Typeable, Data, Generic, Eq)
+
+data SendMessage = SendMessage { from :: T.Text
+                                , to :: T.Text
+                                , privateMessage ::  T.Text
+                                , destination :: DestinationType } deriving (Show, Eq)
+
+
+createPersistentMessage :: SendMessage -> MessageP 
+createPersistentMessage cm@(SendMessage fr to pM destination) = 
+		case destination of 
+			CCAR.Main.GroupCommunication.Reply -> 
+					MessageP fr to pM Et.Undecided Et.Reply 
+			_ 	  -> 
+					MessageP fr to pM Et.Undecided Et.Broadcast 
+
+--saveMessage :: SendMessage (f t p d) -> IO (Key MessageP) 
+--saveMessage c = undefined
+
+process (cm@(SendMessage f t m d)) = do
+
+    case d of 
+        CCAR.Main.GroupCommunication.Broadcast -> return (CCAR.Main.GroupCommunication.Broadcast, serialize cm)
+        _ -> return (CCAR.Main.GroupCommunication.Reply, serialize cm) 
+
+
+
+genSendMessage (SendMessage f t m d) = object ["from" .= f
+                    , "to" .= t
+                    , "privateMessage" .= m
+                    , "commandType" .= ("SendMessage" :: T.Text)
+                    , "destination" .= d]
+parseSendMessage v = SendMessage <$> 
+                    v .: "from" <*>
+                    v .: "to" <*>
+                    v .: "privateMessage" <*>
+                    v .: "destination"
+
+serialize :: (ToJSON a) => a -> T.Text 
+serialize a = L.toStrict $ E.decodeUtf8 $ En.encode a 
+
+processSendMessage (Object a) = 
+                case (parse parseSendMessage a) of
+                    Success r ->  process r 
+                    Error s -> return (CCAR.Main.GroupCommunication.Reply, 
+                    			serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
+
 
 instance ToJSON DestinationType
 instance FromJSON DestinationType
+instance ToJSON SendMessage where
+    toJSON (SendMessage f t m d ) = genSendMessage (SendMessage f t m d)
+
+instance FromJSON SendMessage where 
+    parseJSON (Object v ) = parseSendMessage v 
+    parseJSON _           = Appl.empty
+
