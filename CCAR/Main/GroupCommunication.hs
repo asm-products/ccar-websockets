@@ -4,6 +4,7 @@ module CCAR.Main.GroupCommunication
 	(ClientState(..)
 	, ClientIdentifierMap(..)
 	, processSendMessage
+    , getMessageHistory
 	, DestinationType(..) )
 where
 import Yesod.Core
@@ -63,7 +64,9 @@ data SendMessage = SendMessage { from :: T.Text
                                 , privateMessage ::  T.Text
                                 , destination :: DestinationType } deriving (Show, Eq)
 
-
+createSendMessage :: MessageP -> Maybe SendMessage 
+createSendMessage (MessageP fr to pM _ Et.Broadcast) = Just $ SendMessage fr to pM (CCAR.Main.GroupCommunication.Broadcast)
+createSendMessage (MessageP fr to pM _ _)            = Nothing 
 createPersistentMessage :: SendMessage -> MessageP 
 createPersistentMessage cm@(SendMessage fr to pM destination) = 
 		case destination of 
@@ -72,6 +75,13 @@ createPersistentMessage cm@(SendMessage fr to pM destination) =
 			_ 	  -> 
 					MessageP fr to pM Et.Undecided Et.Broadcast 
 
+getAllMessages :: Int -> IO [Entity MessageP]
+getAllMessages limit = do 
+        cStr <- getConnectionString
+        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool ->
+            liftIO $ do 
+                flip runSqlPersistMPool pool $ 
+                    selectList [] [LimitTo limit]
 
 saveMessage :: SendMessage -> IO (Key MessageP) 
 saveMessage c = 
@@ -86,6 +96,16 @@ saveMessage c =
 
         where 
             pM  = createPersistentMessage c 
+
+getMessageHistory :: Int -> IO [T.Text]
+getMessageHistory limit = do
+    allM <- getAllMessages limit
+    messages <- mapM (\(Entity y x) -> do 
+                            m <- return $ createSendMessage x
+                            case m of
+                                Just m1 -> return $ serialize m1
+                                Nothing -> return "") allM
+    return messages
 
 
 process (cm@(SendMessage f t m d)) = do

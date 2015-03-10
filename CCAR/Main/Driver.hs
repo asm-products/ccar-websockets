@@ -682,6 +682,7 @@ ccarApp = do
                         command <- YWS.receiveData 
                         $(logInfo) command
                         (dest, text) <- liftIO $ processUserLoggedIn connection command app 
+                        messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000
                         atomically $ do 
                                         clientStates <- case dest of 
                                             Broadcast -> getAllClients app nickNameV
@@ -705,6 +706,12 @@ ccarApp = do
                                                             (UserJoined.userLoggedIn (nickName cs)) 
                                                         ) allClients
                                                 ) currentClientState
+                                        
+                                        mapM_ (\text -> 
+                                                    mapM_ (\cs -> 
+                                                                writeTChan (writeChan cs) text) 
+                                                                currentClientState
+                                                    ) messageHistory
                         a <- liftBaseWith (\run -> A.async $ run writer)
                         b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameV)                        
                         liftBaseWith (\run -> A.wait a)
