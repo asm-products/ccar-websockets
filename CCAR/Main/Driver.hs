@@ -44,22 +44,6 @@ import Data.ByteString.Char8 as C8 hiding(putStrLn)
 import System.Environment
 import CCAR.Command.ErrorCommand 
 
-getConnectionString :: IO ByteString 
-getConnectionString = do
-        host <- getEnv("PGHOST")
-        dbName <- getEnv("PGDATABASE")
-        user <- getEnv("PGUSER")
-        pass <- getEnv("PGPASS")
-        port <- getEnv("PGPORT")
-        return $ C8.pack ("host=" ++ host
-                    ++ " "
-                    ++ "dbname=" ++ dbName
-                    ++ " "
-                    ++ "user=" ++ user 
-                    ++ " " 
-                    ++ "password=" ++ pass 
-                    ++ " " 
-                    ++ "port=" ++ port)
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
 

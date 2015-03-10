@@ -6,13 +6,15 @@ module CCAR.Main.GroupCommunication
 	, processSendMessage
 	, DestinationType(..) )
 where
-
+import Yesod.Core
+import Control.Monad.IO.Class(liftIO)
 import Control.Concurrent
 import Control.Concurrent.STM.Lifted
 import Control.Concurrent.Async
 import qualified  Data.Map as IMap
 import Control.Exception
 import Control.Monad
+import Control.Monad.Logger(runStderrLoggingT)
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
 import Data.Text.Lazy as L 
@@ -70,13 +72,28 @@ createPersistentMessage cm@(SendMessage fr to pM destination) =
 			_ 	  -> 
 					MessageP fr to pM Et.Undecided Et.Broadcast 
 
---saveMessage :: SendMessage (f t p d) -> IO (Key MessageP) 
---saveMessage c = undefined
+
+saveMessage :: SendMessage -> IO (Key MessageP) 
+saveMessage c = 
+		do
+            conn  <- getConnectionString
+            runStderrLoggingT $ withPostgresqlPool conn 10 $ \pool -> 
+                liftIO $ do
+                    flip runSqlPersistMPool pool $ do 
+                            cid <- DB.insert pM 
+                            $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
+                            return cid
+
+        where 
+            pM  = createPersistentMessage c 
+
 
 process (cm@(SendMessage f t m d)) = do
 
     case d of 
-        CCAR.Main.GroupCommunication.Broadcast -> return (CCAR.Main.GroupCommunication.Broadcast, serialize cm)
+        CCAR.Main.GroupCommunication.Broadcast -> do 
+        	saveMessage cm 
+        	return (CCAR.Main.GroupCommunication.Broadcast, serialize cm)
         _ -> return (CCAR.Main.GroupCommunication.Reply, serialize cm) 
 
 

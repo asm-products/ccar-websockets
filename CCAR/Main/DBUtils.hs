@@ -11,9 +11,29 @@ import Data.Typeable
 import Data.Text
 import Data.Data
 import CCAR.Main.EnumeratedTypes 
-
+import System.Environment(getEnv)
+import Data.ByteString as DBS hiding (putStrLn)
+import Data.ByteString.Char8 as C8 hiding(putStrLn) 
 
 type NickName = Text
+
+getConnectionString :: IO ByteString 
+getConnectionString = do
+        host <- getEnv("PGHOST")
+        dbName <- getEnv("PGDATABASE")
+        user <- getEnv("PGUSER")
+        pass <- getEnv("PGPASS")
+        port <- getEnv("PGPORT")
+        return $ C8.pack ("host=" ++ host
+                    ++ " "
+                    ++ "dbname=" ++ dbName
+                    ++ " "
+                    ++ "user=" ++ user 
+                    ++ " " 
+                    ++ "password=" ++ pass 
+                    ++ " " 
+                    ++ "port=" ++ port)
+
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
