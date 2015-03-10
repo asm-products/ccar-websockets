@@ -14,12 +14,12 @@
 <script type="text/javascript" src="js/kickstart.js"></script>                                  <!-- KICKSTART -->
 </head>
 <body>
-	<div class="grid">
-		<div class="col_12" style="margin-top:100px;">
-			<h1 class="center">
+	<div class="grid flex" >
+		<div class="col_12" style="margin-top:10px;">
+			<h4 class="center">
 				<p><i class="fa fa-fire"></i></p>
-				Stress Workbench</h1>
-				<h4 style="color:#999;margin-bottom:40px;" class="center">Community driven by trustless transactions</h4>		
+				Stress Workbench</h4>
+<!-- 				<h4 style="color:#999;margin-bottom:40px;" class="center">Community driven by trustless transactions</h4> -->		
 			</div>
 		</div>
 		<form>
@@ -43,11 +43,11 @@
 			<input id="lastName" type="text"/>
 			</div>
 			<div id="statusMessageDiv" class="col_12" style="display:none">
-				<h3 id="statusMessage">Welcome back!</h3>
+				<h4 id="statusMessage">Welcome back!</h4>
 
 		</form>
 	</div>
-	<ul id ="workbench" class="tabs">
+	<ul id ="workbench" class="tabs col_12">
 	<li><a href="#workbench-messaging">Messaging</a></li>
 	<li><a href="#workbench-ccar">CCAR</a></li>
 	<li><a href="#workbench-mywallet">MyWallet</a></li>
@@ -59,24 +59,25 @@
 	<li><a href="#workbench-profile">Profile</a> </li>
 	</ul>
 
-	<div id="workbench-messaging" class="tab-content"><h1> Messaging</h1>
-			<div class="col_2">
-				<label for="usersOnline">Users Online (select users to for a group)</label>
-				<select id="usersOnline" multiple="multiple" class="fancy">
-				<option value="0">-- Users online --</option>
-				</select>
-			</div>
-			<div class="col_2">
+	<div id="workbench-messaging" class="tab-content col_12"><h4> Messaging</h4>
+			<div class="col_12">
 				<div class="col_2">
-					<label for="messageHistory"> Conversation </label>
-					<textarea id="messageHistory" rows="20"></textarea>
+					<label for="usersOnline">Users Online (select users to for a group)</label>
+					<select id="usersOnline" multiple="multiple" class="fancy">
+					<option value="0">-- Users online --</option>
+					</select>
 				</div>
-				<div class="col_12">
-					<label for="messageInput"> Type here??</label>
-					<input id="messageInput"></input>
+				<div class="col_10">
+					<div class="col_12">
+						<label for="messageInput"> Type here??</label>
+						<input id="messageInput"></input>
+					</div>
 				</div>
-
 			</div>
+			<div class="col_12">
+				<label for="messageHistory"> Conversation </label>
+				<textarea id="messageHistory" rows="20"></textarea>
+			</div>			
 	</div>
 	<div id="workbench-ccar" class="tab-content" style="display:none"> <h1>CCAR</h1></div>
 	<div id="workbench-mywallet" class="tab-content" style="display:none"><h1> My Wallet</h1></div>

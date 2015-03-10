@@ -247,13 +247,14 @@ class MBooks_im {
 	private function processSendMessage(incomingMessage) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
 		textAreaElement.value = textAreaElement.value + "\n";
-		textAreaElement.value = textAreaElement.value + ": " + incomingMessage.from + "-" + incomingMessage.privateMessage;
+		textAreaElement.value = textAreaElement.value + incomingMessage.from + ":" + incomingMessage.privateMessage;
+
 	
 	}
 	private function updateMessageHistory(localMessage) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
 		textAreaElement.value = textAreaElement.value + "\n";
-		textAreaElement.value = textAreaElement.value + ": " + getNickName() + "-" + localMessage;
+		textAreaElement.value = textAreaElement.value + getNickName() + ":" + localMessage;
 
 	}
 
@@ -423,6 +424,8 @@ class MBooks_im {
 			};
 			doSendJSON(Json.stringify(payload));
 			updateMessageHistory(getMessage());
+
+			inputElement.value= ""; //Should we handle an exception here.
 		}
 
 	}
