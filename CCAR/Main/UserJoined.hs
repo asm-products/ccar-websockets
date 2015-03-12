@@ -1,5 +1,7 @@
 module CCAR.Main.UserJoined 
-	(UserJoined(..), userJoined, parseUserJoined, userLoggedIn, UserLoggedIn(..)
+	(UserJoined(..), userJoined, parseUserJoined
+		, userLoggedIn, UserLoggedIn(..)
+		, userLeft, UserLeft(..)
 	 , parseUserLoggedIn)
 where 
 
@@ -19,8 +21,12 @@ import Data.Text.Lazy as L hiding(foldl, foldr)
 
 data UserJoined  = UserJoined {userNickName ::  T.Text};
 data UserLoggedIn = UserLoggedIn {userName :: T.Text};
+data UserLeft = UserLeft {leftNickName :: T.Text};
 
-
+parseUserLeft v = UserLeft <$> 
+						v .: "userName"
+genUserLeft (UserLeft v) = object ["userName" .= v
+									, "commandType" .= ("UserLeft" :: T.Text)]
 parseUserLoggedIn v= UserLoggedIn <$>
 						v .: "userName"
 
@@ -51,6 +57,13 @@ instance FromJSON UserLoggedIn where
 	parseJSON (Object v) = parseUserLoggedIn v 
 	parseJSON _ 		 = Appl.empty 
 
+instance ToJSON UserLeft where 
+	toJSON = genUserLeft
+
+instance FromJSON UserLeft where 
+	parseJSON (Object v) = parseUserLeft v 
+	parseJSON _ 		 = Appl.empty 
+
 userJoined :: T.Text -> T.Text
 userJoined aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserJoined aText
 
@@ -58,4 +71,5 @@ userJoined aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserJoined aText
 userLoggedIn :: T.Text -> T.Text 
 userLoggedIn aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLoggedIn aText 
 
-
+userLeft :: T.Text -> T.Text 
+userLeft aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLeft aText 

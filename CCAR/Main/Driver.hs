@@ -6,7 +6,9 @@ import Yesod.Core
 import Yesod.WebSockets as YWS
 import Control.Monad.Trans.Control    (MonadBaseControl (liftBaseWith, restoreM))
 import Network.WebSockets.Connection as WSConn
+import Network.WebSockets 
 import Yesod.Static
+import Control.Exception hiding(Handler)
 import qualified GHC.Conc as GHCConc
 import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when, liftM, filterM)
@@ -574,14 +576,11 @@ processIncomingMessage aCommand =
                     
 
 
-deleteConnection :: App -> WSConn.Connection -> Login -> IO  () 
-deleteConnection app conn lo@(Login p status) = do
-    case p of
-        Just x -> atomically $ do 
-                cMap <- readTVar $ nickNameMap app                
-                _ <- writeTVar (nickNameMap app) (IMap.delete (personNickName x) cMap)
-                return ()
-        Nothing -> return ()
+deleteConnection :: App -> WSConn.Connection -> T.Text -> IO  () 
+deleteConnection app conn nn = atomically $ do 
+            cMap <- readTVar $ nickNameMap app                
+            _ <-    writeTVar (nickNameMap app) (IMap.delete nn cMap)
+            return ()
 
 addConnection :: App -> WSConn.Connection ->  T.Text -> IO ()
 addConnection app aConn nn = atomically $ do 
@@ -640,18 +639,19 @@ processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType
 processUserLoggedIn aConn aText app@(App a b c) = 
     do
         case aCommand of 
-                Nothing -> return (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
+                Nothing -> return (GroupCommunication.Reply, 
+                        ser $ CommandError $ genericErrorCommand ("Login has errors"))
                 Just (Object a) -> do
                     c <- return $ parse UserJoined.parseUserLoggedIn a  
                     case c of 
-                        Success (u@(UserJoined.UserLoggedIn a)) -> do 
+                        Success u@(UserJoined.UserLoggedIn a) -> do 
                                 addConnection app aConn a 
-                                return $ (Broadcast, UserJoined.userLoggedIn a)
-                        _ -> return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
+                                return $ (Broadcast, ser u)
+                        _ -> return $ (GroupCommunication.Reply, ser  
                                             $ CommandError $ genericErrorCommand ("Invalid command during login"))
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
-
+                ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
 
 instance Show WSConn.Connection where
     show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
@@ -660,7 +660,6 @@ ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
         app <- getYesod
-        
         command <- YWS.receiveData
         (destination, text) <- liftIO $ authenticate connection command app  
 
@@ -678,11 +677,16 @@ ccarApp = do
                 Just x -> do
                         (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary command
                         $(logInfo) nickNameFound
-                        YWS.sendTextData nickNameFound
-                        command <- YWS.receiveData 
+                        liftIO $ WSConn.sendTextData connection nickNameFound `catch` 
+                                (\ a@(CloseRequest e1 e2) -> 
+                                        putStrLn "Connection closed")
+                        command <- liftIO $ WSConn.receiveData connection `catch` 
+                                                    (\ (CloseRequest e1 e2) -> do                                                             
+                                                            return (UserJoined.userLeft nickNameV)
+                                                        )
                         $(logInfo) command
                         (dest, text) <- liftIO $ processUserLoggedIn connection command app 
-                        messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000
+                        messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000 -- read from db.
                         atomically $ do 
                                         clientStates <- case dest of 
                                             Broadcast -> getAllClients app nickNameV
@@ -743,7 +747,10 @@ ccarApp = do
                         textData <- readTChan (readChan clientState)                        
                         return (connection clientState, textData)
                 --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
-                WSConn.sendTextData (connection) textData    
+                WSConn.sendTextData (connection) textData `catch`
+                        (\ (CloseRequest e1 e2) -> 
+                            deleteConnection app connection nickN
+                            )   
                 liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
                 reader app nickN
 
