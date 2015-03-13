@@ -576,8 +576,8 @@ processIncomingMessage aCommand =
                     
 
 
-deleteConnection :: App -> WSConn.Connection -> T.Text -> IO  () 
-deleteConnection app conn nn = atomically $ do 
+deleteConnection :: App -> WSConn.Connection -> T.Text -> STM  () 
+deleteConnection app conn nn = do 
             cMap <- readTVar $ nickNameMap app                
             _ <-    writeTVar (nickNameMap app) (IMap.delete nn cMap)
             return ()
@@ -716,43 +716,55 @@ ccarApp = do
                                                                 writeTChan (writeChan cs) text) 
                                                                 currentClientState
                                                     ) messageHistory
-                        a <- liftBaseWith (\run -> A.async $ run writer)
-                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ reader app nickNameV)                        
+                        a <- liftBaseWith (\run -> A.async $ run $ liftIO $ writerThread app connection 
+                                            nickNameV False)
+                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ readerThread app nickNameV)                        
                         liftBaseWith (\run -> A.wait a)
                         liftBaseWith (\run -> A.wait b)
                         $(logInfo) "Thread exiting"
-        where
-            incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
+incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
             
-            writer = do
-                app <- getYesod
-                msg <- YWS.receiveData
-                (_, nickName) <- liftIO $ getNickName $ incomingDictionary msg
-                liftIO $ putStrLn $ "Message nickName " `mappend` (show nickName)
-                (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
-                liftIO $ putStrLn $ "Writing command " ++ (show x)
-                atomically $ do 
-                                clientStates <- case dest of 
-                                    Broadcast -> getAllClients app nickName 
-                                    PrivateMessage t ->
-                                        getClientState t app
-                                    _ ->
-                                        getClientState nickName app                                        
-                                mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
-                writer
-            reader app nickN= do
-                putStrLn "Waiting for messages..."
-                (connection, textData) <- atomically $ do
-                        clientState : _ <- getClientState nickN app        
-                        textData <- readTChan (readChan clientState)                        
-                        return (connection clientState, textData)
-                --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
-                WSConn.sendTextData (connection) textData `catch`
-                        (\ (CloseRequest e1 e2) -> 
-                            deleteConnection app connection nickN
-                            )   
-                liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
-                reader app nickN
+readerThread app nickN= do
+    putStrLn "Waiting for messages..."
+    (connection, textData) <- atomically $ do
+            clientState : _ <- getClientState nickN app        
+            textData <- readTChan (readChan clientState)                        
+            return (connection clientState, textData)
+    --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
+    WSConn.sendTextData (connection) textData `catch`
+            (\ (CloseRequest e1 e2) -> 
+                atomically $ deleteConnection app connection nickN
+                )   
+    liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
+    readerThread app nickN
+
+writerThread app connection nickName terminate = do
+    if (terminate == True) 
+        then return () 
+        else do 
+            msg <- WSConn.receiveData connection `catch` 
+                        (\(CloseRequest e f) -> 
+                            do 
+                                atomically $ deleteConnection app connection nickName
+                                writerThread app connection nickName True 
+                                return "CloseRequest exception"
+                    )
+            (_, nickName) <- liftIO $ getNickName $ incomingDictionary msg
+            liftIO $ putStrLn $ "Message nickName " `mappend` (show nickName)
+            (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
+            liftIO $ putStrLn $ "Writing command " ++ (show x)
+            atomically $ do 
+                            clientStates <- case dest of 
+                                Broadcast -> getAllClients app nickName 
+                                PrivateMessage t ->
+                                    getClientState t app
+                                _ ->
+                                    getClientState nickName app                                        
+                            mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
+            writerThread app connection nickName terminate
+
 
 getHomeR :: Handler Html
 getHomeR = do
