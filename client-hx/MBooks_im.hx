@@ -265,7 +265,7 @@ class MBooks_im {
 		addToUsersOnline(incomingMessage.userName);
 	}
 	private function processUserLeft(incomingMessage) {
-		var userNickName = incomingMessage.userNickName;
+		var userNickName = incomingMessage.userName; // Haskell record types and not being modular...
 		removeFromUsersOnline(userNickName);
 	}
 	private function showDivField(fieldName : String) {
@@ -380,11 +380,20 @@ class MBooks_im {
 			optionElement.text = nickName;
 			usersOnline.appendChild(optionElement);
 		}else {
-			throw "This user was alread online"  + nickName;
+			throw "This user was already online"  + nickName;
 		}
 
 	}
 	private function removeFromUsersOnline(nickName : String) : Void {
+		trace("Deleting user from the list " + nickName);
+		var usersOnline : SelectElement = cast Browser.document.getElementById(USERS_ONLINE);
+		var nickNameId = "NICKNAME" + "_" + nickName;
+		var optionElement : OptionElement = cast Browser.document.getElementById(nickNameId);
+		if(optionElement != null){
+			usersOnline.removeChild(optionElement);
+		}else {
+			throw "This user was already removed : ?"  + nickName;
+		}
 
 	}
 

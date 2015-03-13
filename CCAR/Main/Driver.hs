@@ -725,6 +725,17 @@ ccarApp = do
 
 incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 
+handleDisconnects :: App -> WSConn.Connection -> T.Text -> ConnectionException -> IO ()
+handleDisconnects app connection nickN (CloseRequest a b) = do 
+            putStrLn $ T.unpack $  
+                ("Bye nickName " :: T.Text) `mappend` nickN
+            atomically $ do 
+                deleteConnection app connection nickN
+                restOfUs <- getAllClients app nickN 
+                mapM_ (\cs -> 
+                        writeTChan(writeChan cs) $ 
+                            UserJoined.userLeft nickN )restOfUs
+
             
 readerThread app nickN= do
     putStrLn "Waiting for messages..."
@@ -733,10 +744,8 @@ readerThread app nickN= do
             textData <- readTChan (readChan clientState)                        
             return (connection clientState, textData)
     --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
-    WSConn.sendTextData (connection) textData `catch`
-            (\ (CloseRequest e1 e2) -> 
-                atomically $ deleteConnection app connection nickN
-                )   
+    WSConn.sendTextData (connection) textData `catch` 
+        (\h@(CloseRequest e f)-> handleDisconnects app connection nickN h)
     liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
     readerThread app nickN
 
@@ -745,12 +754,9 @@ writerThread app connection nickName terminate = do
         then return () 
         else do 
             msg <- WSConn.receiveData connection `catch` 
-                        (\(CloseRequest e f) -> 
-                            do 
-                                atomically $ deleteConnection app connection nickName
-                                writerThread app connection nickName True 
-                                return "CloseRequest exception"
-                    )
+                (\h@(CloseRequest _ _) -> 
+                        handleDisconnects app connection nickName h
+                            >> return "Close request received")
             (_, nickName) <- liftIO $ getNickName $ incomingDictionary msg
             liftIO $ putStrLn $ "Message nickName " `mappend` (show nickName)
             (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
