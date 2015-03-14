@@ -37,3 +37,11 @@ promhx: [1.0.16]
 hamcrest: [1.2.1]
 mcover: [2.1.1]
 
+
+Installation of the yesod toolchain
+====================================
+$ cabal sandbox init
+$ cabal install yesod-core --max-backjumps=-1 --reorder-goals --reinstall
+
+The above steps should usually suffice.
+

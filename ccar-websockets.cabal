@@ -58,7 +58,7 @@ executable ccar-websockets
   -- Other library packages from which modules are imported.
   build-depends:     base                                 >= 4.5 && < 5
                      -- Just for CPP macro
-                     , yesod-websockets               >= 0.2.1.1
+                     , yesod-websockets               > 0.2.0
                      , yesod-core                     >= 1.4.4
                      , yesod-static                   >= 1.4.0.3
                      , text                           >= 0.11.3.1
