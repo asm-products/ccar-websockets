@@ -14,7 +14,8 @@ import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay, forkIO)
-import Control.Concurrent.Async as A (waitSTM, wait, async, cancel)
+import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth
+                        , concurrently)
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
@@ -671,9 +672,7 @@ ccarApp = do
 
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary command
         case result of 
-                Nothing -> 
-                    do
-                        liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                Nothing -> liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just x -> do
                         (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary command
                         $(logInfo) nickNameFound
@@ -716,11 +715,12 @@ ccarApp = do
                                                                 writeTChan (writeChan cs) text) 
                                                                 currentClientState
                                                     ) messageHistory
-                        a <- liftBaseWith (\run -> A.async $ run $ liftIO $ writerThread app connection 
-                                            nickNameV False)
-                        b <- liftBaseWith (\run -> A.async $ run $ liftIO $ readerThread app nickNameV)                        
-                        liftBaseWith (\run -> A.wait a)
-                        liftBaseWith (\run -> A.wait b)
+
+                        a <- liftBaseWith (\run -> run $ liftIO $ do
+                                                    a <- (A.async (writerThread app connection 
+                                                        nickNameV False))
+                                                    b <- (A.async (liftIO $ readerThread app nickNameV))
+                                                    A.waitEither a b)
                         $(logInfo) "Thread exiting"
 
 incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
@@ -751,25 +751,31 @@ readerThread app nickN= do
 
 writerThread app connection nickName terminate = do
     if (terminate == True) 
-        then return () 
+        then do 
+            putStrLn "Writer thread exiting."
+            return () 
         else do 
             msg <- WSConn.receiveData connection `catch` 
-                (\h@(CloseRequest _ _) -> 
-                        handleDisconnects app connection nickName h
-                            >> return "Close request received")
-            (_, nickName) <- liftIO $ getNickName $ incomingDictionary msg
-            liftIO $ putStrLn $ "Message nickName " `mappend` (show nickName)
-            (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
-            liftIO $ putStrLn $ "Writing command " ++ (show x)
-            atomically $ do 
-                            clientStates <- case dest of 
-                                Broadcast -> getAllClients app nickName 
-                                PrivateMessage t ->
-                                    getClientState t app
-                                _ ->
-                                    getClientState nickName app                                        
-                            mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
-            writerThread app connection nickName terminate
+                (\h@(CloseRequest _ _) -> do 
+                        _ <- handleDisconnects app connection nickName h
+                        writerThread app connection nickName True
+                        return "Close request received")
+            (result, nickName) <- liftIO $ getNickName $ incomingDictionary msg
+            case result of 
+                Nothing -> liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                Just _ -> do 
+                    liftIO $ putStrLn $ "Writer thread :-> Message nickName " `mappend` (show nickName)
+                    (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
+                    liftIO $ putStrLn $ "Writer thread :-> Writing command " ++ (show x)
+                    atomically $ do 
+                                    clientStates <- case dest of 
+                                        Broadcast -> getAllClients app nickName 
+                                        PrivateMessage t ->
+                                            getClientState t app
+                                        _ ->
+                                            getClientState nickName app                                        
+                                    mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
+                    writerThread app connection nickName terminate
 
 
 getHomeR :: Handler Html

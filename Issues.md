@@ -1,6 +1,6 @@
 #### Issues with version 1
 
-##### Handle close request
+##### Handle close request -- Need to mask interrupts, cancel the other threads.
 ##### Use Control.Monad.Logger and remove putStrLn
 ##### History configuration should be read from database preferences
 ##### Make the message area bigger for the ui.
