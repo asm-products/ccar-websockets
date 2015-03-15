@@ -28,12 +28,12 @@ Cabal setup may take some time and is not the prettiest in my experience. But ev
 * haxe : 3.0.0
 
 
-*Haxe Libraries:
-*mlib: [2.0.2]
-*munit: [2.1.0]
-*mconsole: [1.6.0]
-*promhx: [1.0.16]
-*hamcrest: [1.2.1]
+* Haxe Libraries:
+* mlib: [2.0.2]
+* munit: [2.1.0]
+* mconsole: [1.6.0]
+* promhx: [1.0.16]
+* hamcrest: [1.2.1]
 * mcover: [2.1.1]
 
 
