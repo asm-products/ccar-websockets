@@ -39,9 +39,9 @@ divided into the following phases
 	Votes are assigned in decreasing chronological order to allow for voters to change their mind 
 	and reduce the voters wallet by the the voting amount. Voting amount has to be greater than 
 	zero to register a vote.
-	
+
 ##### Results and audit
-	Here we tally the results and the process will be audited using normal auditing processes using the 
+	Tally the results and the process will be audited using normal auditing processes using the 
 	votes transactions.
 
 
