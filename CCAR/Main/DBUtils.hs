@@ -46,6 +46,37 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deleted Bool default=False
             PersonUniqueNickName nickName
             deriving Show Eq
+        -- Could be the postal zone,
+        -- Geographic zone etc.
+        -- typical entries: 
+        -- NY 12345
+        -- NJ 22334 something like so.
+        Country 
+            name Text 
+            iso_3 Text
+            iso_2 Text
+            deriving Show Eq
+        Language 
+            name Text 
+            font Text 
+            country CountryId 
+            deriving Show Eq
+        IdentificationZone 
+            zoneName Text
+            zoneType Text
+            country CountryId 
+            deriving Eq Show
+        GeoLocation 
+            latitude Double -- most likely in radians.
+            longitude Double
+            deriving Eq Show 
+        Profile 
+            createdFor PersonId 
+            gender Text 
+            age Double
+            identificationZone IdentificationZoneId
+            geoLocation GeoLocation
+            deriving Show Eq 
         TermsAndConditions
             title Text
             description Text
@@ -104,9 +135,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             ownerId PersonId 
             deriving Show Eq
         Survey 
-            totalCost Double
             createdBy PersonId
             createdOn UTCTime
+            startTime UTCTime
+            endTime UTCTime 
+            totalVotes Double
+            totalCost Double
+            maxVotesPerVoter Double
+            participantProfile ProfileId 
             expiration UTCTime -- No responses can be accepted after the expiration Date. 
             deriving Show Eq
         SurveyQuestion

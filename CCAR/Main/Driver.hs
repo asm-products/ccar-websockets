@@ -663,8 +663,6 @@ ccarApp = do
         app <- getYesod
         command <- YWS.receiveData
         (destination, text) <- liftIO $ authenticate connection command app  
-
-
         liftIO $ putStrLn $ "Testing authenticate " `mappend` show (text :: T.Text)
         $(logInfo) $ T.pack $ show $ "Connection " `mappend` (show connection)
         $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
@@ -676,7 +674,7 @@ ccarApp = do
                             WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
                             return ()
                 Just _ -> liftIO $ 
-                            (processNoException app connection nickNameV command)
+                            (processWriteException app connection nickNameV command)
                              `catch` 
                                     (\ a@(CloseRequest e1 e2) -> do  
                                         atomically $ deleteConnection app connection nickNameV
@@ -686,17 +684,18 @@ ccarApp = do
 incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 
 
-processNoException app connection nickNameV iText = do
+processWriteException app connection nickNameV iText = do
                     (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary iText
                     WSConn.sendTextData connection nickNameFound
-                    command <- (processInnerException connection app nickNameV ) `catch` 
+                    command <- (processReadException connection app nickNameV ) `catch` 
                                                 (\ (CloseRequest e1 e2) -> do                                                             
+                                                        atomically $ deleteConnection app connection nickNameV
                                                         return (UserJoined.userLeft nickNameV)
                                                     )
                     return ()
     
 
-processInnerException connection app nickNameV = do
+processReadException connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
             messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000 -- read from db.

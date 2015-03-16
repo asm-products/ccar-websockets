@@ -2,12 +2,11 @@
 
 ##### Introduction
 
-The general process for conducting surveys or voting is described. The process of collecting surveys is 
-divided into the following phases
+The process of collecting surveys is divided into the following phases
 	* Developing the survey, questionnaires and participant profiles.
 	* Registration
 	* Voting
-	* Counting
+	* Counting -- We want to allow users to change their minds till the polls last.
 	* Tallying - auditing results
 
 
@@ -20,6 +19,7 @@ divided into the following phases
 		* Max Total number of votes per registered voter (default = 1)
 		* Total cost of the survey
 		* Participant profile
+		* Display results before the polls close (some pollers want to influence the vote!)
 
 ###### Survey registration 
 	An invitation to participate in the survey is send to all the participants (randomly) selected
@@ -44,6 +44,14 @@ divided into the following phases
 	Tally the results and the process will be audited using normal auditing processes using the 
 	votes transactions.
 
+
+##### Supporting datamodel
+	* Zones (postal zones, carrier zones, such as ups)
+	* Languages : Spoken, written, font.
+	* Country
+	* Geolocation : latitude/longitude pair - either maintain the database
+				-- or make an api call.
+	* Contentful API to manage content for the user.
 
 
 ##### Formulae:
