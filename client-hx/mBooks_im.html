@@ -16,10 +16,8 @@
 <body>
 	<div class="grid flex" >
 		<div class="col_12" style="margin-top:10px;">
-			<h4 class="center">
-				<p><i class="fa fa-fire"></i></p>
+			<h4 class="center"><p><i class="fa fa-fire"></i></p>
 				Reliable Polling </h4>
-<!-- 				<h4 style="color:#999;margin-bottom:40px;" class="center">Community driven by trustless transactions</h4> -->		
 			</div>
 		</div>
 		<form>
@@ -58,7 +56,7 @@
 
 	</ul>
 
-	<div id="workbench-messaging" class="tab-content col_12"><h4> Messaging</h4>
+	<div id="workbench-messaging" class="tab-content col_12">
 			<div class="col_12">
 				<div class="col_2">
 					<label for="usersOnline">Users Online (select users to for a group)</label>
@@ -67,16 +65,17 @@
 					</select>
 				</div>
 				<div class="col_10">
-					<div class="col_12">
-						<label for="messageInput"> Type here??</label>
+				<div class="col_12">
+					<label for="messageHistory">Conv</label>
+					<textarea id="messageHistory" rows="200"></textarea>
+				</div>			
+
+				<div class="col_12">
+						<label for="messageInput">Chat</label>
 						<input id="messageInput"></input>
-					</div>
 				</div>
 			</div>
-			<div class="col_12">
-				<label for="messageHistory"> Conversation </label>
-				<textarea id="messageHistory" rows="20"></textarea>
-			</div>			
+			</div>
 	</div>
 	<div id="workbench-ccar" class="tab-content" style="display:none"> <h1>CCAR</h1></div>
 	<div id="workbench-mywallet" class="tab-content" style="display:none"><h1> My Wallet</h1></div>

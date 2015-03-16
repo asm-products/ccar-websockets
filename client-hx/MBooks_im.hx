@@ -246,16 +246,18 @@ class MBooks_im {
 	}
 	private function processSendMessage(incomingMessage) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
-		textAreaElement.value = textAreaElement.value + "\n";
-		textAreaElement.value = textAreaElement.value + incomingMessage.from + ":" + incomingMessage.privateMessage;
-
-	
+		if(incomingMessage.privateMessage != "") {
+			textAreaElement.value = textAreaElement.value + incomingMessage.from + ":" + incomingMessage.privateMessage + "\n";
+		}
 	}
 	private function updateMessageHistory(localMessage) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
-		textAreaElement.value = textAreaElement.value + "\n";
-		textAreaElement.value = textAreaElement.value + getNickName() + ":" + localMessage;
-
+		if(localMessage != "") {
+		textAreaElement.value = textAreaElement.value + getNickName() + ":" + localMessage + "\n";
+		}
+		if(textAreaElement.scrollHeight > textAreaElement.clientHeight) {
+			textAreaElement.style.height = textAreaElement.scrollHeight + "px";
+		}
 	}
 
 	private function processUserJoined(incomingMessage){

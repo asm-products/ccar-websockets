@@ -672,58 +672,70 @@ ccarApp = do
 
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary command
         case result of 
-                Nothing -> liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
-                Just x -> do
-                        (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary command
-                        $(logInfo) nickNameFound
-                        liftIO $ WSConn.sendTextData connection nickNameFound `catch` 
-                                (\ a@(CloseRequest e1 e2) -> 
-                                        putStrLn "Connection closed")
-                        command <- liftIO $ WSConn.receiveData connection `catch` 
-                                                    (\ (CloseRequest e1 e2) -> do                                                             
-                                                            return (UserJoined.userLeft nickNameV)
-                                                        )
-                        $(logInfo) command
-                        (dest, text) <- liftIO $ processUserLoggedIn connection command app 
-                        messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000 -- read from db.
-                        atomically $ do 
-                                        clientStates <- case dest of 
-                                            Broadcast -> getAllClients app nickNameV
-                                            PrivateMessage t ->
-                                                getClientState t app
-                                            _ ->
-                                                getClientState nickNameV app           
-                                        --                              
-                                        mapM_ (\cs -> writeTChan (writeChan cs) (text)) clientStates                                        
-                                        clientStates <- getClientState nickNameV app 
-                                        mapM_ (\cs -> writeTChan (writeChan cs) 
-                                                (UserJoined.userLoggedIn (nickName cs))) clientStates
-                                        -- Now send the list of users to the current connection
-                                        -- send it to the current connection
-                                        -- XXX: Need to clean this up
-                                        currentClientState <- getClientState nickNameV app
-                                        allClients <- getAllClients app nickNameV
-                                        mapM_ (\conn -> 
-                                                mapM_ (\cs -> 
-                                                        writeTChan (writeChan conn) 
-                                                            (UserJoined.userLoggedIn (nickName cs)) 
-                                                        ) allClients
-                                                ) currentClientState
-                                        
-                                        mapM_ (\text -> 
-                                                    mapM_ (\cs -> 
-                                                                writeTChan (writeChan cs) text) 
-                                                                currentClientState
-                                                    ) messageHistory
+                Nothing -> liftIO $  
+                            WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
+                            return ()
+                Just _ -> liftIO $ 
+                            (processNoException app connection nickNameV command)
+                             `catch` 
+                                    (\ a@(CloseRequest e1 e2) -> do  
+                                        atomically $ deleteConnection app connection nickNameV
+                                        return ())
 
-                        a <- liftBaseWith (\run -> run $ liftIO $ do
-                                                    a <- (A.async (writerThread app connection 
-                                                        nickNameV False))
-                                                    b <- (A.async (liftIO $ readerThread app nickNameV))
-                                                    A.waitEither a b)
-                        $(logInfo) "Thread exiting"
 
 incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
+
+processNoException app connection nickNameV iText = do
+                    (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary iText
+                    WSConn.sendTextData connection nickNameFound
+                    command <- (processInnerException connection app nickNameV ) `catch` 
+                                                (\ (CloseRequest e1 e2) -> do                                                             
+                                                        return (UserJoined.userLeft nickNameV)
+                                                    )
+                    return ()
+    
+
+processInnerException connection app nickNameV = do
+            command <- WSConn.receiveData connection
+            (dest, text) <- liftIO $ processUserLoggedIn connection command app 
+            messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000 -- read from db.
+            atomically $ do 
+                            clientStates <- case dest of 
+                                Broadcast -> getAllClients app nickNameV
+                                PrivateMessage t ->
+                                    getClientState t app
+                                _ ->
+                                    getClientState nickNameV app           
+                            --                              
+                            mapM_ (\cs -> writeTChan (writeChan cs) (text)) clientStates                                        
+                            clientStates <- getClientState nickNameV app 
+                            mapM_ (\cs -> writeTChan (writeChan cs) 
+                                    (UserJoined.userLoggedIn (nickName cs))) clientStates
+                            -- Now send the list of users to the current connection
+                            -- send it to the current connection
+                            -- XXX: Need to clean this up
+                            currentClientState <- getClientState nickNameV app
+                            allClients <- getAllClients app nickNameV
+                            mapM_ (\conn -> 
+                                    mapM_ (\cs -> 
+                                            writeTChan (writeChan conn) 
+                                                (UserJoined.userLoggedIn (nickName cs)) 
+                                            ) allClients
+                                    ) currentClientState
+                            
+                            mapM_ (\text -> 
+                                        mapM_ (\cs -> 
+                                                    writeTChan (writeChan cs) text) 
+                                                    currentClientState
+                                        ) messageHistory
+            a <- liftBaseWith (\run -> run $ liftIO $ do
+                                        a <- (A.async (writerThread app connection 
+                                            nickNameV False))
+                                        b <- (A.async (liftIO $ readerThread app nickNameV))
+                                        A.waitEither a b
+                                        return "Threads had exception")
+            return "Threads Exiting"
 
 handleDisconnects :: App -> WSConn.Connection -> T.Text -> ConnectionException -> IO ()
 handleDisconnects app connection nickN (CloseRequest a b) = do 
