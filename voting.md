@@ -48,7 +48,7 @@ The process of collecting surveys is divided into the following phases
 ##### Supporting datamodel
 	* Zones (postal zones, carrier zones, such as ups)
 	* Languages : Spoken, written, font.
-	* Country
+	* Country : Country api
 	* Geolocation : latitude/longitude pair - either maintain the database
 				-- or make an api call.
 	* Contentful API to manage content for the user.

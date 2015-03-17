@@ -34,18 +34,21 @@ import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 import qualified CCAR.Model.Person as Us 
 import qualified CCAR.Model.CCAR as CC 
 import qualified CCAR.Model.UserTermsAndConditions as Ust 
-import CCAR.Main.DBUtils
+import Data.ByteString as DBS hiding (putStrLn)
+import Data.ByteString.Char8 as C8 hiding(putStrLn) 
+import System.Environment
+
+
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
 import Database.Persist.Postgresql as DB
 import Data.Map as IMap
+import CCAR.Main.DBUtils
 import CCAR.Main.GroupCommunication as GroupCommunication
 import CCAR.Main.UserJoined as UserJoined 
-import Data.ByteString as DBS hiding (putStrLn)
-import Data.ByteString.Char8 as C8 hiding(putStrLn) 
-import System.Environment
 import CCAR.Command.ErrorCommand 
+import CCAR.Model.Person 
 
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
@@ -346,53 +349,6 @@ deleteCCAR c = do
                     DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
                     return $ Just $ c {cCARDeleted = True} 
 
-updateLogin :: Person -> IO (Maybe Person) 
-updateLogin p = do
-        connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
-                liftIO $ do 
-                    now <- getCurrentTime
-                    flip runSqlPersistMPool pool $ do 
-                        DB.updateWhere [PersonNickName ==. (personNickName p)][PersonLastLoginTime =. now] 
-                    return $ Just p 
-checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
-checkLoginExists aNickName = do 
-    connStr <- getConnectionString
-    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
-        liftIO $ do
-            flip runSqlPersistMPool pool $ do
-                getBy $ PersonUniqueNickName aNickName
-
-insertPerson :: Person -> IO ((Key Person)) 
-insertPerson p = do 
-        putStrLn $ show $ "Inside insert person " ++ (show p)
-        connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
-            liftIO $ do
-                flip runSqlPersistMPool pool $ do 
-                        pid <- DB.insert p
-                        $(logInfo) $ T.pack $ show  ("Returning " ++ (show pid))
-                        return pid
-
-updatePerson :: PersonId -> Person -> IO (Maybe Person)
-updatePerson pid p = do 
-    connStr <- getConnectionString
-    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
-        liftIO $ do
-            flip runSqlPersistMPool pool $ do
-                DB.replace (pid) p
-                get pid
-
-queryPerson :: PersonId -> IO (Maybe Person) 
-queryPerson pid = do
-        connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
-            liftIO $ do 
-                flip runSqlPersistMPool pool $ 
-                    get pid 
-
-deletePerson :: PersonId -> Person -> IO (Maybe Person)
-deletePerson pid p = updatePerson pid p {personDeleted = True}
 
 
 processCommand :: Maybe Command  -> IO (DestinationType, Command)
@@ -698,7 +654,9 @@ processWriteException app connection nickNameV iText = do
 processReadException connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
-            messageHistory <- liftIO $ GroupCommunication.getMessageHistory 1000 -- read from db.
+            messageLimit <- liftIO $ getMessageCount nickNameV
+            putStrLn $ "Using message limit " ++ (show messageLimit)
+            messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit -- read from db.
             atomically $ do 
                             clientStates <- case dest of 
                                 Broadcast -> getAllClients app nickNameV

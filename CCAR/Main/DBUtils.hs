@@ -46,11 +46,6 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deleted Bool default=False
             PersonUniqueNickName nickName
             deriving Show Eq
-        -- Could be the postal zone,
-        -- Geographic zone etc.
-        -- typical entries: 
-        -- NY 12345
-        -- NJ 22334 something like so.
         Country 
             name Text 
             iso_3 Text
@@ -61,6 +56,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             font Text 
             country CountryId 
             deriving Show Eq
+        -- Could be the postal zone,
+        -- Geographic zone etc.
+        -- typical entries: 
+        -- NY 12345
+        -- NJ 22334 something like so.
         IdentificationZone 
             zoneName Text
             zoneType Text
@@ -69,6 +69,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         GeoLocation 
             latitude Double -- most likely in radians.
             longitude Double
+            deriving Eq Show 
+        Preferences 
+            preferencesFor PersonId 
+            maxHistoryCount Int default = 400 -- Maximum number of messages in history
             deriving Eq Show 
         Profile 
             createdFor PersonId 
