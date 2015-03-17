@@ -539,8 +539,8 @@ deleteConnection app conn nn = do
             _ <-    writeTVar (nickNameMap app) (IMap.delete nn cMap)
             return ()
 
-addConnection :: App -> WSConn.Connection ->  T.Text -> IO ()
-addConnection app aConn nn = atomically $ do 
+addConnection :: App -> WSConn.Connection ->  T.Text -> STM ()
+addConnection app aConn nn = do 
                 nMap <- readTVar $ nickNameMap app 
                 w <- newTChan
                 r <- dupTChan w 
@@ -602,8 +602,8 @@ processUserLoggedIn aConn aText app@(App a b c) =
                     c <- return $ parse UserJoined.parseUserLoggedIn a  
                     case c of 
                         Success u@(UserJoined.UserLoggedIn a) -> do 
-                                addConnection app aConn a 
-                                return $ (Broadcast, ser u)
+                                    atomically $ addConnection app aConn a 
+                                    return $ (Broadcast, ser u)
                         _ -> return $ (GroupCommunication.Reply, ser  
                                             $ CommandError $ genericErrorCommand ("Invalid command during login"))
             where 
@@ -625,16 +625,17 @@ ccarApp = do
         $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
 
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary command
-        case result of 
-                Nothing -> liftIO $  
-                            WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
-                            return ()
-                Just _ -> liftIO $ 
-                            (processWriteException app connection nickNameV command)
-                             `catch` 
-                                    (\ a@(CloseRequest e1 e2) -> do  
-                                        atomically $ deleteConnection app connection nickNameV
-                                        return ())
+        processResult <- case result of 
+                    Nothing -> liftIO $  
+                                WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
+                                return "Close sent"
+                    Just _ -> liftIO $ 
+                                (processWriteException app connection nickNameV command)
+                                 `catch` 
+                                        (\ a@(CloseRequest e1 e2) -> do  
+                                            atomically $ deleteConnection app connection nickNameV
+                                            return "Close request" )
+        return () 
 
 
 incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
@@ -648,7 +649,13 @@ processWriteException app connection nickNameV iText = do
                                                         atomically $ deleteConnection app connection nickNameV
                                                         return (UserJoined.userLeft nickNameV)
                                                     )
-                    return ()
+                    a <- liftBaseWith (\run -> run $ liftIO $ do
+                                                a <- (A.async (writerThread app connection 
+                                                    nickNameV False))
+                                                b <- (A.async (liftIO $ readerThread app nickNameV))
+                                                A.waitEither a b
+                                                return "Threads had exception")                                                
+                    return ("Threads exited" :: T.Text)
     
 
 processReadException connection app nickNameV = do
@@ -656,7 +663,7 @@ processReadException connection app nickNameV = do
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
             messageLimit <- liftIO $ getMessageCount nickNameV
             putStrLn $ "Using message limit " ++ (show messageLimit)
-            messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit -- read from db.
+            messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit
             atomically $ do 
                             clientStates <- case dest of 
                                 Broadcast -> getAllClients app nickNameV
@@ -669,9 +676,6 @@ processReadException connection app nickNameV = do
                             clientStates <- getClientState nickNameV app 
                             mapM_ (\cs -> writeTChan (writeChan cs) 
                                     (UserJoined.userLoggedIn (nickName cs))) clientStates
-                            -- Now send the list of users to the current connection
-                            -- send it to the current connection
-                            -- XXX: Need to clean this up
                             currentClientState <- getClientState nickNameV app
                             allClients <- getAllClients app nickNameV
                             mapM_ (\conn -> 
@@ -686,12 +690,6 @@ processReadException connection app nickNameV = do
                                                     writeTChan (writeChan cs) text) 
                                                     currentClientState
                                         ) messageHistory
-            a <- liftBaseWith (\run -> run $ liftIO $ do
-                                        a <- (A.async (writerThread app connection 
-                                            nickNameV False))
-                                        b <- (A.async (liftIO $ readerThread app nickNameV))
-                                        A.waitEither a b
-                                        return "Threads had exception")
             return "Threads Exiting"
 
 handleDisconnects :: App -> WSConn.Connection -> T.Text -> ConnectionException -> IO ()

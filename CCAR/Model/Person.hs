@@ -48,6 +48,20 @@ checkLoginExists aNickName = do
                 	mP <- getBy $ PersonUniqueNickName aNickName
                 	return mP 
 
+queryAllPersons :: IO [Entity Person]
+queryAllPersons = do 
+    connStr <- getConnectionString 
+    allUsers <- runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+            liftIO $ do
+                flip runSqlPersistMPool pool $ do
+                    DB.selectList [] [LimitTo 200]
+    return allUsers
+
+getAllNickNames :: IO [T.Text] 
+getAllNickNames = do
+    persons <- queryAllPersons
+    mapM (\(Entity k p) -> return $ personNickName p) persons
+
 fixPreferences :: Maybe (Entity Person) -> IO (Key Preferences)
 fixPreferences (Just (Entity k p1)) = do 
 			connStr <- getConnectionString 
@@ -106,6 +120,7 @@ queryPerson pid = do
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
+
 
 deletePerson :: PersonId -> Person -> IO (Maybe Person)
 deletePerson pid p = updatePerson pid p {personDeleted = True}
