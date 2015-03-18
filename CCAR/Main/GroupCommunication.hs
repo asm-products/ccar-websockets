@@ -78,7 +78,8 @@ createPersistentMessage cm@(SendMessage fr to pM destination) =
 getAllMessages :: Int -> IO [Entity MessageP]
 getAllMessages limit = do 
         cStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool ->
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     selectList [] [LimitTo limit]
@@ -87,7 +88,8 @@ saveMessage :: SendMessage -> IO (Key MessageP)
 saveMessage c = 
 		do
             conn  <- getConnectionString
-            runStderrLoggingT $ withPostgresqlPool conn 10 $ \pool -> 
+            poolSize <- getPoolSize
+            runStderrLoggingT $ withPostgresqlPool conn poolSize $ \pool -> 
                 liftIO $ do
                     flip runSqlPersistMPool pool $ do 
                             cid <- DB.insert pM 

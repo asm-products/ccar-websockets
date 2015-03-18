@@ -308,7 +308,8 @@ insertCCAR :: CCAR -> IO (Key CCAR)
 insertCCAR c = do 
         putStrLn $ "Inside insert ccar"
         cStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool -> 
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
                         cid <- DB.insert c
@@ -318,7 +319,8 @@ insertCCAR c = do
 updateCCAR :: CCAR -> IO (Maybe CCAR)
 updateCCAR c = do 
         cStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool ->
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool ->
             liftIO $ do
                 flip runSqlPersistMPool pool $ do
                     DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
@@ -327,7 +329,8 @@ updateCCAR c = do
 queryAllCCAR :: T.Text -> IO [Entity CCAR]
 queryAllCCAR aNickName = do 
         cStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool cStr 10 $ \pool ->
+        poolSize <- getPoolSize 
+        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     selectList [] []
@@ -335,7 +338,8 @@ queryAllCCAR aNickName = do
 queryCCAR :: CCARId -> IO (Maybe CCAR) 
 queryCCAR pid = do 
         connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
@@ -343,7 +347,8 @@ queryCCAR pid = do
 deleteCCAR :: CCAR -> IO (Maybe CCAR)
 deleteCCAR c = do 
         connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+        poolSize <- getPoolSize 
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
             liftIO $ do
                 flip runSqlPersistMPool pool $ do
                     DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
@@ -361,7 +366,7 @@ processCommand (Just (CommandLogin aLogin)) = do
     case chk of 
         Nothing -> return $ (GroupCommunication.Reply, 
                 CommandLogin $ Login {login = Just p, 
-                loginStatus = Just UserNotFound})
+               loginStatus = Just UserNotFound})
         Just (Entity aid a)  -> do 
                 _ <- updateLogin a 
                 return $ (Broadcast, CommandLogin $ 
@@ -629,36 +634,40 @@ ccarApp = do
                     Nothing -> liftIO $  
                                 WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
                                 return "Close sent"
-                    Just _ -> liftIO $ 
-                                (processWriteException app connection nickNameV command)
+                    Just _ -> liftIO $ do 
+                                (processClientLost app connection nickNameV command)
                                  `catch` 
                                         (\ a@(CloseRequest e1 e2) -> do  
                                             atomically $ deleteConnection app connection nickNameV
                                             return "Close request" )
+                                a <- liftBaseWith (\run -> run $ liftIO $ do
+                                                a <- (A.async (writerThread app connection 
+                                                    nickNameV False))
+                                                b <- (A.async (liftIO $ readerThread app nickNameV))
+                                                A.waitEither a b
+                                                return "Threads had exception") 
+                                return ("All threads exited" :: T.Text)
+
         return () 
 
 
 incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 
 
-processWriteException app connection nickNameV iText = do
+{-- Both these methods are part of pre-login handshake. --}
+{-- An exception while server is replying to client. --}
+processClientLost app connection nickNameV iText = do
                     (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary iText
                     WSConn.sendTextData connection nickNameFound
-                    command <- (processReadException connection app nickNameV ) `catch` 
+                    command <- (processClientLeft connection app nickNameV ) `catch` 
                                                 (\ (CloseRequest e1 e2) -> do                                                             
                                                         atomically $ deleteConnection app connection nickNameV
                                                         return (UserJoined.userLeft nickNameV)
                                                     )
-                    a <- liftBaseWith (\run -> run $ liftIO $ do
-                                                a <- (A.async (writerThread app connection 
-                                                    nickNameV False))
-                                                b <- (A.async (liftIO $ readerThread app nickNameV))
-                                                A.waitEither a b
-                                                return "Threads had exception")                                                
                     return ("Threads exited" :: T.Text)
     
-
-processReadException connection app nickNameV = do
+{-- Client hits a refresh or loses connection --}
+processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
             messageLimit <- liftIO $ getMessageCount nickNameV
@@ -710,12 +719,13 @@ readerThread app nickN= do
             clientState : _ <- getClientState nickN app        
             textData <- readTChan (readChan clientState)                        
             return (connection clientState, textData)
-    --putStrLn $ "Sending text data " `mappend` (T.unpack textData)
     WSConn.sendTextData (connection) textData `catch` 
         (\h@(CloseRequest e f)-> handleDisconnects app connection nickN h)
     liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
     readerThread app nickN
 
+
+{-- --}
 writerThread app connection nickName terminate = do
     if (terminate == True) 
         then do 
@@ -799,7 +809,8 @@ driver :: IO ()
 driver = do
     hSetBuffering stdout NoBuffering
     connStr <- getConnectionString
-    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+    poolSize <- getPoolSize
+    runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do
                 runMigration migrateAll

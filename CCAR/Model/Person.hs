@@ -33,7 +33,8 @@ data CRUD = Create  | Update PersonId | Query PersonId | Delete PersonId derivin
 updateLogin :: Person -> IO (Maybe Person) 
 updateLogin p = do
         connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool -> 
                 liftIO $ do 
                     now <- getCurrentTime
                     flip runSqlPersistMPool pool $ do 
@@ -42,7 +43,8 @@ updateLogin p = do
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = do 
     connStr <- getConnectionString
-    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+    poolSize <- getPoolSize 
+    runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do
                 	mP <- getBy $ PersonUniqueNickName aNickName
@@ -51,7 +53,8 @@ checkLoginExists aNickName = do
 queryAllPersons :: IO [Entity Person]
 queryAllPersons = do 
     connStr <- getConnectionString 
-    allUsers <- runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+    poolSize <- getPoolSize
+    allUsers <- runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do
                     DB.selectList [] [LimitTo 200]
@@ -62,40 +65,14 @@ getAllNickNames = do
     persons <- queryAllPersons
     mapM (\(Entity k p) -> return $ personNickName p) persons
 
-fixPreferences :: Maybe (Entity Person) -> IO (Key Preferences)
-fixPreferences (Just (Entity k p1)) = do 
-			connStr <- getConnectionString 
-			runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
-					liftIO $ do 
-						flip runSqlPersistMPool pool $ do 
-							preferences <- DB.selectFirst [PreferencesPreferencesFor ==. k ][]
-									-- We should have only one preferences instance per person.
-							case preferences of
-								Nothing ->  do 
-											DB.insert $ Preferences 
-												{preferencesPreferencesFor = k 
-												, preferencesMaxHistoryCount = 300 }
 
--- How to handle this
-fixPreferences Nothing = undefined
-getMessageCount :: T.Text -> IO Int 
-getMessageCount aNickName = do
-	connStr <- getConnectionString
-	runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
-		liftIO $ do flip runSqlPersistMPool pool $ do 
-				person <- DB.getBy $ PersonUniqueNickName aNickName
-				case person of 
-					Just (Entity personId _) -> do
-						prefs <- DB.selectFirst [PreferencesPreferencesFor ==. personId][]
-						case (prefs) of
-								Just (Entity _ (Preferences _ count)) -> return count
-								Nothing -> return 300
 
 insertPerson :: Person -> IO ((Key Person)) 
 insertPerson p = do 
         putStrLn $ show $ "Inside insert person " ++ (show p)
         connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> 
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool -> 
             liftIO $ do
                 flip runSqlPersistMPool pool $ do 
                         pid <- DB.insert p
@@ -107,7 +84,8 @@ insertPerson p = do
 updatePerson :: PersonId -> Person -> IO (Maybe Person)
 updatePerson pid p = do 
     connStr <- getConnectionString
-    runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+    poolSize <- getPoolSize
+    runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do
                 DB.replace (pid) p
@@ -116,7 +94,8 @@ updatePerson pid p = do
 queryPerson :: PersonId -> IO (Maybe Person) 
 queryPerson pid = do
         connStr <- getConnectionString
-        runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool ->
+        poolSize <- getPoolSize 
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
             liftIO $ do 
                 flip runSqlPersistMPool pool $ 
                     get pid 
@@ -124,6 +103,43 @@ queryPerson pid = do
 
 deletePerson :: PersonId -> Person -> IO (Maybe Person)
 deletePerson pid p = updatePerson pid p {personDeleted = True}
+
+fixPreferences :: Maybe (Entity Person) -> IO (Key Preferences)
+fixPreferences (Just (Entity k p1)) = do 
+            poolSize <- getPoolSize
+            connStr  <- getConnectionString
+            runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool -> 
+                    liftIO $ do 
+                        flip runSqlPersistMPool pool $ do 
+                            preferences <- DB.selectFirst [PreferencesPreferencesFor ==. k ][]
+                                    -- We should have only one preferences instance per person.
+                            case preferences of
+                                Nothing ->  do 
+                                            DB.insert $ Preferences 
+                                                {preferencesPreferencesFor = k 
+                                                , preferencesMaxHistoryCount = 300 }
+
+-- How to handle this
+fixPreferences Nothing = undefined
+
+
+getMessageCount :: T.Text -> IO Int 
+getMessageCount aNickName = do
+        connStr <- getConnectionString
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool -> 
+            liftIO $ do 
+                flip runSqlPersistMPool pool $ do 
+                        person <- DB.getBy $ PersonUniqueNickName aNickName
+                        case person of 
+                            Just (Entity personId _) -> do
+                                prefs <- DB.selectFirst [PreferencesPreferencesFor ==. personId][]
+                                case (prefs) of
+                                        Just (Entity _ (Preferences _ count)) -> return count
+                                        Nothing -> return 300
+
+
+
 
 instance ToJSON CRUD
 instance FromJSON CRUD

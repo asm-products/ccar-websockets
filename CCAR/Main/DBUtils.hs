@@ -17,6 +17,10 @@ import Data.ByteString.Char8 as C8 hiding(putStrLn)
 
 type NickName = Text
 
+
+getPoolSize :: IO Int 
+getPoolSize = return 10
+
 getConnectionString :: IO ByteString 
 getConnectionString = do
         host <- getEnv("PGHOST")
