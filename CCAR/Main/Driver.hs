@@ -305,54 +305,26 @@ mkYesod "App" [parseRoutes|
 
 
 insertCCAR :: CCAR -> IO (Key CCAR) 
-insertCCAR c = do 
-        putStrLn $ "Inside insert ccar"
-        cStr <- getConnectionString
-        poolSize <- getPoolSize
-        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool -> 
-            liftIO $ do
-                flip runSqlPersistMPool pool $ do 
-                        cid <- DB.insert c
-                        $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
-                        return cid
+insertCCAR c = dbOps $ do 
+            cid <- DB.insert c
+            $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
+            return cid
 
 updateCCAR :: CCAR -> IO (Maybe CCAR)
-updateCCAR c = do 
-        cStr <- getConnectionString
-        poolSize <- getPoolSize
-        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool ->
-            liftIO $ do
-                flip runSqlPersistMPool pool $ do
-                    DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
-                    return $ Just c 
+updateCCAR c = dbOps $ do
+            DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
+            return $ Just c 
 
 queryAllCCAR :: T.Text -> IO [Entity CCAR]
-queryAllCCAR aNickName = do 
-        cStr <- getConnectionString
-        poolSize <- getPoolSize 
-        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool ->
-            liftIO $ do 
-                flip runSqlPersistMPool pool $ 
-                    selectList [] []
+queryAllCCAR aNickName = dbOps $ selectList [] []
  
 queryCCAR :: CCARId -> IO (Maybe CCAR) 
-queryCCAR pid = do 
-        connStr <- getConnectionString
-        poolSize <- getPoolSize
-        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
-            liftIO $ do 
-                flip runSqlPersistMPool pool $ 
-                    get pid 
+queryCCAR pid =  dbOps $ get pid 
 
 deleteCCAR :: CCAR -> IO (Maybe CCAR)
-deleteCCAR c = do 
-        connStr <- getConnectionString
-        poolSize <- getPoolSize 
-        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
-            liftIO $ do
-                flip runSqlPersistMPool pool $ do
-                    DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
-                    return $ Just $ c {cCARDeleted = True} 
+deleteCCAR c = dbOps $ do
+            DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
+            return $ Just $ c {cCARDeleted = True} 
 
 
 

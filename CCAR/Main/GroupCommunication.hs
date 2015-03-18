@@ -76,28 +76,16 @@ createPersistentMessage cm@(SendMessage fr to pM destination) =
 					MessageP fr to pM Et.Undecided Et.Broadcast 
 
 getAllMessages :: Int -> IO [Entity MessageP]
-getAllMessages limit = do 
-        cStr <- getConnectionString
-        poolSize <- getPoolSize
-        runStderrLoggingT $ withPostgresqlPool cStr poolSize $ \pool ->
-            liftIO $ do 
-                flip runSqlPersistMPool pool $ 
-                    selectList [] [LimitTo limit]
+getAllMessages limit = dbOps $ selectList [] [LimitTo limit]
 
 saveMessage :: SendMessage -> IO (Key MessageP) 
-saveMessage c = 
-		do
-            conn  <- getConnectionString
-            poolSize <- getPoolSize
-            runStderrLoggingT $ withPostgresqlPool conn poolSize $ \pool -> 
-                liftIO $ do
-                    flip runSqlPersistMPool pool $ do 
-                            cid <- DB.insert pM 
-                            $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
-                            return cid
-
-        where 
-            pM  = createPersistentMessage c 
+saveMessage c = dbOps $ 
+                do 
+                    cid <- DB.insert pM 
+                    $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
+                    return cid
+                where 
+                    pM  = createPersistentMessage c 
 
 getMessageHistory :: Int -> IO [T.Text]
 getMessageHistory limit = do
