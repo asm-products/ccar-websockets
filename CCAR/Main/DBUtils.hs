@@ -14,6 +14,10 @@ import CCAR.Main.EnumeratedTypes
 import System.Environment(getEnv)
 import Data.ByteString as DBS hiding (putStrLn)
 import Data.ByteString.Char8 as C8 hiding(putStrLn) 
+import Data.Aeson
+import GHC.Generics
+import Control.Monad.IO.Class 
+import Control.Monad.Logger 
 
 type NickName = Text
 
@@ -37,6 +41,13 @@ getConnectionString = do
                     ++ "password=" ++ pass 
                     ++ " " 
                     ++ "port=" ++ port)
+
+dbOps f = do 
+        connStr <- getConnectionString
+        poolSize <- getPoolSize
+        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
+            liftIO $ do
+                flip runSqlPersistMPool pool f 
 
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
@@ -142,9 +153,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             amount Double
             ownerId PersonId 
             deriving Show Eq
-        Survey 
+        Survey json
             createdBy PersonId
             createdOn UTCTime
+            surveyTitle Text 
             startTime UTCTime
             endTime UTCTime 
             totalVotes Double
@@ -152,19 +164,19 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             maxVotesPerVoter Double
             participantProfile ProfileId 
             expiration UTCTime -- No responses can be accepted after the expiration Date. 
-            deriving Show Eq
+            deriving Show Eq 
         SurveyQuestion
             surveyId SurveyId 
             question Text 
             questionResearch Text -- All the relevant survey, disclaimers etc.
-            deriving Show Eq
+            deriving Show Eq 
         Response
             surveyQuestionId 
             responderId PersonId -- This wont last, as we want to maintain anonymity and integrity
             response SurveyResponse
             responseComments Text
             surveyCostLimit Double -- a function that decides how many times a responder can vote 
-            deriving Show Eq
+            deriving Show Eq 
         Marketplace 
             description Text 
             creator PersonId 

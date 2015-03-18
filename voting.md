@@ -27,8 +27,8 @@ The process of collecting surveys is divided into the following phases
 
 ###### Registration process
 	Users register to vote with some preferences for example the time zone and a tentative 
-	voting time. Each voter is sent a reminder (reminders will always be shown on login). 
-	Successful registration results in a wallet with a pre-filled voting amount along 
+	voting time. Each voter is sent a reminder (reminders will always be displayed upon login). 
+	Successful registration results in a wallet with a pre-populated voting amount along 
 	with a voting ticket that will be used during the counting process.
 
 ###### Voting process
