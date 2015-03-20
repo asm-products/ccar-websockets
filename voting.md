@@ -32,8 +32,10 @@ The process of collecting surveys is divided into the following phases
 	with a voting ticket that will be used during the counting process.
 
 ###### Voting process
-	The voter can only vote during the poll times and if they have a valid ticket. Voting process
-	registers the vote as many times as the client would like to vote during the open polling period.
+	Each vote (this is the part that will maintain anonymity and integrity of the vote) will be 
+	sent as a colored transaction with the response string in the survey as the vote. A voter can 
+	vote only after they receive confirmation to a previous vote. These checks and balances should
+	hopefully make the process of voting reliable: at least that is the premise of this project.
 
 ##### Counting process
 	Votes are assigned in decreasing chronological order to allow for voters to change their mind 
