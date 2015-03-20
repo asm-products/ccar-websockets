@@ -71,9 +71,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Eq
             UniqueISO3 iso_3
         Language 
+            lcCode Text
             name Text 
             font Text 
-            country CountryId 
+            country CountryId
+            UniqueLanguage lcCode 
             deriving Show Eq
         -- Could be the postal zone,
         -- Geographic zone etc.
@@ -85,11 +87,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             zoneType Text
             country CountryId 
             deriving Eq Show
-        GeoLocation 
-            locationName Text  -- Some identifier not unique
+        -- Location information needs a geo spatial extension, to be accurate.
+        -- How do we define uniqueness of double attributes?
+        GeoLocation json
+            locationName Text  -- Some unique identifier. We need to add tags.
             latitude Double -- most likely in radians.
             longitude Double
-            deriving Eq Show 
+            deriving Eq Show
+            UniqueLocation locationName 
         Preferences json
             preferencesFor PersonId 
             maxHistoryCount Int default = 400 -- Maximum number of messages in history
@@ -140,10 +145,12 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             commenter PersonId 
             deriving Show Eq
         Wallet 
+            walletHolder PersonId 
             name Text 
             passphrase Text 
             publicAddress Text 
             lastModified UTCTime default=CURRENT_TIMESTAMP
+            UniqueWallet walletHolder name 
             deriving Show Eq 
         Gift 
             from NickName 
@@ -169,7 +176,9 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             maxVotesPerVoter Double
             surveyPublicationState SurveyPublicationState
             expiration UTCTime -- No responses can be accepted after the expiration Date. 
+            UniqueSurvey createdBy surveyTitle 
             deriving Show Eq 
+
         SurveyQuestion
             surveyId SurveyId 
             question Text 

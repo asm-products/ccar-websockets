@@ -14,6 +14,8 @@ import qualified CCAR.Main.EnumeratedTypes as Gender
 import qualified CCAR.Main.GroupCommunication as GC
 import Data.Aeson
 import Data.Aeson.Encode as En
+import Data.Aeson.Types as AeTypes(Result(..), parse)
+
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L 
 
@@ -33,21 +35,14 @@ import Data.Typeable
 
 
 
-iSurvey aNickName survey profile = do 
+iSurvey aNickName survey  = do 
             mP <- getBy $ PersonUniqueNickName aNickName
             surveyId <- case mP of 
                     Just (Entity k p) -> insert $ survey {surveyCreatedBy = k}
             insert $ profile {profileCreatedFor = surveyId}
 
-insertSurvey aNickName survey profile = dbOps $ iSurvey aNickName survey profile
+insertSurvey aNickName survey  = dbOps $ iSurvey nickName survey 
 
-defInsertSurvey aNickName survey = dbOps $ do
-    mP <- getBy $ PersonUniqueNickName aNickName 
-    surveyId <- case mP of 
-        Just (Entity k p) -> insert $ survey {surveyCreatedBy = k} 
-    dId <- defaultIdentificationZone
-    dGeo <- defaultGeoLocation
-    insert $ Profile surveyId Gender.Male 40 dId
 
 
 
@@ -58,23 +53,38 @@ defaultIdentificationZone = do
     country <- defaultCountry
     insert $ IdentificationZone "NJ" "08820" country
 
-processManageSurvey (Object a ) = undefined
+process (CommandManageSurvey nickName crudType survey) = do 
+    case crudeType of
+        Create -> insertSurvey nickName survey
+        Update -> updateSurvey nickName survey
+        Read -> readSurvey nickName survey
+        Delete -> deleteSurvey nickName survey          
+
+
+processManageSurvey (Object a ) =
+        case (parse parseMS a) of
+            Success r ->  process r 
+            Error s -> return (GC.Reply, 
+                        serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
 
 
 data CRUD = Create | Read | Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
 
 data CommandManageSurvey = CommandManageSurvey {
-        crudType :: CRUD 
+        nickName :: T.Text
+        , crudType :: CRUD 
         , survey :: Survey
     } deriving (Show, Eq)
 
 
-gen (CommandManageSurvey crudType survey) = object ["crudType" .= crudType
+gen (CommandManageSurvey nickName crudType survey) = object ["crudType" .= crudType
                     , "survey" .= survey
-                    , "commandType" .= ("ManageSurvey" :: T.Text)]
+                    , "commandType" .= ("ManageSurvey" :: T.Text)
+                    , "nickName" .= nickName]
 
-parse v = CommandManageSurvey <$> 
+parseMS v = CommandManageSurvey <$>
+                    v .: "nickName" <*> 
                     v .: "crudType" <*>
                     v .: "survey"
 
@@ -85,7 +95,7 @@ instance ToJSON CommandManageSurvey where
     toJSON  = gen
 
 instance FromJSON CommandManageSurvey where 
-    parseJSON (Object v ) = parse v 
+    parseJSON (Object v ) = parseMS v 
     parseJSON _           = Appl.empty
 
 serialize :: (ToJSON a) => a -> T.Text 
