@@ -200,8 +200,8 @@ class MBooks {
 		MBooks.getMBooks().showDashboard(this.person);
 	}
 	private function processLoginResponse(lR : Login){		
-		//trace("Processing login object " + lR);
-		//trace("Processing lR status " + lR.loginStatus);
+		trace("Processing login object " + lR);
+		trace("Processing lR status " + lR.loginStatus);
 		if(lR.loginStatus == null){
 			//trace("Undefined state");
 			return;

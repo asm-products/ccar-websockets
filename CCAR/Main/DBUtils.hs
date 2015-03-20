@@ -19,6 +19,9 @@ import GHC.Generics
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
 
+instance ToJSON SurveyPublicationState
+instance FromJSON SurveyPublicationState
+
 type NickName = Text
 
 
@@ -52,7 +55,7 @@ dbOps f = do
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
-        Person
+        Person json
             firstName Text 
             lastName Text 
             nickName NickName
@@ -66,6 +69,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             iso_3 Text
             iso_2 Text
             deriving Show Eq
+            UniqueISO3 iso_3
         Language 
             name Text 
             font Text 
@@ -82,20 +86,21 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             country CountryId 
             deriving Eq Show
         GeoLocation 
+            locationName Text  -- Some identifier not unique
             latitude Double -- most likely in radians.
             longitude Double
             deriving Eq Show 
-        Preferences 
+        Preferences json
             preferencesFor PersonId 
             maxHistoryCount Int default = 400 -- Maximum number of messages in history
             deriving Eq Show 
-        Profile 
-            createdFor PersonId 
-            gender Text 
-            age Double
+        Profile -- A survey can be assigned to a set of profiles.
+            createdFor SurveyId 
+            gender Gender  
+            age Int 
             identificationZone IdentificationZoneId
-            geoLocation GeoLocation
             deriving Show Eq 
+            UniqueSP createdFor gender age -- A given gender and age should be sufficient to start with.
         TermsAndConditions
             title Text
             description Text
@@ -155,14 +160,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Eq
         Survey json
             createdBy PersonId
-            createdOn UTCTime
+            createdOn UTCTime default=CURRENT_TIMESTAMP
             surveyTitle Text 
             startTime UTCTime
             endTime UTCTime 
             totalVotes Double
             totalCost Double
             maxVotesPerVoter Double
-            participantProfile ProfileId 
+            surveyPublicationState SurveyPublicationState
             expiration UTCTime -- No responses can be accepted after the expiration Date. 
             deriving Show Eq 
         SurveyQuestion
@@ -171,11 +176,9 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             questionResearch Text -- All the relevant survey, disclaimers etc.
             deriving Show Eq 
         Response
-            surveyQuestionId 
-            responderId PersonId -- This wont last, as we want to maintain anonymity and integrity
-            response SurveyResponse
+            responseFor SurveyQuestionId  
+            response Text 
             responseComments Text
-            surveyCostLimit Double -- a function that decides how many times a responder can vote 
             deriving Show Eq 
         Marketplace 
             description Text 

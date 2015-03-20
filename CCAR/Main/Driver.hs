@@ -34,6 +34,7 @@ import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 import qualified CCAR.Model.Person as Us 
 import qualified CCAR.Model.CCAR as CC 
 import qualified CCAR.Model.UserTermsAndConditions as Ust 
+import qualified CCAR.Model.Survey as Survey 
 import Data.ByteString as DBS hiding (putStrLn)
 import Data.ByteString.Char8 as C8 hiding(putStrLn) 
 import System.Environment
@@ -157,9 +158,6 @@ genCommandKeepAlive a  = object ["keepAlive" .= a
                                 , "commandType" .= ("keepAlive" :: T.Text)]
 
 
-instance ToJSON Person where
-    toJSON  = genPerson 
-
 instance ToJSON Login where
     toJSON = genLogin 
 instance ToJSON UserOperations where
@@ -253,9 +251,6 @@ instance FromJSON Login where
     parseJSON (Object v) = parseLogin v
     parseJSON _          = Appl.empty
 
-instance FromJSON Person where
-    parseJSON (Object v) = parsePerson v
-    parseJSON _          = Appl.empty
 
 instance FromJSON TermsAndConditions where
     parseJSON (Object v) = parseTermsAndConditions v
@@ -469,6 +464,7 @@ processCommandWrapper (Object a)   = do
                                     , ser $ CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
                                 )
                 String "SendMessage" -> processSendMessage (Object a)
+                String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 _ -> 
                     return 
                          ( GroupCommunication.Reply
@@ -630,6 +626,7 @@ incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Ma
 {-- An exception while server is replying to client. --}
 processClientLost app connection nickNameV iText = do
                     (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary iText
+                    liftIO $ putStrLn $ "Sending " ++ ( show nickNameFound)
                     WSConn.sendTextData connection nickNameFound
                     command <- (processClientLeft connection app nickNameV ) `catch` 
                                                 (\ (CloseRequest e1 e2) -> do                                                             

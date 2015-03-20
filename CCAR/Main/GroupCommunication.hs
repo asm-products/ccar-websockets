@@ -34,7 +34,7 @@ import CCAR.Main.EnumeratedTypes as Et
 import CCAR.Command.ErrorCommand
 
 {- 
-	This websocket client needs to handle different kinds of messages that can broadly classified as
+	The client needs to handle
 		. Broadcast 
 		- Group broadcast (members can join and leave the group)
 		- Private messages (members can send private messages to the group)
@@ -108,6 +108,8 @@ process (cm@(SendMessage f t m d)) = do
 
 
 
+
+
 genSendMessage (SendMessage f t m d) = object ["from" .= f
                     , "to" .= t
                     , "privateMessage" .= m
@@ -119,14 +121,12 @@ parseSendMessage v = SendMessage <$>
                     v .: "privateMessage" <*>
                     v .: "destination"
 
-serialize :: (ToJSON a) => a -> T.Text 
-serialize a = L.toStrict $ E.decodeUtf8 $ En.encode a 
 
 processSendMessage (Object a) = 
-                case (parse parseSendMessage a) of
-                    Success r ->  process r 
-                    Error s -> return (CCAR.Main.GroupCommunication.Reply, 
-                    			serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
+        case (parse parseSendMessage a) of
+            Success r ->  process r 
+            Error s -> return (CCAR.Main.GroupCommunication.Reply, 
+            			serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
 
 
 instance ToJSON DestinationType
@@ -138,3 +138,5 @@ instance FromJSON SendMessage where
     parseJSON (Object v ) = parseSendMessage v 
     parseJSON _           = Appl.empty
 
+serialize :: (ToJSON a) => a -> T.Text 
+serialize a = L.toStrict $ E.decodeUtf8 $ En.encode a 
