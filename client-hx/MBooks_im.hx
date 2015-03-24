@@ -21,6 +21,7 @@ import model.Person;
 import model.LoginStatus;
 import model.Command;
 import model.CommandType;
+import model.UserOperation;
 import util.Util;
 import js.Browser;
 import js.html.ButtonElement;
@@ -40,10 +41,15 @@ class MBooks_im {
 		trace("Calling MBooks_im");
 		person = new model.Person("", "", "", "");
 		outputEventStream = new Deferred<String>();
+
 		var stream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "keyup");
 		stream.then(sendLogin);
+
 		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
 		pStream.then(validatePassword);
+
+		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "keyup");
+		rStream.then(registerUser);
 
 		var mStream : Stream<Dynamic> = 
 			initializeElementStream(getMessageInput(), "keyup");
@@ -79,11 +85,11 @@ class MBooks_im {
 
 	}
 	public function logout() : Void{
-		//trace("Logging out ");
+		trace("Logging out ");
 		if(websocket != null){
 			websocket.close();
 		}else {
-			//trace("No valid connection found");
+			trace("No valid connection found");
 		}
 	}
 
@@ -110,17 +116,17 @@ class MBooks_im {
 	}
 
 	public  function onError(ev : Event){
-		//trace("Error " + haxe.Json.stringify(ev));
+		trace("Error " + haxe.Json.stringify(ev));
 	}
 
 	// Message processing 
 
 	private function parseCommandType(commandType : String) : CommandType {
-	 //trace("Parsing command type " + commandType);
+	 	trace("Parsing command type " + commandType);
 		try {
 		return Type.createEnum(CommandType, commandType);
 		}catch(e : Dynamic){
-			//trace("Error " + e);
+			trace("Error " + e);
 			return Undefined;
 		}
 	}
@@ -201,7 +207,7 @@ class MBooks_im {
 		//XXX: Needed to parse the incoming message twice because
 		// of \",s in the response. This is a bug.
 		//incomingMessage = haxe.Json.parse(incomingMessage);
-		//trace("Printing incoming message " + incomingMessage);
+		trace("Printing incoming message " + incomingMessage);
 		parseIncomingMessage(incomingMessage);
 	}
 	
@@ -209,7 +215,7 @@ class MBooks_im {
 		trace("Processing login object " + lR);
 		trace("Processing lR status " + lR.loginStatus);
 		if(lR.loginStatus == null){
-			//trace("Undefined state");
+			trace("Undefined state");
 			return;
 		}
 		var lStatus : LoginStatus = Type.createEnum(LoginStatus, lR.loginStatus);
@@ -221,13 +227,13 @@ class MBooks_im {
 			throw ("Nick name and responses dont match!!!! -> " + this.getNickName() + " not the same as " + lR.login.nickName);
 
 		}
-		//trace("Processing lStatus " + lStatus);
+		trace("Processing lStatus " + lStatus);
 		if(lStatus == UserNotFound){
 			//User not found, so enable the registration fields
 			showDivField(DIV_PASSWORD);
 			showDivField(DIV_FIRST_NAME);
 			showDivField(DIV_LAST_NAME);
-			
+			showDivField(DIV_REGISTER);
 		}
 		if(lStatus == UserExists){
 			showDivField(DIV_PASSWORD);
@@ -237,7 +243,7 @@ class MBooks_im {
 			//createInvalidPassword(lR);
 		}
 		if(lStatus == Undefined){
-			//createUndefined();
+			throw ("Undefined status");			
 		}
 	}
 	private function processManageUser(p : Dynamic) {
@@ -289,7 +295,7 @@ class MBooks_im {
 			timer = new haxe.Timer(keepAliveInterval);
 			timer.run = keepAliveFunction;
 		}else {
-			//trace("Timer already running. This should not happen");
+			trace("Timer already running. This should not happen");
 		}
 	}
 	private function disableKeepAlive() : Void {
@@ -314,13 +320,13 @@ class MBooks_im {
 
 	//Send messages
 	private function sendEvents(aMessage : String){
-		//trace("Sending " + aMessage);
+		trace("Sending " + aMessage);
 		if(aMessage == "") {
 			trace("Empty string. Not sending the message");
 		}
 		var d : Dynamic = haxe.Json.parse(aMessage);
 		websocket.send(aMessage);
-		//trace("Sent " + aMessage);
+		trace("Sent " + aMessage);
 	}
 
 
@@ -340,7 +346,9 @@ class MBooks_im {
 	private static var DIV_PASSWORD = "passwordDiv";
 	private static var DIV_FIRST_NAME = "firstNameDiv";
 	private static var DIV_LAST_NAME = "lastNameDiv";
+	private static var DIV_REGISTER = "registerDiv";
 	private static var USERS_ONLINE = "usersOnline";
+	private static var REGISTER = "registerInput";
 	private static var MESSAGE_HISTORY = "messageHistory";
 	private static var MESSAGE_INPUT = "messageInput";
 	private function getNickName() : String{
@@ -358,6 +366,31 @@ class MBooks_im {
 	private function getPassword() : String {
 		return getPasswordElement().value;
 	}
+
+	private function getFirstName() : String {
+		return getFirstNameElement().value;
+	}
+	private function getFirstNameElement() : InputElement {
+		var inputElement : InputElement = cast Browser.document.getElementById(FIRST_NAME);
+		return inputElement;
+	}
+	private function getLastName(): String {
+		return getLastNameElement().value;
+	}
+	private function getLastNameElement() : InputElement {
+		var inputElement : InputElement = cast Browser.document.getElementById(LAST_NAME);
+		return inputElement;
+	}
+	//XXX: Till we fix the button issue in the ui.
+	private function getRegisterValue() : String {
+		return getRegisterElement().value;
+	}
+	private function getRegisterElement (): InputElement {
+		var inputElement : InputElement = cast Browser.document.getElementById(REGISTER);
+		return inputElement;
+
+	}
+
 	private function getMessageInput() : InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(MESSAGE_INPUT);
 		return inputElement;
@@ -459,6 +492,30 @@ class MBooks_im {
 				showDivField("statusMessageDiv");
 				this.initializeKeepAlive();
 			}
+		}
+	}
+	private function registerUser(ev: KeyboardEvent){
+		trace("Register user " + ev.keyCode);
+		if(Util.isSignificantWS(ev.keyCode)){		
+			var commandType : String = "ManageUser";
+			var operation : UserOperation = new UserOperation("Create");
+			var modelPerson = new Person(getFirstName()
+					, getLastName()
+					, getNickName()
+					, getPassword());
+			var uo = {
+				commandType : "ManageUser"
+				, nickName : getNickName()
+				, operation:  {
+					tag : "Create", 
+					contents : []
+				}
+				, person : modelPerson
+			};
+
+			doSendJSON(Json.stringify(uo));
+		}else {
+			trace("Not a terminator " + ev.keyCode);
 		}
 	}
 

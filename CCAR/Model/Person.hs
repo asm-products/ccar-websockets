@@ -94,12 +94,14 @@ fixPreferences Nothing = undefined
 getMessageCount :: T.Text -> IO Int 
 getMessageCount aNickName = dbOps $ do 
             person <- DB.getBy $ PersonUniqueNickName aNickName
+            liftIO $ putStrLn $ "Person " ++ (show person)
             case person of 
                 Just (Entity personId _) -> do
                     prefs <- DB.selectFirst [PreferencesPreferencesFor ==. personId][]
                     case (prefs) of
                             Just (Entity _ (Preferences _ count)) -> return count
                             Nothing -> return 300
+                Nothing -> return 10
 
 
 

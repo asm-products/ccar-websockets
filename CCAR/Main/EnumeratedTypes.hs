@@ -25,7 +25,8 @@ data Gender = Male | Female | WontShare -- This needs to address the transgender
 data SurveyPublicationState  = SURVEY_DRAFT | SURVEY_REVIEWED | SURVEY_APPROVED 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
-
+data RoleType = Guest | ReturningUser | Admin | Support 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
 -- The good old way to prevent spammers.
 -- A user that sent messages that 
@@ -47,3 +48,4 @@ derivePersistField "MessageDestinationType"
 derivePersistField "MessageCharacteristics"
 derivePersistField "Gender"
 derivePersistField "SurveyPublicationState"
+derivePersistField "RoleType"

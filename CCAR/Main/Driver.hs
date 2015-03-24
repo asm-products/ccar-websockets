@@ -572,13 +572,44 @@ processUserLoggedIn aConn aText app@(App a b c) =
                 Nothing -> return (GroupCommunication.Reply, 
                         ser $ CommandError $ genericErrorCommand ("Login has errors"))
                 Just (Object a) -> do
-                    c <- return $ parse UserJoined.parseUserLoggedIn a  
-                    case c of 
-                        Success u@(UserJoined.UserLoggedIn a) -> do 
-                                    atomically $ addConnection app aConn a 
-                                    return $ (Broadcast, ser u)
-                        _ -> return $ (GroupCommunication.Reply, ser  
-                                            $ CommandError $ genericErrorCommand ("Invalid command during login"))
+                    
+                    Just commandType <- return $ LH.lookup "commandType" a
+                    case commandType of 
+                            String "UserLoggedIn" -> do 
+                                c <- return $ parse UserJoined.parseUserLoggedIn a  
+                                case c of 
+                                    Success u@(UserJoined.UserLoggedIn a) -> do 
+                                                atomically $ addConnection app aConn a 
+                                                return $ (Broadcast, ser u)
+                                    _ -> return $ (GroupCommunication.Reply, ser  
+                                                        $ CommandError $ 
+                                                        genericErrorCommand ("Invalid command during login"))                                
+                            String "UserJoined" -> do 
+                                c <- return $ parse UserJoined.parseUserLoggedIn a  
+                                case c of 
+                                    Success u@(UserJoined.UserLoggedIn a) -> do 
+                                                atomically $ addConnection app aConn a 
+                                                return $ (Broadcast, ser u)
+                                    _ -> return $ (GroupCommunication.Reply, ser  
+                                                        $ CommandError $ 
+                                                        genericErrorCommand ("Invalid command during login"))
+                            String "ManageUser"-> do 
+                                c2 <- return $ (parse parseCreateUser a)
+                                case c2 of 
+                                    Success r -> do
+                                            (d, cuo@(
+                                                    CommandUO (UserOperations opType (Just c1)))) <- do 
+                                                processCommand $ Just $ CommandUO r
+                                            atomically $ addConnection app aConn $ personNickName c1
+                                            return (d, ser cuo)
+                                    Error s -> 
+                                        return (GroupCommunication.Reply 
+                                            , ser $ CommandError $ genericErrorCommand 
+                                                    $ "parse manage user failed " ++ s )
+                            _ -> return (GroupCommunication.Reply 
+                                        , ser $ CommandError $ genericErrorCommand 
+                                                $ "process user logged in failed :  " ++ (show aText) )
+
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
                 ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
@@ -639,9 +670,12 @@ processClientLost app connection nickNameV iText = do
 processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
+            putStrLn $ "User logged in " ++ (show text)
+            putStrLn $ "Incoming command " ++ (show command)
             messageLimit <- liftIO $ getMessageCount nickNameV
             putStrLn $ "Using message limit " ++ (show messageLimit)
             messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit
+            putStrLn $ "After messageHistory " ++ (show nickNameV)
             atomically $ do 
                             clientStates <- case dest of 
                                 Broadcast -> getAllClients app nickNameV

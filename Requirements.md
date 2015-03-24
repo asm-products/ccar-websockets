@@ -9,10 +9,11 @@ A haxe based websocket client interacting with a yesod websockets server.
 
 
 
-### UI 
+
+### Login (Regular User  - Not through a reseller)
 ##### Login (Returning user)
 	* Connect to the server 
-	* nickName is the only field that is shown to the user
+	* nickName is the only field that is displayed to the user
 	* Validate the password
 	* Success: broadcast the rest of the community 
 	* Server should send users online list to populate
@@ -38,6 +39,14 @@ A haxe based websocket client interacting with a yesod websockets server.
 	etc. Some of the functions that we can start with are:
 	* Can the user send broadcast messages.
 	* Reputation and Messaging tabs are default for every user.
+##### Login (Through a reseller)
+	* Connect to the server
+	* Send nickName, emailId (derived from the reseller db), resellerId
+	* Login the user depending on the profile of the user.
+		* Reseller may not require guests to enter an email id, only nick name.
+		* If the email_id is present, then the reseller must have created a profile
+			for the user: which could be one of the predefined roles. 
+
 
 
 
@@ -124,5 +133,22 @@ A haxe based websocket client interacting with a yesod websockets server.
 
 
 
-#### Data model
-	
+#### User roles
+A guest user will have limited priveleges in posting messages on the chat 
+and they can be banned at anytime.
+Returning user should be able to reach out to customer support for any issues 
+Admin : Will have access to an admin ui.
+Support : These are special users who help users out. 
+
+#### Support user story
+Upon log support user is presented with all the issues that have not been
+assigned yet. Issues could be messages that were left when a guest did not 
+receive any assistance. When a guest logs in, the support can invite the guest to a 
+private message and most conversation from then on, will take 
+place a separate tab. At any given time, a supporter may be online with at least
+6 concurrent guests/clients etc. This limit needs to be set by the reseller.
+The user interface, needs to allow the user to navigate the support needs with 
+bells and alarms to ensure that no message is lost.
+
+
+

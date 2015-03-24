@@ -22,6 +22,9 @@ import Control.Monad.Logger
 instance ToJSON SurveyPublicationState
 instance FromJSON SurveyPublicationState
 
+instance ToJSON RoleType
+instance FromJSON RoleType 
+
 type NickName = Text
 
 
@@ -63,6 +66,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastLoginTime UTCTime default=CURRENT_TIMESTAMP
             deleted Bool default=False
             PersonUniqueNickName nickName
+            deriving Show Eq
+        PersonRole json
+            roleFor PersonId 
+            roleType RoleType 
             deriving Show Eq
         Country 
             name Text 

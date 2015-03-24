@@ -40,7 +40,7 @@ The process of collecting surveys is divided into the following phases
 ##### Counting process
 	Votes are assigned in decreasing chronological order to allow for voters to change their mind 
 	and reduce the voters wallet by the the voting amount. Voting amount has to be greater than 
-	zero to register a vote.
+	zero to register a vote. 
 
 ##### Results and audit
 	Tally the results and the process will be audited using normal auditing processes using the 
