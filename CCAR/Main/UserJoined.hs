@@ -18,11 +18,21 @@ import Data.Text.Lazy as L hiding(foldl, foldr)
 	in a single file haskell app?!
 --}
 
+class UserLoginProcessor a where
+	proc :: Object -> Result a 
+
+handleLoginOrRegistration :: (UserLoginProcessor a) =>  Object -> (Object -> Result a) -> a
+handleLoginOrRegistration = undefined
 
 data UserJoined  = UserJoined {userNickName ::  T.Text};
 data UserLoggedIn = UserLoggedIn {userName :: T.Text};
 data UserLeft = UserLeft {leftNickName :: T.Text};
 
+instance UserLoginProcessor UserJoined where 
+	proc = parse parseUserJoined 
+
+instance UserLoginProcessor UserLoggedIn where 
+	proc = parse parseUserLoggedIn 
 parseUserLeft v = UserLeft <$> 
 						v .: "userName"
 genUserLeft (UserLeft v) = object ["userName" .= v

@@ -542,27 +542,26 @@ getPersonNickName a = do
         Nothing -> return "Invalid nick name"
 authenticate :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text)
 authenticate aConn aText app@(App a b c) = 
-        do 
-            case aCommand of 
-                Nothing -> return (GroupCommunication.Reply, 
-                            L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand ("Login has errors"))
-                Just (Object a) -> do
-                    (d, c) <- processCommandWrapper(Object a) 
-                    c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
-                    case c1 of 
-                        Just (Object a ) -> do  
-                            result <- return $ parse parseLogin a 
-                            case result of 
-                                Success (r@(Login a b)) -> do 
-                                        nickName <- getPersonNickName a 
-                                        userJoined <- return $ UserJoined.userJoined nickName 
-                                        return (GroupCommunication.Reply, userJoined)
-                                _ -> return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
-                                                    $ CommandError $ genericErrorCommand ("Invalid command during login"))
-                        _ -> return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode 
-                                                    $ CommandError $ genericErrorCommand ("Invalid command during login"))
-            where 
-                aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+    do 
+        case aCommand of 
+            Nothing -> return (GroupCommunication.Reply, 
+                        L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
+                                $ genericErrorCommand ("Invalid command during login"))
+            Just (Object a) -> do
+                (d, c) <- processCommandWrapper(Object a) 
+                c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
+                case c1 of 
+                    Just (Object a ) -> do  
+                        result <- return $ parse parseLogin a 
+                        case result of 
+                            Success (r@(Login a b)) -> do 
+                                    nickName <- getPersonNickName a 
+                                    userJoined <- return $ UserJoined.userJoined nickName 
+                                    return (GroupCommunication.Reply, userJoined)
+        where 
+            aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+
+
 
 
 processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
@@ -572,7 +571,6 @@ processUserLoggedIn aConn aText app@(App a b c) =
                 Nothing -> return (GroupCommunication.Reply, 
                         ser $ CommandError $ genericErrorCommand ("Login has errors"))
                 Just (Object a) -> do
-                    
                     Just commandType <- return $ LH.lookup "commandType" a
                     case commandType of 
                             String "UserLoggedIn" -> do 
@@ -585,9 +583,9 @@ processUserLoggedIn aConn aText app@(App a b c) =
                                                         $ CommandError $ 
                                                         genericErrorCommand ("Invalid command during login"))                                
                             String "UserJoined" -> do 
-                                c <- return $ parse UserJoined.parseUserLoggedIn a  
+                                c <- return $ parse UserJoined.parseUserJoined a  
                                 case c of 
-                                    Success u@(UserJoined.UserLoggedIn a) -> do 
+                                    Success u@(UserJoined.UserJoined a) -> do 
                                                 atomically $ addConnection app aConn a 
                                                 return $ (Broadcast, ser u)
                                     _ -> return $ (GroupCommunication.Reply, ser  
@@ -632,7 +630,7 @@ ccarApp = do
         processResult <- case result of 
                     Nothing -> liftIO $  
                                 WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
-                                return "Close sent"
+                                    return "Close sent"
                     Just _ -> liftIO $ do 
                                 (processClientLost app connection nickNameV command)
                                  `catch` 
@@ -646,7 +644,6 @@ ccarApp = do
                                                 A.waitEither a b
                                                 return "Threads had exception") 
                                 return ("All threads exited" :: T.Text)
-
         return () 
 
 
