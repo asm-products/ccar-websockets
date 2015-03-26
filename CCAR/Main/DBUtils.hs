@@ -134,6 +134,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             message Text
             iReadIt MessageCharacteristics
             destination MessageDestinationType
+            sentTime UTCTime default=CURRENT_TIMESTAMP
             deriving Show Eq
         Workbench
             name Text

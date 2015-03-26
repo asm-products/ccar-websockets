@@ -253,16 +253,14 @@ class MBooks_im {
 	private function processSendMessage(incomingMessage) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
 		if(incomingMessage.privateMessage != "") {
-			textAreaElement.value = textAreaElement.value + incomingMessage.from + ":" + incomingMessage.privateMessage + "\n";
+			textAreaElement.value = textAreaElement.value + incomingMessage.sentTime + "@" + incomingMessage.from + ":" + incomingMessage.privateMessage + "\n";
 		}
 	}
-	private function updateMessageHistory(localMessage) {
+	private function updateMessageHistory(currentTime : Date, localMessage : String) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
 		if(localMessage != "") {
-		textAreaElement.value = textAreaElement.value + getNickName() + ":" + localMessage + "\n";
-		}
-		if(textAreaElement.scrollHeight > textAreaElement.clientHeight) {
-			textAreaElement.style.height = textAreaElement.scrollHeight + "px";
+			textAreaElement.value = textAreaElement.value + currentTime + "@" + 
+				getNickName() + ":" + localMessage + "\n";
 		}
 	}
 
@@ -455,6 +453,7 @@ class MBooks_im {
 			inputElement.value = "";
 		}
 		if(Util.isSignificantWS(ev.keyCode)){
+			var sentTime = Date.now();
 			var payload = {
 				nickName : getNickName()
 				, from : getNickName()
@@ -465,9 +464,10 @@ class MBooks_im {
 					tag : "Broadcast"
 					, contents : []
 				}
+				, sentTime : sentTime
 			};
 			doSendJSON(Json.stringify(payload));
-			updateMessageHistory(getMessage());
+			updateMessageHistory(sentTime, getMessage());
 
 			inputElement.value= ""; //Should we handle an exception here.
 		}

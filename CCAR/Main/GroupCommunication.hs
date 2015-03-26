@@ -26,12 +26,14 @@ import Data.Aeson as J
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
+import Data.Time(UTCTime, getCurrentTime)
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
 import CCAR.Main.DBUtils
 import CCAR.Main.EnumeratedTypes as Et
 import CCAR.Command.ErrorCommand
+
 
 {- 
 	The client needs to handle
@@ -62,43 +64,44 @@ data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | Privat
 data SendMessage = SendMessage { from :: T.Text
                                 , to :: T.Text
                                 , privateMessage ::  T.Text
-                                , destination :: DestinationType } deriving (Show, Eq)
+                                , destination :: DestinationType
+                                , sentTime :: UTCTime } deriving (Show, Eq)
 
-createSendMessage :: MessageP -> Maybe SendMessage 
-createSendMessage (MessageP fr to pM _ Et.Broadcast) = Just $ SendMessage fr to pM (CCAR.Main.GroupCommunication.Broadcast)
-createSendMessage (MessageP fr to pM _ _)            = Nothing 
+createBroadcastMessage :: MessageP -> Maybe SendMessage 
+createBroadcastMessage (MessageP fr to pM _ Et.Broadcast currentTime) = Just $ 
+        SendMessage fr to pM CCAR.Main.GroupCommunication.Broadcast currentTime
+createBroadcastMessage (MessageP fr to pM _ _ aTime)            = Nothing 
+
 createPersistentMessage :: SendMessage -> MessageP 
-createPersistentMessage cm@(SendMessage fr to pM destination) = 
+createPersistentMessage cm@(SendMessage fr to pM destination currentTime) = do
 		case destination of 
 			CCAR.Main.GroupCommunication.Reply -> 
-					MessageP fr to pM Et.Undecided Et.Reply 
+					MessageP fr to pM Et.Undecided Et.Reply currentTime 
 			_ 	  -> 
-					MessageP fr to pM Et.Undecided Et.Broadcast 
+					MessageP fr to pM Et.Undecided Et.Broadcast currentTime
 
 getAllMessages :: Int -> IO [Entity MessageP]
-getAllMessages limit = dbOps $ selectList [] [LimitTo limit]
+getAllMessages limit = dbOps $ selectList [] [Asc MessagePSentTime]
 
 saveMessage :: SendMessage -> IO (Key MessageP) 
-saveMessage c = dbOps $ 
+saveMessage c = dbOps $ do 
                 do 
-                    cid <- DB.insert pM 
+                    cid <- DB.insert $ createPersistentMessage c 
                     $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
                     return cid
-                where 
-                    pM  = createPersistentMessage c 
 
 getMessageHistory :: Int -> IO [T.Text]
 getMessageHistory limit = do
     allM <- getAllMessages limit
     messages <- mapM (\(Entity y x) -> do 
-                            m <- return $ createSendMessage x
+                            m <- return $ createBroadcastMessage x
                             case m of
                                 Just m1 -> return $ serialize m1
                                 Nothing -> return "") allM
     return messages
 
 
-process (cm@(SendMessage f t m d)) = do
+process (cm@(SendMessage f t m d time)) = do
 
     case d of 
         CCAR.Main.GroupCommunication.Broadcast -> do 
@@ -110,16 +113,18 @@ process (cm@(SendMessage f t m d)) = do
 
 
 
-genSendMessage (SendMessage f t m d) = object ["from" .= f
+genSendMessage (SendMessage f t m d sT) = object ["from" .= f
                     , "to" .= t
                     , "privateMessage" .= m
                     , "commandType" .= ("SendMessage" :: T.Text)
-                    , "destination" .= d]
+                    , "destination" .= d
+                    , "sentTime" .= sT]
 parseSendMessage v = SendMessage <$> 
                     v .: "from" <*>
                     v .: "to" <*>
                     v .: "privateMessage" <*>
-                    v .: "destination"
+                    v .: "destination" <*>
+                    v .: "sentTime"
 
 
 processSendMessage (Object a) = 
@@ -132,7 +137,7 @@ processSendMessage (Object a) =
 instance ToJSON DestinationType
 instance FromJSON DestinationType
 instance ToJSON SendMessage where
-    toJSON (SendMessage f t m d ) = genSendMessage (SendMessage f t m d)
+    toJSON (SendMessage f t m d time) = genSendMessage (SendMessage f t m d time)
 
 instance FromJSON SendMessage where 
     parseJSON (Object v ) = parseSendMessage v 
