@@ -2,7 +2,10 @@ module CCAR.Main.UserJoined
 	(UserJoined(..), userJoined, parseUserJoined
 		, userLoggedIn, UserLoggedIn(..)
 		, userLeft, UserLeft(..)
-	 , parseUserLoggedIn)
+	 , parseUserLoggedIn
+	 , userBanned
+	 , parseUserBanned
+	 , UserBanned(..))
 where 
 
 import Data.Text as T  hiding(foldl, foldr)
@@ -24,6 +27,7 @@ class UserLoginProcessor a where
 handleLoginOrRegistration :: (UserLoginProcessor a) =>  Object -> (Object -> Result a) -> a
 handleLoginOrRegistration = undefined
 
+data UserBanned = UserBanned {unBann :: T.Text}
 data UserJoined  = UserJoined {userNickName ::  T.Text};
 data UserLoggedIn = UserLoggedIn {userName :: T.Text};
 data UserLeft = UserLeft {leftNickName :: T.Text};
@@ -33,6 +37,14 @@ instance UserLoginProcessor UserJoined where
 
 instance UserLoginProcessor UserLoggedIn where 
 	proc = parse parseUserLoggedIn 
+
+
+
+parseUserBanned v = UserBanned <$>
+						v .: "userName"
+genUserBanned (UserBanned v) = object ["userName" .= v 
+									, "commandType" .= ("UserBanned" :: T.Text)]
+
 parseUserLeft v = UserLeft <$> 
 						v .: "userName"
 genUserLeft (UserLeft v) = object ["userName" .= v
@@ -53,11 +65,18 @@ genUserJoined (UserJoined v ) = object [
                         , "commandType" .= ("UserJoined" :: T.Text) ]
 
 
+instance ToJSON UserBanned where 
+	toJSON = genUserBanned 
+
 instance ToJSON UserJoined where
 	toJSON = genUserJoined
 
 instance ToJSON UserLoggedIn where
 	toJSON = genUserLoggedIn
+
+instance FromJSON UserBanned where 
+	parseJSON (Object v) = parseUserBanned v 
+	parseJSON _		 = Appl.empty
 
 instance FromJSON UserJoined where
     parseJSON (Object v) = parseUserJoined v
@@ -83,3 +102,6 @@ userLoggedIn aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLoggedIn aText
 
 userLeft :: T.Text -> T.Text 
 userLeft aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLeft aText 
+
+userBanned :: T.Text -> T.Text 
+userBanned aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserBanned aText 

@@ -21,4 +21,5 @@ enum CommandType {
 	UserJoined;
 	UserLeft;
 	UserLoggedIn;
+	UserBanned;
 }

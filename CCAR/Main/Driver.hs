@@ -411,8 +411,8 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
 
 processCommand (Just a) = return (GroupCommunication.Reply, a)
 
-processCommandWrapper :: Value -> IO (DestinationType, T.Text)
-processCommandWrapper (Object a)   = do  
+processCommandWrapper :: App -> WSConn.Connection -> T.Text -> Value -> IO (DestinationType, T.Text)
+processCommandWrapper app aConn nickName (Object a)   = do  
     case cType of 
         Nothing -> return $ (GroupCommunication.Reply, ser $ 
                         CommandError $ genericErrorCommand "Unable to process command")
@@ -434,6 +434,19 @@ processCommandWrapper (Object a)   = do
                             Error s -> 
                                 return (GroupCommunication.Reply 
                                     , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
+                String "UserBanned" -> do
+                        c <- return $ parse UserJoined.parseUserBanned a 
+                        case c of
+                            Success u@(UserJoined.UserBanned a) -> do
+                                bConns <- atomically $ getClientState a app 
+                                mapM_ (\bconn -> WSConn.sendClose (connection bconn)
+                                        ("You have been banned for this session. See you in the next janma"
+                                            :: T.Text)) bConns  -- To handle multiple connections to a client.
+                                return (GroupCommunication.Broadcast, ser u)
+                            Error s ->  return (GroupCommunication.Reply 
+                                    , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
+
+
                 String "CCARUpload" ->
                         case (parse parseCCARUpload a) of
                             Success r -> do  
@@ -464,6 +477,7 @@ processCommandWrapper (Object a)   = do
                                     , ser $ CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
                                 )
                 String "SendMessage" -> processSendMessage (Object a)
+
                 String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 _ -> 
                     return 
@@ -489,8 +503,8 @@ getNickName aCommand =
                 where 
                     nn = LH.lookup "nickName" a 
 
-processIncomingMessage :: Maybe Value -> IO (DestinationType , T.Text)
-processIncomingMessage aCommand = 
+processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
+processIncomingMessage app conn aNickName aCommand = 
     do 
         putStrLn $  "Processing incoming message " ++ (show aCommand)
         case aCommand of 
@@ -501,7 +515,7 @@ processIncomingMessage aCommand =
                         
             Just (Object a) -> do 
                     putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                    processCommandWrapper (Object a)
+                    processCommandWrapper app conn aNickName (Object a)
                     --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
 
@@ -535,6 +549,7 @@ getClientState nickName app@(App a b c) = do
         nMap <- readTVar c
         return $ [nMap ! nickName]
 
+
 getPersonNickName :: Maybe Person -> IO T.Text
 getPersonNickName a = do
     case a of 
@@ -548,7 +563,7 @@ authenticate aConn aText app@(App a b c) =
                         L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
                                 $ genericErrorCommand ("Invalid command during login"))
             Just (Object a) -> do
-                (d, c) <- processCommandWrapper(Object a) 
+                (d, c) <- processCommandWrapper app aConn aText (Object a) 
                 c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
                 case c1 of 
                     Just (Object a ) -> do  
@@ -653,7 +668,11 @@ incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Ma
 {-- Both these methods are part of pre-login handshake. --}
 {-- An exception while server is replying to client. --}
 processClientLost app connection nickNameV iText = do
-                    (command, nickNameFound) <- liftIO $ processIncomingMessage $ incomingDictionary iText
+                    (command, nickNameFound) <- liftIO $ processIncomingMessage 
+                                app 
+                                connection 
+                                nickNameV
+                                $ incomingDictionary iText
                     liftIO $ putStrLn $ "Sending " ++ ( show nickNameFound)
                     WSConn.sendTextData connection nickNameFound
                     command <- (processClientLeft connection app nickNameV ) `catch` 
@@ -742,7 +761,7 @@ writerThread app connection nickName terminate = do
                 Nothing -> liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just _ -> do 
                     liftIO $ putStrLn $ "Writer thread :-> Message nickName " `mappend` (show nickName)
-                    (dest, x) <- liftIO $ processIncomingMessage $ incomingDictionary msg
+                    (dest, x) <- liftIO $ processIncomingMessage app connection nickName$ incomingDictionary msg
                     liftIO $ putStrLn $ "Writer thread :-> Writing command " ++ (show x)
                     atomically $ do 
                                     clientStates <- case dest of 
@@ -757,6 +776,8 @@ writerThread app connection nickName terminate = do
 
 getHomeR :: Handler Html
 getHomeR = do
+    request <- waiRequest
+    liftIO $ putStrLn $ "Request " ++ (show request)
     webSockets ccarApp
     defaultLayout $ do
         [whamlet|

@@ -51,6 +51,9 @@ class MBooks_im {
 		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "keyup");
 		rStream.then(registerUser);
 
+		var kStream : Stream<Dynamic> = initializeElementStream(cast getKickUserElement(), "keyup");
+		kStream.then(kickUser);
+
 		var mStream : Stream<Dynamic> = 
 			initializeElementStream(getMessageInput(), "keyup");
 		mStream.then(sendMessage);
@@ -70,7 +73,7 @@ class MBooks_im {
 		trace("Calling connect");
 		websocket = new WebSocket(connectionString());
 		websocket.onclose = onClose;
-		websocket.onerror = onError;
+		websocket.onerror = onServerConnectionError;
 		
 		var openStream = initializeElementStream(cast websocket, "open");
 		openStream.then(onOpen);
@@ -81,7 +84,7 @@ class MBooks_im {
 		closeStream.then(onClose);
 
 		var errorStream = initializeElementStream(cast websocket, "error");
-		errorStream.then(onError);
+		errorStream.then(onServerConnectionError);
 
 	}
 	public function logout() : Void{
@@ -113,10 +116,15 @@ class MBooks_im {
 		trace("Connection closed " + ev.code + "->" + ev.reason);
 		disableKeepAlive();
 
+
 	}
 
-	public  function onError(ev : Event){
+	public  function onServerConnectionError(ev : Event){
 		trace("Error " + haxe.Json.stringify(ev));
+		// Handle server not available here.
+		getNickNameElement().disabled = true;
+		//Upon clicking ok, take them to the company home page or the support page.
+		js.Lib.alert("Server not available. Please try back later or call support at <>");
 	}
 
 	// Message processing 
@@ -190,6 +198,9 @@ class MBooks_im {
 			}
 			case UserJoined : {
 				processUserJoined(incomingMessage);
+			}
+			case UserBanned : {
+				processUserBanned(incomingMessage);
 			}
 			case UserLoggedIn:{
 				processUserLoggedIn(incomingMessage);
@@ -268,10 +279,16 @@ class MBooks_im {
 		trace("User joined " + Date.now());
 	}
 	private function processUserLoggedIn(incomingMessage) {
-		addToUsersOnline(incomingMessage.userName);
+		if(incomingMessage.userName != getNickName()){
+			addToUsersOnline(incomingMessage.userName);
+		}
 	}
 	private function processUserLeft(incomingMessage) {
 		var userNickName = incomingMessage.userName; // Haskell record types and not being modular...
+		removeFromUsersOnline(userNickName);
+	}
+	private function processUserBanned(incomingMessage) {
+		var userNickName = incomingMessage.userName;
 		removeFromUsersOnline(userNickName);
 	}
 	private function showDivField(fieldName : String) {
@@ -349,10 +366,18 @@ class MBooks_im {
 	private static var REGISTER = "registerInput";
 	private static var MESSAGE_HISTORY = "messageHistory";
 	private static var MESSAGE_INPUT = "messageInput";
+	private static var STATUS_MESSAGE = "statusMessage";
+	private static var KICK_USER = "kickUser";
+
+	private function getKickUserElement() : InputElement {
+		return (cast Browser.document.getElementById(KICK_USER));
+	}
 	private function getNickName() : String{
 		return getNickNameElement().value;
 	}
-
+	private function getStatusMessageElement() : Element {
+		return Browser.document.getElementById(STATUS_MESSAGE);
+	}
 	private function getNickNameElement() : InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(NICK_NAME);
 		return inputElement;
@@ -425,7 +450,7 @@ class MBooks_im {
 		if(optionElement != null){
 			usersOnline.removeChild(optionElement);
 		}else {
-			throw "This user was already removed : ?"  + nickName;
+			trace("This user was already removed : ?"  + nickName);
 		}
 
 	}
@@ -434,7 +459,7 @@ class MBooks_im {
 	private function sendLogin (ev: KeyboardEvent){
 		var inputElement : InputElement = cast ev.target;
 		if(Util.isBackspace(ev.keyCode)){
-			inputElement.value = "";
+			//inputElement.value = "";
 		}
 		if(Util.isSignificantWS(ev.keyCode)){
 			this.person.setNickName(inputElement.value);
@@ -450,7 +475,7 @@ class MBooks_im {
 	private function sendMessage(ev : KeyboardEvent) {
 		var inputElement : InputElement = cast ev.target;
 		if(Util.isBackspace(ev.keyCode)){
-			inputElement.value = "";
+			//inputElement.value = "";
 		}
 		if(Util.isSignificantWS(ev.keyCode)){
 			var sentTime = Date.now();
@@ -488,11 +513,32 @@ class MBooks_im {
 					userName : getNickName()
 					, commandType : "UserLoggedIn"
 				};
+				getNickNameElement().disabled = true;
 				doSendJSON(Json.stringify(userLoggedIn));
+				addStatusMessage(getNickName());
 				showDivField("statusMessageDiv");
 				this.initializeKeepAlive();
 			}
 		}
+	}
+	private function addStatusMessage(userMessage : String) {
+		getStatusMessageElement().innerHTML = 
+			getStatusMessageElement().innerHTML +  " : "  + userMessage;
+	}
+
+	private function kickUser(ev : KeyboardEvent) {
+		if(Util.isSignificantWS(ev.keyCode)){		
+			var commandType : String = "UserBanned";
+			var uo = {
+				commandType : commandType
+				, nickName : getNickName()
+				, userName : getKickUserElement().value
+			};
+			doSendJSON(Json.stringify(uo));
+		}else {
+			//trace("Not a terminator " + ev.keyCode);
+		}
+
 	}
 	private function registerUser(ev: KeyboardEvent){
 		trace("Register user " + ev.keyCode);
