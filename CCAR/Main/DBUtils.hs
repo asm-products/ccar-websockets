@@ -24,6 +24,8 @@ instance FromJSON SurveyPublicationState
 
 instance ToJSON RoleType
 instance FromJSON RoleType 
+instance ToJSON ContactType
+instance FromJSON ContactType 
 
 type NickName = Text
 
@@ -58,13 +60,50 @@ dbOps f = do
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
+        Company json 
+            companyName Text 
+            companyID Text  -- Tax identification for example.
+            signupTime UTCTime default=CURRENT_TIMESTAMP
+            generalMailBox Text -- email id for sending out of office messages.
+            CompanyUniqueID companyID 
+            deriving Show Eq
+        CompanyDomain json 
+            company CompanyId 
+            domain Text 
+            logo Text 
+            banner Text 
+            tagLine Text 
+            UniqueDomain company domain 
+            deriving Show Eq
+        CompanyContact json 
+            company CompanyId 
+            contactType ContactType 
+            handle Text -- email, facebook, linked in etc.
+            UniqueContact company handle 
+            deriving Eq Show 
+
+        CompanyUser json
+            companyId CompanyId 
+            userId PersonId 
+            -- Special priveleges to 
+            -- manage a conversation.
+            -- for example to ban/kick a user
+            -- Archive messages, because 
+            -- most messages will not be deleted
+            -- at least not by the application.
+            chatMinder Bool 
+            -- The locale to be used when the 
+            -- person signs up to represent
+            -- the company  
+            locale Text Maybe
+            CompanyUserUnique companyId userId
         Person json
             firstName Text 
             lastName Text 
             nickName NickName
             password Text
+            locale Text Maybe
             lastLoginTime UTCTime default=CURRENT_TIMESTAMP
-            deleted Bool default=False
             PersonUniqueNickName nickName
             deriving Show Eq
         PersonRole json

@@ -75,7 +75,9 @@ queryPerson pid =  dbOps $ get pid
 
 
 deletePerson :: PersonId -> Person -> IO (Maybe Person)
-deletePerson pid p = updatePerson pid p {personDeleted = True}
+deletePerson pid p = dbOps $ do 
+                        _ <- DB.delete pid 
+                        return $ Just p 
 
 fixPreferences :: Maybe (Entity Person) -> IO (Key Preferences)
 fixPreferences (Just (Entity k p1)) = dbOps $ do 

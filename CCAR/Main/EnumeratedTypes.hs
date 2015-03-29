@@ -28,6 +28,9 @@ data SurveyPublicationState  = SURVEY_DRAFT | SURVEY_REVIEWED | SURVEY_APPROVED
 data RoleType = Guest | ReturningUser | Admin | Support 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
+data ContactType = Twitter | LinkedIn | Facebook | Phone | Email | Cell | Work | Home 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+
 -- The good old way to prevent spammers.
 -- A user that sent messages that 
 -- the senders deny will be banned or 
@@ -49,3 +52,4 @@ derivePersistField "MessageCharacteristics"
 derivePersistField "Gender"
 derivePersistField "SurveyPublicationState"
 derivePersistField "RoleType"
+derivePersistField "ContactType"

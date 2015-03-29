@@ -54,24 +54,6 @@ import CCAR.Model.Person
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
 
-emptyPerson :: IO Person 
-emptyPerson = do 
-                time <- getCurrentTime
-                return $ Person {personFirstName = "Not known"
-                    , personLastName = "Not known"
-                    , personNickName = "undefined"
-                    , personPassword = "Not known"
-                    , personLastLoginTime = time 
-                    , personDeleted = False}
-
-
-
-emptyCCAR = CCAR {
-        cCARScenarioName =  "Not known"
-        , cCARScenarioText = "Not known"
-        , cCARCreator = "Not Known"
-        , cCARDeleted = False
-}
 data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
     deriving(Show, Typeable, Data, Generic, Eq)
 
@@ -128,8 +110,8 @@ genPerson (Person a b c d e f) = object ["firstName" .= a
                                        , "lastName" .= b
                                        , "nickName" .= c
                                        , "password" .= d
-                                       , "lastLoginTime" .= e
-                                       , "deleted" .= f]
+                                       , "locale" .= e
+                                       , "lastLoginTime" .= f]
 
 genCCAR (CCAR a b person del)  = object ["scenarioName" .= a 
                                     , "scenarioText" .= b
@@ -294,7 +276,7 @@ data App = App { chan :: (TChan T.Text)
 instance Yesod App
 
 mkYesod "App" [parseRoutes|
-/ HomeR GET
+/chat HomeR GET
 /static StaticR  Static getStatic
 |]
 
@@ -326,7 +308,6 @@ deleteCCAR c = dbOps $ do
 processCommand :: Maybe Command  -> IO (DestinationType, Command)
 processCommand (Just (CommandLogin aLogin)) = do 
     p <- case (login aLogin) of
-            Nothing -> emptyPerson
             Just a -> return a 
     chk <- checkLoginExists (personNickName p)
     putStrLn $ show $ "Login exists " ++ (show chk)
@@ -353,7 +334,6 @@ processCommand (Just (CommandKeepAlive a)) =
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
     putStrLn $ show $ "Processing processCommand " ++ (show uo)
     person <- case aPerson of
-                Nothing -> emptyPerson
                 Just a -> return a        
     case uo of
         Us.Create  -> do
@@ -405,14 +385,13 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
                         ccarList aList = Prelude.map( \(Entity y  x) -> Just x) aList
         where
             ccar = case aCCAR of
-                    Nothing -> emptyCCAR
                     Just a -> a
 
 
 processCommand (Just a) = return (GroupCommunication.Reply, a)
 
-processCommandWrapper :: App -> WSConn.Connection -> T.Text -> Value -> IO (DestinationType, T.Text)
-processCommandWrapper app aConn nickName (Object a)   = do  
+processCommandValue :: App -> WSConn.Connection -> T.Text -> Value -> IO (DestinationType, T.Text)
+processCommandValue app aConn nickName (Object a)   = do  
     case cType of 
         Nothing -> return $ (GroupCommunication.Reply, ser $ 
                         CommandError $ genericErrorCommand "Unable to process command")
@@ -515,7 +494,7 @@ processIncomingMessage app conn aNickName aCommand =
                         
             Just (Object a) -> do 
                     putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                    processCommandWrapper app conn aNickName (Object a)
+                    processCommandValue app conn aNickName (Object a)
                     --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
 
@@ -563,7 +542,7 @@ authenticate aConn aText app@(App a b c) =
                         L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
                                 $ genericErrorCommand ("Invalid command during login"))
             Just (Object a) -> do
-                (d, c) <- processCommandWrapper app aConn aText (Object a) 
+                (d, c) <- processCommandValue app aConn aText (Object a) 
                 c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
                 case c1 of 
                     Just (Object a ) -> do  
@@ -809,7 +788,7 @@ getHomeR = do
                 input = document.getElementById("input"),
                 conn;
 
-            url = url.`("http:", "ws:").replace("https:", "wss:");
+            
             conn = new WebSocket(url);
 
             conn.onmessage = function(e) {
