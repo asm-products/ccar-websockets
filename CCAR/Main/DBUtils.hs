@@ -81,7 +81,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             handle Text -- email, facebook, linked in etc.
             UniqueContact company handle 
             deriving Eq Show 
-
+        CompanyMessage json 
+            company CompanyId  
+            message MessagePId 
+            UniqueCompanyMessage company message 
+            deriving Eq Show 
         CompanyUser json
             companyId CompanyId 
             userId PersonId 
@@ -167,13 +171,13 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         MessageP -- Persistent version of messages. This table is only for general messages and private messages.
                  -- MessageDestinationType is mainly, private message or broadcast.
                  -- Group messages will be handled as part of group messages.
-                 -- Bite me??
             from NickName 
             to NickName 
             message Text
             iReadIt MessageCharacteristics
             destination MessageDestinationType
             sentTime UTCTime default=CURRENT_TIMESTAMP
+            UniqueMessage from to sentTime 
             deriving Show Eq
         Workbench
             name Text

@@ -67,7 +67,7 @@ class MBooks_im {
 
 	// Connection details
 	function connectionString() : String {
-		return protocol + "://" + serverHost + ":" + portNumber + "/chat";
+		return protocol + "://" + Browser.location.hostname + ":" + portNumber + "/chat";
 	}
 	function connect() {
 		trace("Calling connect");
