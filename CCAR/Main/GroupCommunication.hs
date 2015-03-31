@@ -56,6 +56,8 @@ data ClientState = ClientState {
 			, readChan :: TChan T.Text
 			, writeChan :: TChan T.Text
 	}
+instance Show ClientState where 
+    show cs = (show $ nickName cs) ++  " Connected"
 type ClientIdentifierMap = TVar (IMap.Map ClientIdentifier ClientState)
 type GroupIdentifier = T.Text
 data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier

@@ -532,8 +532,10 @@ getAllClients app@(App a b c ) nn = do
 getClientState :: T.Text -> App -> STM [ClientState]
 getClientState nickName app@(App a b c) = do
         nMap <- readTVar c
-        return $ [nMap ! nickName]
-
+        if IMap.member nickName nMap then 
+            return $ [nMap ! nickName]
+        else 
+            return [] 
 
 getPersonNickName :: Maybe Person -> IO T.Text
 getPersonNickName a = do
@@ -589,7 +591,7 @@ processUserLoggedIn aConn aText app@(App a b c) =
                                 c <- return $ parse UserJoined.parseUserJoined a  
                                 case c of 
                                     Success u@(UserJoined.UserJoined a) -> do 
-                                                atomically $ addConnection app aConn a 
+                                                --atomically $ addConnection app aConn a 
                                                 return $ (Broadcast, ser u)
                                     _ -> return $ (GroupCommunication.Reply, ser  
                                                         $ CommandError $ 
@@ -623,30 +625,35 @@ ccarApp = do
         connection <- ask
         app <- getYesod
         command <- YWS.receiveData
-        (destination, text) <- liftIO $ authenticate connection command app  
-        $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
-        $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary (command :: T.Text)
-        processResult <- case result of 
-                    Nothing -> do 
-                                $(logInfo) command 
-                                liftIO $ do  
-                                            _ <- WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
-                                            return "Close sent"
-                    Just _ -> liftIO $ do 
-                                (processClientLost app connection nickNameV command)
-                                 `catch` 
-                                        (\ a@(CloseRequest e1 e2) -> do  
-                                            atomically $ deleteConnection app connection nickNameV
-                                            return "Close request" )
-                                a <- liftBaseWith (\run -> run $ liftIO $ do
-                                                a <- (A.async (writerThread app connection 
-                                                    nickNameV False))
-                                                b <- (A.async (liftIO $ readerThread app nickNameV))
-                                                A.waitEither a b
-                                                return "Threads had exception") 
-                                return ("All threads exited" :: T.Text)
-        return () 
+        clientState <- atomically $ getClientState nickNameV app
+        liftIO $ putStrLn $ show clientState 
+        case clientState of 
+            [] -> do 
+                (destination, text) <- liftIO $ authenticate connection command app  
+                $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
+                $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
+                processResult <- case result of 
+                            Nothing -> do 
+                                        $(logInfo) command 
+                                        liftIO $ do  
+                                                    _ <- WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                                                    return "Close sent"
+                            Just _ -> liftIO $ do 
+                                        (processClientLost app connection nickNameV command)
+                                         `catch` 
+                                                (\ a@(CloseRequest e1 e2) -> do  
+                                                    atomically $ deleteConnection app connection nickNameV
+                                                    return "Close request" )
+                                        a <- liftBaseWith (\run -> run $ liftIO $ do
+                                                        a <- (A.async (writerThread app connection 
+                                                            nickNameV False))
+                                                        b <- (A.async (liftIO $ readerThread app nickNameV))
+                                                        A.waitEither a b
+                                                        return "Threads had exception") 
+                                        return ("All threads exited" :: T.Text)
+                return () 
+            _ -> liftIO $ WSConn.sendClose connection ("Already connected " `mappend` nickNameV)
 
 
 incomingDictionary aText = J.decode  $ E.encodeUtf8 $ L.fromStrict aText :: Maybe Value
