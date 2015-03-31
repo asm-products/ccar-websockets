@@ -100,7 +100,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             -- person signs up to represent
             -- the company  
             locale Text Maybe
-            CompanyUserUnique companyId userId
+            UniqueCompanyUser companyId userId
         Person json
             firstName Text 
             lastName Text 

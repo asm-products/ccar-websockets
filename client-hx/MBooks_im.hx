@@ -23,6 +23,7 @@ import model.Command;
 import model.CommandType;
 import model.UserOperation;
 import util.Util;
+import util.Config;
 import js.Browser;
 import js.html.ButtonElement;
 import js.html.TextAreaElement;
@@ -40,7 +41,7 @@ class MBooks_im {
 	function new (){
 		trace("Calling MBooks_im");
 		person = new model.Person("", "", "", "");
-		outputEventStream = new Deferred<String>();
+		outputEventStream = new Deferred<Dynamic>();
 
 		var stream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "keyup");
 		stream.then(sendLogin);
@@ -323,24 +324,19 @@ class MBooks_im {
 	}
 	private function keepAliveFunction() : Void {
 		var commandType : String = "KeepAlive";
-		var payload = {
+		var payload  : Dynamic = {
 			nickName : this.getNickName()
 			, commandType : commandType
 			, keepAlive : "Ping"
 		};
 		trace("Sending keep alive " + payload);
-		doSendJSON(haxe.Json.stringify(payload));
+		doSendJSON(payload);
 	}
 
 
 	//Send messages
-	private function sendEvents(aMessage : String){
-		trace("Sending " + aMessage);
-		if(aMessage == "") {
-			trace("Empty string. Not sending the message");
-		}
-		var d : Dynamic = haxe.Json.parse(aMessage);
-		websocket.send(aMessage);
+	private function sendEvents(aMessage : Dynamic){
+		websocket.send(haxe.Json.stringify(aMessage));
 		trace("Sent " + aMessage);
 	}
 
@@ -348,8 +344,10 @@ class MBooks_im {
 	/**
 	* Clients could be sending json 
 	*/
-	public  function doSendJSON(aMessage : String){
-		trace("Resolving message " + aMessage);
+	public  function doSendJSON(aMessage){
+
+		//aMessage.companyKey = Config.companyKey;
+		//aMessage.nickName = getNickName();
 		this.outputEventStream.resolve(aMessage);
 	}
 
@@ -467,7 +465,7 @@ class MBooks_im {
 			var cType : String = Std.string(CommandType.Login);
 			var l : Login = new Login(cType, this.person, lStatus);
 			trace("Sending login status " + l);
-			doSendJSON(Json.stringify(l));
+			doSendJSON(l);
 
 		}
 	}
@@ -479,7 +477,7 @@ class MBooks_im {
 		}
 		if(Util.isSignificantWS(ev.keyCode)){
 			var sentTime = Date.now();
-			var payload = {
+			var payload : Dynamic = {
 				nickName : getNickName()
 				, from : getNickName()
 				, to : getNickName()
@@ -491,7 +489,7 @@ class MBooks_im {
 				}
 				, sentTime : sentTime
 			};
-			doSendJSON(Json.stringify(payload));
+			doSendJSON(payload);
 			updateMessageHistory(sentTime, getMessage());
 
 			inputElement.value= ""; //Should we handle an exception here.
@@ -509,12 +507,12 @@ class MBooks_im {
 				}
 			}else {
 				trace("Password works!");
-				var userLoggedIn = {
+				var userLoggedIn : Dynamic = {
 					userName : getNickName()
 					, commandType : "UserLoggedIn"
 				};
 				getNickNameElement().disabled = true;
-				doSendJSON(Json.stringify(userLoggedIn));
+				doSendJSON(userLoggedIn);
 				addStatusMessage(getNickName());
 				showDivField("statusMessageDiv");
 				this.initializeKeepAlive();
@@ -528,13 +526,13 @@ class MBooks_im {
 
 	private function kickUser(ev : KeyboardEvent) {
 		if(Util.isSignificantWS(ev.keyCode)){		
-			var commandType : String = "UserBanned";
-			var uo = {
-				commandType : commandType
-				, nickName : getNickName()
+			var payload : Dynamic = {
+				nickName : getNickName()
 				, userName : getKickUserElement().value
+				, commandType : "UserBanned"
 			};
-			doSendJSON(Json.stringify(uo));
+
+			doSendJSON(payload);
 		}else {
 			//trace("Not a terminator " + ev.keyCode);
 		}
@@ -549,7 +547,7 @@ class MBooks_im {
 					, getLastName()
 					, getNickName()
 					, getPassword());
-			var uo = {
+			var uo : Dynamic = {
 				commandType : "ManageUser"
 				, nickName : getNickName()
 				, operation:  {
@@ -559,7 +557,7 @@ class MBooks_im {
 				, person : modelPerson
 			};
 
-			doSendJSON(Json.stringify(uo));
+			doSendJSON(uo);
 		}else {
 			trace("Not a terminator " + ev.keyCode);
 		}
@@ -573,7 +571,7 @@ class MBooks_im {
 	var keepAliveInterval : Int = 15000;
 	var websocket : WebSocket;
 	var timer : Timer;
-	var outputEventStream : Deferred<String>;
+	var outputEventStream : Deferred<Dynamic>;
 	var person : model.Person;
 
 }

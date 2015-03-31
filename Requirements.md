@@ -10,15 +10,17 @@ A haxe based websocket client interacting with a yesod websockets server.
 
 
 
+### Managing the chat through a reseller is not clear to me
 ### Login (Regular User  - Not through a reseller)
 ##### Login (Returning user)
 	* Connect to the server 
 	* nickName is the only field that is displayed to the user
-	* Validate the password
+	* Validate the password - Should search for the user in company user directory.
 	* Success: broadcast the rest of the community 
 	* Server should send users online list to populate
 	* Send conversation history
 	* Begin processing server events
+
 
 ##### Login (First time user)
 	Display the registration form.
@@ -46,6 +48,9 @@ A haxe based websocket client interacting with a yesod websockets server.
 		* Reseller may not require guests to enter an email id, only nick name.
 		* If the email_id is present, then the reseller must have created a profile
 			for the user: which could be one of the predefined roles. 
+
+
+
 
 
 

@@ -277,6 +277,7 @@ instance Yesod App
 
 mkYesod "App" [parseRoutes|
 /chat HomeR GET
+/portNumber PortNumberR GET
 /static StaticR  Static getStatic
 |]
 
@@ -467,6 +468,11 @@ processCommandValue app aConn nickName (Object a)   = do
         ser a = L.toStrict $ E.decodeUtf8 $ En.encode a 
 
 
+lookupTag :: Maybe Value -> T.Text -> IO (Maybe Value)
+lookupTag aCommand aTag = do
+    case aCommand of 
+        Just (Object a) -> return $ LH.lookup aTag  a 
+
 getNickName :: Maybe Value -> IO (Maybe T.Text, T.Text)
 getNickName aCommand = 
     do
@@ -567,6 +573,9 @@ processUserLoggedIn aConn aText app@(App a b c) =
                 Just (Object a) -> do
                     Just commandType <- return $ LH.lookup "commandType" a
                     case commandType of 
+                            -- When the user successfully logs in, 
+                            -- update the company database to update this user for 
+                            -- this company key.
                             String "UserLoggedIn" -> do 
                                 c <- return $ parse UserJoined.parseUserLoggedIn a  
                                 case c of 
@@ -615,16 +624,15 @@ ccarApp = do
         app <- getYesod
         command <- YWS.receiveData
         (destination, text) <- liftIO $ authenticate connection command app  
-        liftIO $ putStrLn $ "Testing authenticate " `mappend` show (text :: T.Text)
-        $(logInfo) $ T.pack $ show $ "Connection " `mappend` (show connection)
         $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
         $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
-
-        (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary command
+        (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary (command :: T.Text)
         processResult <- case result of 
-                    Nothing -> liftIO $  
-                                WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text) >>
-                                    return "Close sent"
+                    Nothing -> do 
+                                $(logInfo) command 
+                                liftIO $ do  
+                                            _ <- WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                                            return "Close sent"
                     Just _ -> liftIO $ do 
                                 (processClientLost app connection nickNameV command)
                                  `catch` 
@@ -641,7 +649,7 @@ ccarApp = do
         return () 
 
 
-incomingDictionary aText = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
+incomingDictionary aText = J.decode  $ E.encodeUtf8 $ L.fromStrict aText :: Maybe Value
 
 
 {-- Both these methods are part of pre-login handshake. --}
@@ -735,9 +743,11 @@ writerThread app connection nickName terminate = do
                         _ <- handleDisconnects app connection nickName h
                         writerThread app connection nickName True
                         return "Close request received")
-            (result, nickName) <- liftIO $ getNickName $ incomingDictionary msg
+            (result, nickName) <- liftIO $ getNickName $ incomingDictionary (msg :: T.Text)
+            putStrLn $ show $ msg  `mappend` nickName
             case result of 
-                Nothing -> liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                Nothing -> do 
+                        liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just _ -> do 
                     liftIO $ putStrLn $ "Writer thread :-> Message nickName " `mappend` (show nickName)
                     (dest, x) <- liftIO $ processIncomingMessage app connection nickName$ incomingDictionary msg
@@ -753,6 +763,10 @@ writerThread app connection nickName terminate = do
                     writerThread app connection nickName terminate
 
 
+getPortNumberR :: Handler Html 
+getPortNumberR = do 
+    defaultLayout $ do 
+        [whamlet| 3000 |]
 getHomeR :: Handler Html
 getHomeR = do
     request <- waiRequest
