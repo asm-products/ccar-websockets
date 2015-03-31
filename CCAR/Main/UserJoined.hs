@@ -15,28 +15,13 @@ import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
+import CCAR.Main.Util
 
-{-- -
-	Creating different files for different types is probably is the right way. We can't impose structure
-	in a single file haskell app?!
---}
-
-class UserLoginProcessor a where
-	proc :: Object -> Result a 
-
-handleLoginOrRegistration :: (UserLoginProcessor a) =>  Object -> (Object -> Result a) -> a
-handleLoginOrRegistration = undefined
 
 data UserBanned = UserBanned {unBann :: T.Text}
 data UserJoined  = UserJoined {userNickName ::  T.Text};
 data UserLoggedIn = UserLoggedIn {userName :: T.Text};
 data UserLeft = UserLeft {leftNickName :: T.Text};
-
-instance UserLoginProcessor UserJoined where 
-	proc = parse parseUserJoined 
-
-instance UserLoginProcessor UserLoggedIn where 
-	proc = parse parseUserLoggedIn 
 
 
 
@@ -94,14 +79,15 @@ instance FromJSON UserLeft where
 	parseJSON _ 		 = Appl.empty 
 
 userJoined :: T.Text -> T.Text
-userJoined aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserJoined aText
+userJoined aText = ser $ UserJoined aText
 
 {-- When the user has successfully logged in --}
 userLoggedIn :: T.Text -> T.Text 
-userLoggedIn aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLoggedIn aText 
+userLoggedIn aText = ser $ UserLoggedIn aText 
 
 userLeft :: T.Text -> T.Text 
-userLeft aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserLeft aText 
+userLeft aText = ser $ UserLeft aText 
 
 userBanned :: T.Text -> T.Text 
-userBanned aText = L.toStrict $ E.decodeUtf8 $ En.encode $ UserBanned aText 
+userBanned aText = ser $ UserBanned aText 
+	

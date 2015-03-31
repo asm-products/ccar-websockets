@@ -57,7 +57,6 @@ connStr = getConnectionString
 data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
     deriving(Show, Typeable, Data, Generic, Eq)
 
-{- List of commands that we support.-}
 
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
@@ -542,6 +541,7 @@ getPersonNickName a = do
     case a of 
         Just x -> return $  personNickName x
         Nothing -> return "Invalid nick name"
+
 authenticate :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text)
 authenticate aConn aText app@(App a b c) = 
     do 
@@ -620,6 +620,13 @@ processUserLoggedIn aConn aText app@(App a b c) =
 instance Show WSConn.Connection where
     show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
 
+-- Do not let multiple connections to the same nick name.
+-- How do we allow multiple connections for handling larger data, such as
+-- video or file upload?
+-- Create a session id for a connection and send that token back to the client.
+-- Subsequent request for another connection needs to be assigned the same token. 
+
+
 ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
@@ -653,7 +660,8 @@ ccarApp = do
                                                         return "Threads had exception") 
                                         return ("All threads exited" :: T.Text)
                 return () 
-            _ -> liftIO $ WSConn.sendClose connection ("Already connected " `mappend` nickNameV)
+            _ -> liftIO $ WSConn.sendClose connection ("Active connection. Multiple logins not allowed. " `mappend` nickNameV)
+
 
 
 incomingDictionary aText = J.decode  $ E.encodeUtf8 $ L.fromStrict aText :: Maybe Value
@@ -738,7 +746,7 @@ readerThread app nickN= do
     readerThread app nickN
 
 
-{-- --}
+{-- The main processing loop for incoming commands.--}
 writerThread app connection nickName terminate = do
     if (terminate == True) 
         then do 
