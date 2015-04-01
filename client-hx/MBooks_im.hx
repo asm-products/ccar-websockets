@@ -49,7 +49,7 @@ class MBooks_im {
 		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
 		pStream.then(validatePassword);
 
-		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "keyup");
+		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "click");
 		rStream.then(registerUser);
 
 		var kStream : Stream<Dynamic> = initializeElementStream(cast getKickUserElement(), "keyup");
@@ -401,10 +401,6 @@ class MBooks_im {
 	private function getLastNameElement() : InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(LAST_NAME);
 		return inputElement;
-	}
-	//XXX: Till we fix the button issue in the ui.
-	private function getRegisterValue() : String {
-		return getRegisterElement().value;
 	}
 	private function getRegisterElement (): InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(REGISTER);

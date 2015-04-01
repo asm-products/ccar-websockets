@@ -1,14 +1,10 @@
 ccar-websockets
 ===============
 ### Objective
-To provide users a way to evaluate and manage portfolio risks.
 ### Architecture
 A haxe based websocket client interacting with a yesod websockets server.
 
 ### Core functions
-
-
-
 
 ### Managing the chat through a reseller is not clear to me
 ### Login (Regular User  - Not through a reseller)
@@ -48,12 +44,6 @@ A haxe based websocket client interacting with a yesod websockets server.
 		* Reseller may not require guests to enter an email id, only nick name.
 		* If the email_id is present, then the reseller must have created a profile
 			for the user: which could be one of the predefined roles. 
-
-
-
-
-
-
 
 ##### CCAR Workbench
 	Query notifications --------------------------------> 

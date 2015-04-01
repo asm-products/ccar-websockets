@@ -425,7 +425,6 @@ processCommandValue app aConn nickName (Object a)   = do
                             Error s ->  return (GroupCommunication.Reply 
                                     , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
 
-
                 String "CCARUpload" ->
                         case (parse parseCCARUpload a) of
                             Success r -> do  
@@ -655,7 +654,7 @@ ccarApp = do
                                         a <- liftBaseWith (\run -> run $ liftIO $ do
                                                         a <- (A.async (writerThread app connection 
                                                             nickNameV False))
-                                                        b <- (A.async (liftIO $ readerThread app nickNameV))
+                                                        b <- (A.async (liftIO $ readerThread app nickNameV False))
                                                         A.waitEither a b
                                                         return "Threads had exception") 
                                         return ("All threads exited" :: T.Text)
@@ -728,22 +727,37 @@ handleDisconnects app connection nickN (CloseRequest a b) = do
                 ("Bye nickName " :: T.Text) `mappend` nickN
             atomically $ do 
                 deleteConnection app connection nickN
-                restOfUs <- getAllClients app nickN 
-                mapM_ (\cs -> 
-                        writeTChan(writeChan cs) $ 
-                            UserJoined.userLeft nickN )restOfUs
-
+                restOfUs <- getAllClients app nickN
+                case restOfUs of 
+                    x  : _ -> do  
+                        mapM_ (\cs -> 
+                                writeTChan(writeChan cs) $ 
+                                    UserJoined.userLeft nickN )restOfUs
+                    [] -> return ()
             
-readerThread app nickN= do
-    putStrLn "Waiting for messages..."
-    (connection, textData) <- atomically $ do
-            clientState : _ <- getClientState nickN app        
-            textData <- readTChan (readChan clientState)                        
-            return (connection clientState, textData)
-    WSConn.sendTextData (connection) textData `catch` 
-        (\h@(CloseRequest e f)-> handleDisconnects app connection nickN h)
-    liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show connection)
-    readerThread app nickN
+readerThread app nickN terminate = do
+    if (terminate == True) 
+        then do 
+            putStrLn "Reader thread exiting" 
+            return () 
+    else do 
+        putStrLn "Waiting for messages..."
+        (conn , textData) <- atomically $ do
+                clientStates <- getClientState nickN app 
+                case clientStates  of 
+                    clientState : _ -> do 
+                        textData <- readTChan (readChan clientState)                        
+                        return (Just $ connection clientState, textData)
+                    [] -> return (Nothing, "")
+        case conn of 
+            Just connection -> do 
+                                _ <- WSConn.sendTextData (connection) textData `catch` 
+                                        (\h@(CloseRequest e f)-> handleDisconnects app 
+                                                    connection nickN h)
+                                readerThread app nickN terminate
+            Nothing -> readerThread app nickN True  
+        liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show conn)
+        
 
 
 {-- The main processing loop for incoming commands.--}
