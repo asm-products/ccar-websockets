@@ -12,6 +12,9 @@
 <link rel="stylesheet" type="text/css" href="style.css" media="all" />                          <!-- CUSTOM STYLES -->
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script type="text/javascript" src="js/kickstart.js"></script>                                  <!-- KICKSTART -->
+<div class="haxe:trace"></div>
+<script type="text/javascript" src="mbooks_im.js"></script>
+
 </head>
 <body>
 	<div class="grid flex" >
@@ -21,8 +24,8 @@
 		</div>
 		<form>
 			<div id="nickNameDiv" class="col_12">
-				<label for="nickName">Email Id - to help us serve you better.</label>
-				<input id="nickName" type="email" />
+				<label for="nickName">Email Id</label>
+				<input id="nickName" type="text" />
 			</div>
 			<div id="passwordDiv" class="col_12" style="display:none">
 				<!-- Placeholder Text -->
@@ -39,7 +42,7 @@
 			</div>
  			<div id="registerDiv" class="col12" style="display:none">
 				<label for="registerInput"> Register </label>
-				<button class="large" id="registerInput"/>
+				<input id="registerInput" type="text"/>
 			</div>			
 			<div id="statusMessageDiv" class="col_12" style="display:none">
 				<h4 id="statusMessage">Welcome back!</h4>
@@ -82,7 +85,5 @@
 	</div>
 
 </body>
-<div class="haxe:trace"></div>
-<script type="text/javascript" src="mbooks_im.js"></script>
 
 </html>

@@ -49,7 +49,7 @@ class MBooks_im {
 		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
 		pStream.then(validatePassword);
 
-		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "click");
+		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "keyup");
 		rStream.then(registerUser);
 
 		var kStream : Stream<Dynamic> = initializeElementStream(cast getKickUserElement(), "keyup");
@@ -452,6 +452,7 @@ class MBooks_im {
 	//Login and other stuff
 	private function sendLogin (ev: KeyboardEvent){
 		var inputElement : InputElement = cast ev.target;
+		trace("Inside send login " + ev.keyCode);
 		if(Util.isBackspace(ev.keyCode)){
 			//inputElement.value = "";
 		}

@@ -630,9 +630,12 @@ ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
         app <- getYesod
-        command <- YWS.receiveData
+        liftIO $ putStrLn "Before receiving data..."
+        command <- liftIO $ WSConn.receiveData connection
+        liftIO $ putStrLn $ show (command :: T.Text)
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary (command :: T.Text)
         clientState <- atomically $ getClientState nickNameV app
+        liftIO $ putStrLn "Before showing client state"
         liftIO $ putStrLn $ show clientState 
         case clientState of 
             [] -> do 
