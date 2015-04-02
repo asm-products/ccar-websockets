@@ -42,10 +42,10 @@ class MBooks_im {
 		trace("Calling MBooks_im");
 		person = new model.Person("", "", "", "");
 		outputEventStream = new Deferred<Dynamic>();
-
+		trace("Registering nickname");
 		var stream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "keyup");
 		stream.then(sendLogin);
-
+		trace("Registering password");
 		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
 		pStream.then(validatePassword);
 
@@ -103,9 +103,14 @@ class MBooks_im {
 	}
 	public function initializeElementStream(ws : Element, event : String
 				, ?useCapture: Bool) : Stream<Dynamic>{
-		var def = new Deferred<Dynamic> ();
-		ws.addEventListener(event, def.resolve, useCapture);
-		return def.stream();
+		try {
+			var def = new Deferred<Dynamic> ();
+			ws.addEventListener(event, def.resolve, useCapture);
+			return def.stream();
+		}catch(err: Dynamic) {
+			trace ("Error creating element stream for " + event);
+			throw "Unable to setup stream";
+		}
 	}
 
 	public  function onOpen(ev: Event){
@@ -246,6 +251,7 @@ class MBooks_im {
 			showDivField(DIV_FIRST_NAME);
 			showDivField(DIV_LAST_NAME);
 			showDivField(DIV_REGISTER);
+			this.initializeKeepAlive();
 		}
 		if(lStatus == UserExists){
 			showDivField(DIV_PASSWORD);
@@ -553,8 +559,8 @@ class MBooks_im {
 				}
 				, person : modelPerson
 			};
-
 			doSendJSON(uo);
+			this.initializeKeepAlive();
 		}else {
 			trace("Not a terminator " + ev.keyCode);
 		}
