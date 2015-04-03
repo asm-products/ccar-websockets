@@ -106,6 +106,3 @@ instance FromJSON CommandManageSurvey where
 
 serialize :: (ToJSON a) => a -> T.Text 
 serialize a = L.toStrict $ E.decodeUtf8 $ En.encode a 
-
-
-

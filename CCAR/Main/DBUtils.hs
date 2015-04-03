@@ -99,8 +99,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             -- The locale to be used when the 
             -- person signs up to represent
             -- the company  
+            support Bool
             locale Text Maybe
             UniqueCompanyUser companyId userId
+        
         Person json
             firstName Text 
             lastName Text 

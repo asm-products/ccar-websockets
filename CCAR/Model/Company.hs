@@ -57,9 +57,21 @@ insertCompanyPerson aNickName aCompanyId chatMinder = do
 		cid <- getBy $ CompanyUniqueID aCompanyId 
 		case (personId, cid)  of 
 			(Just (Entity k1 p1) , Just (Entity k2 p2)) -> do 
-					insert $ CompanyUser k2 k1 chatMinder  (Just "en_US")
+					insert $ CompanyUser k2 k1 chatMinder False (Just "en_US")
 	return ()
 
+
+assignSupportForCompany :: NickName -> CompanyID -> Bool -> IO ()
+assignSupportForCompany aNickName aCompanyId support = do 
+	x <- dbOps $ do 
+		personId <- getBy $ PersonUniqueNickName aNickName
+		cid <- getBy $ CompanyUniqueID aCompanyId 
+		case(personId, cid) of 
+				(Just (Entity k1 p1), Just (Entity k2 p2)) -> do 
+					pcid <- getBy $ UniqueCompanyUser k2 k1
+					case pcid of 
+						Just (Entity k3 p3) -> update k3 [CompanyUserSupport =. support]
+	return ()
 
 type Locale = T.Text 
 updateCompanyPersonLocale :: NickName -> CompanyID -> Locale -> IO () 
@@ -91,4 +103,5 @@ promoteToChatMinder aNickName aCompanyId = updateCompanyChatMinder aNickName aCo
 
 revokeChatMinderPermissions :: NickName -> CompanyID -> IO() 
 revokeChatMinderPermissions aNickName aCompanyId = updateCompanyChatMinder aNickName aCompanyId False
+
 

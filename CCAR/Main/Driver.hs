@@ -419,7 +419,7 @@ processCommandValue app aConn nickName (Object a)   = do
                             Success u@(UserJoined.UserBanned a) -> do
                                 bConns <- atomically $ getClientState a app 
                                 mapM_ (\bconn -> WSConn.sendClose (connection bconn)
-                                        ("You have been banned for this session. See you in the next janma"
+                                        ("Bye"
                                             :: T.Text)) bConns  -- To handle multiple connections to a client.
                                 return (GroupCommunication.Broadcast, ser u)
                             Error s ->  return (GroupCommunication.Reply 
@@ -487,19 +487,18 @@ getNickName aCommand =
                     nn = LH.lookup "nickName" a 
 
 processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
-processIncomingMessage app conn aNickName aCommand = 
-    do 
-        putStrLn $  "Processing incoming message " ++ (show aCommand)
-        case aCommand of 
-            Nothing -> do
-                    putStrLn $ "Processing error..."
-                    result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
-                    return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
-                        
-            Just (Object a) -> do 
-                    putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                    processCommandValue app conn aNickName (Object a)
-                    --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
+processIncomingMessage app conn aNickName aCommand = do 
+    putStrLn $  "Processing incoming message " ++ (show aCommand)
+    case aCommand of 
+        Nothing -> do
+                putStrLn $ "Processing error..."
+                result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
+                return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
+                    
+        Just (Object a) -> do 
+                putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
+                processCommandValue app conn aNickName (Object a)
+                --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
 
 
@@ -643,24 +642,24 @@ ccarApp = do
                 $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
                 $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
                 processResult <- case result of 
-                            Nothing -> do 
-                                        $(logInfo) command 
-                                        liftIO $ do  
-                                                    _ <- WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
-                                                    return "Close sent"
-                            Just _ -> liftIO $ do 
-                                        (processClientLost app connection nickNameV command)
-                                         `catch` 
-                                                (\ a@(CloseRequest e1 e2) -> do  
-                                                    atomically $ deleteConnection app connection nickNameV
-                                                    return "Close request" )
-                                        a <- liftBaseWith (\run -> run $ liftIO $ do
-                                                        a <- (A.async (writerThread app connection 
-                                                            nickNameV False))
-                                                        b <- (A.async (liftIO $ readerThread app nickNameV False))
-                                                        A.waitEither a b
-                                                        return "Threads had exception") 
-                                        return ("All threads exited" :: T.Text)
+                    Nothing -> do 
+                            $(logInfo) command 
+                            liftIO $ do  
+                                        _ <- WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                                        return "Close sent"
+                    Just _ -> liftIO $ do 
+                            (processClientLost app connection nickNameV command)
+                             `catch` 
+                                    (\ a@(CloseRequest e1 e2) -> do  
+                                        atomically $ deleteConnection app connection nickNameV
+                                        return "Close request" )
+                            a <- liftBaseWith (\run -> run $ liftIO $ do
+                                            a <- (A.async (writerThread app connection 
+                                                nickNameV False))
+                                            b <- (A.async (liftIO $ readerThread app nickNameV False))
+                                            A.waitEither a b
+                                            return "Threads had exception") 
+                            return ("All threads exited" :: T.Text)
                 return () 
             _ -> liftIO $ WSConn.sendClose connection ("Active connection. Multiple logins not allowed. " `mappend` nickNameV)
 
