@@ -5,4 +5,5 @@ enum LoginStatus {
 	UserNotFound;
 	InvalidPassword;
 	Undefined;		
+	Guest;
 }

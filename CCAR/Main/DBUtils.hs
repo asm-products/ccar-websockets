@@ -102,7 +102,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             support Bool
             locale Text Maybe
             UniqueCompanyUser companyId userId
-        
+
         Person json
             firstName Text 
             lastName Text 
@@ -112,6 +112,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastLoginTime UTCTime default=CURRENT_TIMESTAMP
             PersonUniqueNickName nickName
             deriving Show Eq
+        GuestLogin json 
+            loginTime UTCTime default = CURRENT_TIMESTAMP 
+            loginFor PersonId 
+            UniqueGuestLogin loginFor loginTime 
+            deriving Show Eq 
         PersonRole json
             roleFor PersonId 
             roleType RoleType 

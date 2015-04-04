@@ -88,6 +88,8 @@ class MBooks_im {
 		errorStream.then(onServerConnectionError);
 
 	}
+
+
 	public function logout() : Void{
 		trace("Logging out ");
 		if(websocket != null){
@@ -372,6 +374,7 @@ class MBooks_im {
 	private static var MESSAGE_INPUT = "messageInput";
 	private static var STATUS_MESSAGE = "statusMessage";
 	private static var KICK_USER = "kickUser";
+	private static var KICK_USER_DIV = "kickUserDiv";
 
 	private function getKickUserElement() : InputElement {
 		return (cast Browser.document.getElementById(KICK_USER));
@@ -455,6 +458,24 @@ class MBooks_im {
 
 	}
 
+	private function loginAsGuest(){
+	var payload : Dynamic = {
+		nickName : getNickName()
+		, userName : getKickUserElement().value
+		, commandType : "GuestUser"
+		};
+		doSendJSON(payload);
+		this.initializeKeepAlive();
+		this.hideDivField(KICK_USER_DIV);
+	}
+
+	private function getLoginRequest(nickName : String, status : LoginStatus) : Dynamic { 
+			var lStatus : LoginStatus = status;			
+			var cType : String = Std.string(CommandType.Login);
+			var l : Login = new Login(cType, this.person, lStatus);
+			return l;
+
+	}
 	//Login and other stuff
 	private function sendLogin (ev: KeyboardEvent){
 		var inputElement : InputElement = cast ev.target;
@@ -505,8 +526,8 @@ class MBooks_im {
 				js.Lib.alert("Invalid password. Try again");
 				attempts++;
 				if(attempts > maxAttempts){
-					js.Lib.alert("Too many attempts. Logging you out.");
-					logout();
+					loginAsGuest();
+					trace("Logging in as guest");
 				}
 			}else {
 				trace("Password works!");

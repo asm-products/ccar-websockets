@@ -13,6 +13,7 @@ import qualified GHC.Conc as GHCConc
 import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
+import Control.Monad.Error
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth
                         , concurrently)
@@ -49,12 +50,13 @@ import CCAR.Main.DBUtils
 import CCAR.Main.GroupCommunication as GroupCommunication
 import CCAR.Main.UserJoined as UserJoined 
 import CCAR.Command.ErrorCommand 
-import CCAR.Model.Person 
+import CCAR.Model.Person
+
 
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
 
-data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined
+data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined | Guest
     deriving(Show, Typeable, Data, Generic, Eq)
 
 
@@ -407,6 +409,7 @@ processCommandValue app aConn nickName (Object a)   = do
                                             ser $ CommandError $ genericErrorCommand $ "parse login  failed "++ s)
                 String "ManageUser" ->
                         case (parse parseCreateUser a) of
+                            -- Assert that the user operation is not an insert for the person table.
                             Success r -> do
                                     (d, c) <- processCommand $ Just $ CommandUO r
                                     return (d, ser c)
@@ -416,8 +419,8 @@ processCommandValue app aConn nickName (Object a)   = do
                 String "UserBanned" -> do
                         c <- return $ parse UserJoined.parseUserBanned a 
                         case c of
-                            Success u@(UserJoined.UserBanned a) -> do
-                                bConns <- atomically $ getClientState a app 
+                            Success u@(UserJoined.UserBanned a1) -> do
+                                bConns <- atomically $ getClientState a1 app 
                                 mapM_ (\bconn -> WSConn.sendClose (connection bconn)
                                         ("Bye"
                                             :: T.Text)) bConns  -- To handle multiple connections to a client.
@@ -565,51 +568,57 @@ authenticate aConn aText app@(App a b c) =
 
 
 processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
-processUserLoggedIn aConn aText app@(App a b c) = 
-    do
-        case aCommand of 
-                Nothing -> return (GroupCommunication.Reply, 
-                        ser $ CommandError $ genericErrorCommand ("Login has errors"))
-                Just (Object a) -> do
-                    Just commandType <- return $ LH.lookup "commandType" a
-                    case commandType of 
-                            -- When the user successfully logs in, 
-                            -- update the company database to update this user for 
-                            -- this company key.
-                            String "UserLoggedIn" -> do 
-                                c <- return $ parse UserJoined.parseUserLoggedIn a  
-                                case c of 
-                                    Success u@(UserJoined.UserLoggedIn a) -> do 
-                                                atomically $ addConnection app aConn a 
-                                                return $ (Broadcast, ser u)
-                                    _ -> return $ (GroupCommunication.Reply, ser  
-                                                        $ CommandError $ 
-                                                        genericErrorCommand ("Invalid command during login"))                                
-                            String "UserJoined" -> do 
-                                c <- return $ parse UserJoined.parseUserJoined a  
-                                case c of 
-                                    Success u@(UserJoined.UserJoined a) -> do 
-                                                --atomically $ addConnection app aConn a 
-                                                return $ (Broadcast, ser u)
-                                    _ -> return $ (GroupCommunication.Reply, ser  
-                                                        $ CommandError $ 
-                                                        genericErrorCommand ("Invalid command during login"))
-                            String "ManageUser"-> do 
-                                c2 <- return $ (parse parseCreateUser a)
-                                case c2 of 
-                                    Success r -> do
-                                            (d, cuo@(
-                                                    CommandUO (UserOperations opType (Just c1)))) <- do 
-                                                processCommand $ Just $ CommandUO r
-                                            atomically $ addConnection app aConn $ personNickName c1
-                                            return (d, ser cuo)
-                                    Error s -> 
-                                        return (GroupCommunication.Reply 
-                                            , ser $ CommandError $ genericErrorCommand 
-                                                    $ "parse manage user failed " ++ s )
-                            _ -> return (GroupCommunication.Reply 
-                                        , ser $ CommandError $ genericErrorCommand 
-                                                $ "process user logged in failed :  " ++ (show aText) )
+processUserLoggedIn aConn aText app@(App a b c) = do
+    case aCommand of 
+            Nothing -> return (GroupCommunication.Reply, 
+                    ser $ CommandError $ genericErrorCommand ("Login has errors"))
+            Just (Object a) -> do
+                Just commandType <- return $ LH.lookup "commandType" a
+                case commandType of 
+                    String "UserLoggedIn" -> do 
+                        c <- return $ parse UserJoined.parseUserLoggedIn a  
+                        case c of 
+                            Success u@(UserJoined.UserLoggedIn a) -> do 
+                                        atomically $ addConnection app aConn a 
+                                        return $ (Broadcast, ser u)
+                            _ -> return $ (GroupCommunication.Reply, ser  
+                                                $ CommandError $ 
+                                                genericErrorCommand ("Invalid command during login"))                                
+                    String "UserJoined" -> do 
+                        c <- return $ parse UserJoined.parseUserJoined a  
+                        case c of 
+                            Success u@(UserJoined.UserJoined a) -> do 
+                                        return $ (Broadcast, ser u)
+                            _ -> return $ (GroupCommunication.Reply, ser  
+                                                $ CommandError $ 
+                                                genericErrorCommand ("Invalid command during login"))
+                    String "ManageUser"-> do 
+                        c2 <- return $ (parse parseCreateUser a)
+                        case c2 of 
+                            Success r -> do
+                                    (d, cuo@(
+                                            CommandUO (UserOperations opType (Just c1)))) <- do 
+                                        processCommand $ Just $ CommandUO r
+                                    atomically $ addConnection app aConn $ personNickName c1
+                                    return (d, ser cuo)
+                            Error s -> 
+                                return (GroupCommunication.Reply 
+                                    , ser $ CommandError $ genericErrorCommand 
+                                            $ "parse manage user failed " ++ s )
+                    String "GuestUser" -> do 
+                        result <- return $ (parse parseGuestUser a)
+                        case result of 
+                            Success (g@(UserJoined.GuestUser guestNickName)) -> do
+                                    createGuestLogin guestNickName  
+                                    atomically $ addConnection app aConn guestNickName
+                                    return $ (GroupCommunication.Broadcast, ser g)                          
+                            Error errMessage ->  
+                                    return (GroupCommunication.Reply 
+                                        , ser $ CommandError $ genericErrorCommand
+                                                $ ("Guest login failed ") `mappend`  errMessage )
+                    _ -> return (GroupCommunication.Reply 
+                                , ser $ CommandError $ genericErrorCommand 
+                                        $ "process user logged in failed :  " ++ (show aText) )
 
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value

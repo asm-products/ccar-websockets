@@ -5,7 +5,9 @@ module CCAR.Main.UserJoined
 	 , parseUserLoggedIn
 	 , userBanned
 	 , parseUserBanned
-	 , UserBanned(..))
+	 , UserBanned(..)
+	 , GuestUser(..)
+	 , parseGuestUser)
 where 
 
 import Data.Text as T  hiding(foldl, foldr)
@@ -16,12 +18,15 @@ import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
 import CCAR.Main.Util
+import Control.Monad.Error
+import CCAR.Model.Person
 
 
 data UserBanned = UserBanned {unBann :: T.Text}
 data UserJoined  = UserJoined {userNickName ::  T.Text};
 data UserLoggedIn = UserLoggedIn {userName :: T.Text};
 data UserLeft = UserLeft {leftNickName :: T.Text};
+data GuestUser = GuestUser {unGuest :: T.Text}
 
 
 
@@ -49,6 +54,12 @@ genUserJoined (UserJoined v ) = object [
                         "userNickName" .= v
                         , "commandType" .= ("UserJoined" :: T.Text) ]
 
+genGuestUser (GuestUser v ) = object [
+			"nickName" .= v 
+			, "commandType" .= ("GuestUser" :: T.Text)
+		]
+parseGuestUser v = GuestUser <$> 
+						v .: "nickName"
 
 instance ToJSON UserBanned where 
 	toJSON = genUserBanned 
@@ -58,7 +69,13 @@ instance ToJSON UserJoined where
 
 instance ToJSON UserLoggedIn where
 	toJSON = genUserLoggedIn
+instance ToJSON GuestUser where 
+	toJSON = genGuestUser
 
+
+instance FromJSON GuestUser where 
+	parseJSON (Object v) = parseGuestUser v 
+	parseJSON _ 		 = Appl.empty 
 instance FromJSON UserBanned where 
 	parseJSON (Object v) = parseUserBanned v 
 	parseJSON _		 = Appl.empty

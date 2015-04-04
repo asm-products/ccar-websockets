@@ -1,4 +1,5 @@
 module CCAR.Model.Person 
+
 where
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -89,6 +90,8 @@ fixPreferences (Just (Entity k p1)) = dbOps $ do
                                     {preferencesPreferencesFor = k 
                                     , preferencesMaxHistoryCount = 300 }
 
+
+
 -- How to handle this
 fixPreferences Nothing = undefined
 
@@ -107,6 +110,13 @@ getMessageCount aNickName = dbOps $ do
 
 
 
+createGuestLogin :: NickName -> IO (Key GuestLogin) 
+createGuestLogin aNickName = do 
+        currentTime <- getCurrentTime
+        dbOps $ do 
+            person <- DB.getBy $ PersonUniqueNickName aNickName 
+            case person of 
+                Just (Entity personId _ ) -> insert $ GuestLogin currentTime personId 
 
 instance ToJSON CRUD
 instance FromJSON CRUD

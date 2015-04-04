@@ -82,6 +82,7 @@ executable ccar-websockets
                      , containers                    >= 0.5.0.0 && < 0.6
                      , async                         >= 2.0.1.6 && < 2.1
                      , monad-control                 >= 0.3.2.2 && < 0.4
+                     , mtl                           >= 2.1.2 && < 2.2
   -- Directories containing source files.
   -- hs-source-dirs:      
   

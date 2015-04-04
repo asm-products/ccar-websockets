@@ -1,5 +1,11 @@
 module CCAR.Command.ErrorCommand
-where
+(ErrorCommand(..)
+ , genericErrorCommand 
+ , parseErrorCommand
+ , genErrorCommand
+ , genericErrorCommandText
+)
+ where
 
 import GHC.Generics
 import Data.Data
@@ -11,9 +17,12 @@ import Control.Applicative as Appl
 data ErrorCommand = ErrorCommand {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Eq)
 
+
 genericErrorCommand errorMessage = ErrorCommand {errorCode = T.pack "Error" 
                                        , message = T.pack errorMessage}
 
+genericErrorCommandText errorText = ErrorCommand {errorCode = T.pack "Error" 
+										, message = errorText}
 
 instance ToJSON ErrorCommand where
     toJSON = genErrorCommand
