@@ -72,6 +72,7 @@ class MBooks_im {
 	}
 	function connect() {
 		trace("Calling connect");
+		try {
 		websocket = new WebSocket(connectionString());
 		websocket.onclose = onClose;
 		websocket.onerror = onServerConnectionError;
@@ -86,7 +87,9 @@ class MBooks_im {
 
 		var errorStream = initializeElementStream(cast websocket, "error");
 		errorStream.then(onServerConnectionError);
-
+		}catch(err : Dynamic) {
+			trace("Error establishing connection " + err);
+		}
 	}
 
 
