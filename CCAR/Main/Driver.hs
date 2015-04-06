@@ -625,7 +625,7 @@ processUserLoggedIn aConn aText app@(App a b c) = do
                 ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
 
 instance Show WSConn.Connection where
-    show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
+    show (WSConn.Connection o cType proto msgIn msgOut cl c2) = show proto 
 
 -- Do not let multiple connections to the same nick name.
 -- How do we allow multiple connections for handling larger data, such as
