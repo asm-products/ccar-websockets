@@ -1,4 +1,6 @@
-
+/**
+* License file : license.txt
+*/
 import haxe.Json;
 import haxe.Utf8;
 import haxe.Timer;
@@ -37,9 +39,20 @@ class MBooks_im {
 
 	private static var singleton : MBooks_im;
 
+	function reset() {
+		clearValue(cast getNickNameElement());
+		getNickNameElement().disabled = false;
+		clearValue(cast getMessageHistoryElement());
+		clearValue(cast getPasswordElement());
+		clearValue(cast getRegisterElement());
+		clearValue(cast getFirstNameElement());
+		clearValue(cast getLastNameElement());
+
+	}
 	private var maxAttempts : Int = 3;
 	function new (){
 		trace("Calling MBooks_im");
+		reset();
 		person = new model.Person("", "", "", "");
 		outputEventStream = new Deferred<Dynamic>();
 		trace("Registering nickname");
@@ -382,6 +395,8 @@ class MBooks_im {
 	private function getKickUserElement() : InputElement {
 		return (cast Browser.document.getElementById(KICK_USER));
 	}
+
+	//The ui disables nickName element once validated.
 	private function getNickName() : String{
 		return getNickNameElement().value;
 	}
@@ -590,7 +605,13 @@ class MBooks_im {
 		}
 	}
 
-
+	private function clearValue(inputElement : InputElement) {
+		if(inputElement != null){
+			inputElement.value = "";
+		}else {
+			throw "Null value for input element";
+		}
+	}
 	var attempts : Int = 0;
 	var serverHost : String = "localhost";
 	var protocol : String = "ws";
@@ -600,5 +621,6 @@ class MBooks_im {
 	var timer : Timer;
 	var outputEventStream : Deferred<Dynamic>;
 	var person : model.Person;
+
 
 }
