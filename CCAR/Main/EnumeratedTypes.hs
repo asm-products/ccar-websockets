@@ -31,6 +31,13 @@ data RoleType = Guest | ReturningUser | Admin | Support
 data ContactType = Twitter | LinkedIn | Facebook | Phone | Email | Cell | Work | Home 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
+data DocumentFileFormat = Pdf | MicrosoftWord | OpenOffice 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+data ProjectReportType = ClosureReport | ExecutiveSummary | ProjectFinancial
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+
 -- The good old way to prevent spammers.
 -- A user that sent messages that 
 -- the senders deny will be banned or 
@@ -53,3 +60,5 @@ derivePersistField "Gender"
 derivePersistField "SurveyPublicationState"
 derivePersistField "RoleType"
 derivePersistField "ContactType"
+derivePersistField "DocumentFileFormat"
+derivePersistField "ProjectReportType"

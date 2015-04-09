@@ -22,7 +22,7 @@ import Data.Text.Lazy as L
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
-
+import CCAR.Main.Util
 {-- 
 	CRUD for Surveys.
 	CRUD for survey questions
@@ -31,6 +31,17 @@ import Data.Typeable
 	publish vote tally. 
 
 --}
+
+data CRUD = Create | Read | Survey_Update | Delete
+    deriving(Show, Eq, Read, Data, Generic, Typeable)
+
+data CommandManageSurvey = CommandManageSurvey {
+        nickName :: T.Text
+        , crudType :: CRUD 
+        , survey :: Survey
+    } deriving (Show, Eq)
+
+
 
 
 uSurvey = undefined
@@ -74,15 +85,6 @@ processManageSurvey (Object a ) =
                         serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
 
 
-data CRUD = Create | Read | Survey_Update | Delete
-    deriving(Show, Eq, Read, Data, Generic, Typeable)
-
-data CommandManageSurvey = CommandManageSurvey {
-        nickName :: T.Text
-        , crudType :: CRUD 
-        , survey :: Survey
-    } deriving (Show, Eq)
-
 
 gen (CommandManageSurvey nickName crudType survey) = object ["crudType" .= crudType
                     , "survey" .= survey
@@ -104,5 +106,3 @@ instance FromJSON CommandManageSurvey where
     parseJSON (Object v ) = parseMS v 
     parseJSON _           = Appl.empty
 
-serialize :: (ToJSON a) => a -> T.Text 
-serialize a = L.toStrict $ E.decodeUtf8 $ En.encode a 

@@ -26,9 +26,10 @@ instance ToJSON RoleType
 instance FromJSON RoleType 
 instance ToJSON ContactType
 instance FromJSON ContactType 
-
+instance ToJSON PortfolioSymbolType
+instance FromJSON PortfolioSymbolType 
 type NickName = Text
-
+type Base64Text = Text -- Base64 encoded text representing the image.
 
 getPoolSize :: IO Int 
 getPoolSize = return 10
@@ -64,7 +65,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             companyName Text 
             companyID Text  -- Tax identification for example.
             signupTime UTCTime default=CURRENT_TIMESTAMP
+            updatedTime UTCTime default=CURRENT_TIMESTAMP
+            updatedBy PersonId 
             generalMailBox Text -- email id for sending out of office messages.
+            companyImage Text Maybe 
             CompanyUniqueID companyID 
             deriving Show Eq
         CompanyDomain json 
@@ -270,18 +274,41 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             startDate UTCTime 
             endDate UTCTime 
             deriving Show Eq 
-        PassphraseManager 
+        PassphraseManager json 
             passphrase Text 
             passphraseKey Text 
             deriving Show Eq
-        Portfolio 
+        Portfolio json
             symbol Text
             quantity Double
             symbolType PortfolioSymbolType 
             deriving Show Eq
-        MarketDataSubscription 
+        MarketDataSubscription json
             ownerId PersonId
             sourceName Text 
             realtimeInterval Double  
             deriving Show Eq 
+        Project json 
+            identification Text 
+            companyId CompanyId
+            projectSummary Text 
+            projectDetails Text 
+            projectStartDate UTCTime 
+            projectEndDate UTCTime 
+            submittedBy PersonId
+            UniqueProject identification companyId  
+            deriving Show Eq 
+        ProjectSlideshow json 
+            project ProjectId 
+            slidePosition Int 
+            slideImage Base64Text
+            caption Text 
+            deriving Show Eq 
+        ProjectReport 
+            project ProjectId 
+            reportSummary Text 
+            reportData ByteString 
+            reportDocumentFormat DocumentFileFormat 
+            reportType ProjectReportType
+            deriving Show Eq
         |]

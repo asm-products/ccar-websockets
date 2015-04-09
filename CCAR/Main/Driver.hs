@@ -51,7 +51,8 @@ import CCAR.Main.GroupCommunication as GroupCommunication
 import CCAR.Main.UserJoined as UserJoined 
 import CCAR.Command.ErrorCommand 
 import CCAR.Model.Person
-
+import CCAR.Model.Company as Company 
+import CCAR.Model.Project as Project
 
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
@@ -458,7 +459,8 @@ processCommandValue app aConn nickName (Object a)   = do
                                     , ser $ CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
                                 )
                 String "SendMessage" -> processSendMessage (Object a)
-
+                String "ManageCompany" -> Company.manageCompany nickName (Object a)
+                String "ManageProject" -> Project.manageProject nickName (Object a)
                 String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 _ -> 
                     return 

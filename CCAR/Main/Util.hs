@@ -7,4 +7,7 @@ import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
 
-ser = L.toStrict . E.decodeUtf8 . (En.encode)
+
+
+serialize :: (ToJSON a) => a -> T.Text 
+serialize  = L.toStrict . E.decodeUtf8 . En.encode  
