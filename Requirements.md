@@ -6,7 +6,6 @@ A haxe based websocket client interacting with a yesod websockets server.
 
 ### Core functions
 
-### Managing the chat through a reseller is not clear to me
 ### Login (Regular User  - Not through a reseller)
 ##### Login (Returning user)
 	* Connect to the server 
@@ -23,6 +22,17 @@ A haxe based websocket client interacting with a yesod websockets server.
 	Register the user.
 	Notify the rest of the community of a new user (perhaps if they would like to welcome the user).
 	Begin processing events	
+
+
+##### Allow a given user to open multiple connections
+	Once a user has successfully logged in, the user must be allowed to
+	open multiple connections. This is to enable user to load large data
+	sets on a different channel. 
+##### What can a user do in guest mode
+	Send a few messages.
+	Stay online for 5 - 10 mins as a guest user.
+	Decrements the number of guest logins allowed.
+
 
 ##### Send messages (private)
 	@nickName should send a request for a private message to the user. If the user
@@ -44,6 +54,8 @@ A haxe based websocket client interacting with a yesod websockets server.
 		* Reseller may not require guests to enter an email id, only nick name.
 		* If the email_id is present, then the reseller must have created a profile
 			for the user: which could be one of the predefined roles. 
+
+
 
 ##### CCAR Workbench
 	Query notifications --------------------------------> 
@@ -146,4 +158,14 @@ The user interface, needs to allow the user to navigate the support needs with
 bells and alarms to ensure that no message is lost.
 
 
+##### Create a company record
 
+##### Create a company slideshow.
+
+##### Upload company videos.
+
+##### Create a project case study
+	. Create project summary
+	. Create project financials
+	. Create project slideshow.
+	

@@ -50,6 +50,7 @@
 	<ul id ="workbench" class="tabs col_12">
 	<li><a href="#workbench-messaging">Messaging</a></li>
 	<li><a href="#workbench-general">General Info </a></li>
+	<li><a href="#workbench-company">Add company</a></li>
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content col_12">
@@ -78,9 +79,37 @@
 			</div>
 			</div>
 	</div>
-	<div id="workbench-general">
+	<div id="workbench-general" class="tab-content col_12">
 
 	</div>
+	<div id="workbench-company" class="tab-content col_12">
+		<div class="col_12">	
+			<div id="companyForm">
+				<div class="col_12">
+					<label for="companyName">Name </label>
+					<input id="companyName" type="text" />
+				</div>
+				<div class="col_12">
+					<!-- Placeholder Text -->
+					<label for="companyID">Company Identification Number </label>
+					<input id="companyID" type="text" placeholder="Tax id number or some such number" />
+				</div>
+				<div class="col_12">
+					<label for="generalMailBox" >Company General Mailbox</label>
+					<input id="generalMailBox" type="text" />
+				</div>
+				<div class="col_12">
+				<label for="companyImage">Splash</label>
+				<input id="companyImage" type="file"/>
+				</div>
+	 			<div class="col12">
+					<label for="saveCompany"> Signup </label>
+					<button id="saveCompany"> Signup </button>
+				</div>			
+			</div>
+		</div>
+	</div>
+
 <div class="haxe:trace"></div>
 <script type="text/javascript" src="mbooks_im.js"></script>
 

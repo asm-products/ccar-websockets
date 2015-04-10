@@ -13,6 +13,7 @@ import js.html.WebSocket;
 import js.html.DOMCoreException;
 import js.html.DivElement;
 import js.html.Document;
+import js.html.File;
 import js.html.KeyboardEvent;
 import js.html.InputElement;
 import js.html.SelectElement;
@@ -34,6 +35,7 @@ import promhx.Promise;
 import massive.munit.TestRunner;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
+
 
 class MBooks_im {
 
@@ -71,6 +73,11 @@ class MBooks_im {
 		var mStream : Stream<Dynamic> = 
 			initializeElementStream(getMessageInput(), "keyup");
 		mStream.then(sendMessage);
+
+		var companySignupStream : Stream<Dynamic> = 
+			initializeElementStream(getCompanySignup(), "click");
+		companySignupStream.then(signupCompany);
+
 
 	}
 
@@ -391,7 +398,8 @@ class MBooks_im {
 	private static var STATUS_MESSAGE = "statusMessage";
 	private static var KICK_USER = "kickUser";
 	private static var KICK_USER_DIV = "kickUserDiv";
-
+	private static var COMPANY_SIGNUP = "saveCompany"; // disconnect?
+	private static var COMPANY_IMAGE = "companyImage";
 	private function getKickUserElement() : InputElement {
 		return (cast Browser.document.getElementById(KICK_USER));
 	}
@@ -433,6 +441,14 @@ class MBooks_im {
 		var inputElement : InputElement = cast Browser.document.getElementById(REGISTER);
 		return inputElement;
 
+	}
+	private function getCompanySignup () : ButtonElement {
+		var buttonElement : ButtonElement = cast Browser.document.getElementById(COMPANY_SIGNUP);
+		return buttonElement;
+	}
+	private function getCompanyImage() : InputElement {
+		var fileElement : InputElement = cast Browser.document.getElementById(COMPANY_IMAGE);
+		return fileElement;
 	}
 
 	private function getMessageInput() : InputElement {
@@ -612,6 +628,13 @@ class MBooks_im {
 			throw "Null value for input element";
 		}
 	}
+
+	private function signupCompany(ev : Event) {
+		trace("Signup company");
+		trace(" " + getCompanyImage().value);
+
+	}
+
 	var attempts : Int = 0;
 	var serverHost : String = "localhost";
 	var protocol : String = "ws";

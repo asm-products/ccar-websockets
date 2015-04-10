@@ -12,9 +12,6 @@ Assembly products are like open-source and made with contributions from the comm
 
 Visit [https://assembly.com](https://assembly.com) to learn more.
 =======
-ccar-websockets
-===============
-Provide users a way to evaluate and manage portfolio risks.
 
 
 Software
@@ -43,3 +40,5 @@ Installation of the yesod toolchain
 * $ cabal install yesod-core --max-backjumps=-1 --reorder-goals --reinstall
 
 
+Instructions to login to postgres
+====================================
