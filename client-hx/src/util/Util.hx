@@ -143,6 +143,17 @@ class Util {
 
 	}
 
+	public static function showDivField(fieldName : String) {
+		var div : DivElement = cast (Browser.document.getElementById(fieldName));
+		div.setAttribute("style", "display:normal");
+	}
+
+	public static function hideDivField(fieldName : String) {
+		var div : DivElement = cast Browser.document.getElementById(fieldName);
+		div.setAttribute("style", "display:none");
+	}
+
+
 	//Prefix: to maintain uniqueness
 	private static var LABEL: String = "LABEL_";
 	private static var DIV : String = "DIV_";

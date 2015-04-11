@@ -64,11 +64,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         Company json 
             companyName Text 
             companyID Text  -- Tax identification for example.
+            generalMailbox Text -- email id for sending out of office messages.
+            companyImage Text 
+            updatedBy PersonId
             signupTime UTCTime default=CURRENT_TIMESTAMP
             updatedTime UTCTime default=CURRENT_TIMESTAMP
-            updatedBy PersonId 
-            generalMailBox Text -- email id for sending out of office messages.
-            companyImage Text Maybe 
             CompanyUniqueID companyID 
             deriving Show Eq
         CompanyDomain json 

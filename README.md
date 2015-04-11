@@ -42,3 +42,4 @@ Installation of the yesod toolchain
 
 Instructions to login to postgres
 ====================================
+sudo -u postgres psql -d <dbname>

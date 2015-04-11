@@ -258,7 +258,7 @@ iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
 
 pJSON :: (FromJSON a) => T.Text -> IO (Either String (Maybe a))
 pJSON  aText = do
-    putStrLn $  "pJSON " ++ (T.unpack aText)
+    --putStrLn $  "pJSON " ++ (T.unpack aText)
     return $ iParseJSON aText
 
 decoder :: Command -> T.Text 
@@ -493,7 +493,7 @@ getNickName aCommand =
 
 processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
 processIncomingMessage app conn aNickName aCommand = do 
-    putStrLn $  "Processing incoming message " ++ (show aCommand)
+    --putStrLn $  "Processing incoming message " ++ (show aCommand)
     case aCommand of 
         Nothing -> do
                 putStrLn $ "Processing error..."
@@ -642,7 +642,7 @@ ccarApp = do
         app <- getYesod
         liftIO $ putStrLn "Before receiving data..."
         command <- liftIO $ WSConn.receiveData connection
-        liftIO $ putStrLn $ show (command :: T.Text)
+        --liftIO $ putStrLn $ show (command :: T.Text)
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary (command :: T.Text)
         clientState <- atomically $ getClientState nickNameV app
         liftIO $ putStrLn "Before showing client state"
@@ -701,7 +701,7 @@ processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
             putStrLn $ "User logged in " ++ (show text)
-            putStrLn $ "Incoming command " ++ (show command)
+--            putStrLn $ "Incoming command " ++ (show command)
             messageLimit <- liftIO $ getMessageCount nickNameV
             putStrLn $ "Using message limit " ++ (show messageLimit)
             messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit
@@ -769,7 +769,7 @@ readerThread app nickN terminate = do
                                                     connection nickN h)
                                 readerThread app nickN terminate
             Nothing -> readerThread app nickN True  
-        liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show conn)
+        --liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show conn)
         
 
 
@@ -786,14 +786,13 @@ writerThread app connection nickName terminate = do
                         writerThread app connection nickName True
                         return "Close request received")
             (result, nickName) <- liftIO $ getNickName $ incomingDictionary (msg :: T.Text)
-            putStrLn $ show $ msg  `mappend` nickName
+            --putStrLn $ show $ msg  `mappend` nickName
             case result of 
                 Nothing -> do 
                         liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just _ -> do 
                     liftIO $ putStrLn $ "Writer thread :-> Message nickName " `mappend` (show nickName)
                     (dest, x) <- liftIO $ processIncomingMessage app connection nickName$ incomingDictionary msg
-                    liftIO $ putStrLn $ "Writer thread :-> Writing command " ++ (show x)
                     atomically $ do 
                                     clientStates <- case dest of 
                                         Broadcast -> getAllClients app nickName 

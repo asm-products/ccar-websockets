@@ -17,7 +17,7 @@ import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
-import CCAR.Main.Util
+import CCAR.Main.Util as Util
 import Control.Monad.Error
 import CCAR.Model.Person
 
@@ -28,7 +28,7 @@ data UserLoggedIn = UserLoggedIn {userName :: T.Text};
 data UserLeft = UserLeft {leftNickName :: T.Text};
 data GuestUser = GuestUser {unGuest :: T.Text}
 
-
+ser = Util.serialize
 
 parseUserBanned v = UserBanned <$>
 						v .: "userName"

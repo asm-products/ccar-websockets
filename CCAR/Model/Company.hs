@@ -2,9 +2,9 @@ module CCAR.Model.Company
 	( promoteToChatMinder
 	, revokeChatMinderPermissions
 	, manageCompany
-	)
-  
-where 
+	, parseManageCompany
+	, process
+	) where 
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
 import Control.Applicative as Appl
@@ -19,7 +19,7 @@ import qualified CCAR.Main.GroupCommunication as GC
 import Data.Aeson
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
-
+import Data.Monoid
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L 
 
@@ -31,52 +31,75 @@ import CCAR.Main.Util
 data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
 
+data CompanyT = CompanyT {
+		companyName :: T.Text
+		, companyID :: T.Text
+		, companyImage :: T.Text
+		, generalMailbox :: T.Text		
+	} deriving(Show, Eq)
+
+
 data ManageCompany = ManageCompany {
         nickName :: T.Text
         , crudType :: CRUD 
-        , survey :: Company 
+        , company :: CompanyT 
     } deriving (Show, Eq)
 
 
 type CompanyID = T.Text 
 
 
-insertCompany :: NickName -> Company -> IO Company 
+insertCompany :: NickName -> CompanyT -> IO Company 
 insertCompany aNickName aCompany = do 
 	currentTime <- getCurrentTime 
-	x <- dbOps $ do 
-			insert aCompany {companySignupTime = currentTime}
-	return aCompany
+	putStrLn "Inside insert company"
+	dbOps $ do 
+		person <- getBy $ PersonUniqueNickName aNickName
+		case person of 
+			Just(Entity personId v) -> do  
+				insert c
+				return c
+				where 
+					c = Company 
+							(companyName aCompany)
+							(companyID aCompany)
+							(generalMailbox aCompany)
+							(companyImage aCompany)
+							personId
+							currentTime					
+							currentTime
 
-deleteCompany :: Company -> IO Company 
+
+
+deleteCompany :: CompanyT -> IO Company 
 deleteCompany aCompanyId = dbOps $ 
 	do 
-		company <- getBy $ CompanyUniqueID (companyCompanyID aCompanyId)
+		company <- getBy $ CompanyUniqueID (companyID aCompanyId)
 		case company of 
 			Just (Entity k v) -> 
 				do 
 					delete k 
 					return v
 
-updateCompany :: NickName -> Company -> IO Company 
+updateCompany :: NickName -> CompanyT -> IO Company 
 updateCompany aNickName aCompany = do 
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
 		person <- getBy $ PersonUniqueNickName aNickName 
 		case person of 
 			Just (Entity p _ ) -> do 
-				company <- getBy $  CompanyUniqueID (companyCompanyID aCompany)
+				company <- getBy $  CompanyUniqueID (companyID aCompany)
 				case company of
 					Just (Entity k v) -> do 
 						Postgresql.replace k $ 
-							aCompany {companyUpdatedTime = currentTime
-									  , companyUpdatedBy = p }
+							v {companyUpdatedTime = currentTime
+									  , companyUpdatedBy = p } -- XXX: Change it back to p
 						return v
 	return x 
 
 
 queryCompany aNickName aCompany = do 
-	x <- dbOps $ getBy $ CompanyUniqueID (companyCompanyID aCompany)
+	x <- dbOps $ getBy $ CompanyUniqueID (companyID aCompany)
 	case x of 
 		Just (Entity p v) -> return v
 
@@ -136,20 +159,27 @@ revokeChatMinderPermissions :: NickName -> CompanyID -> IO()
 revokeChatMinderPermissions aNickName aCompanyId = updateCompanyChatMinder aNickName aCompanyId False
 
 process c@(ManageCompany nickName crudType company) =  do 
+
 	case crudType of 
 	        Create -> insertCompany nickName company		            		
 	        C_Update -> updateCompany nickName company 
 	        Read -> queryCompany nickName company
 	        Delete -> deleteCompany company
 
+
 manageCompany aNickName (Object a) = do 
-    case (parse parseManageCompany a) of
-        Success r -> do 
-        		company <- process r  
-        		return (GC.Reply, 
-        				serialize company) 
-        Error s -> return (GC.Reply, 
-                    serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
+	_ <- liftIO $ putStrLn $ "managing company " <> (T.unpack aNickName) <> (show a)
+	case (parse parseManageCompany a) of
+	    Success r -> do
+	    		putStrLn "manage success" 
+	    		company <- process r  
+	    		return (GC.Reply, 
+	    				serialize company) 
+	    Error s -> do 
+			  putStrLn $ " Error " ++ (show s) ++ ("-") ++ show a 
+			  return (GC.Reply, 
+				    	serialize $ genericErrorCommand $ 
+				    		"Sending message failed " ++ s)
 
 
 gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
@@ -157,11 +187,32 @@ gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
                     , "commandType" .= ("ManageCompany" :: T.Text)
                     , "nickName" .= nickName]
 
-parseManageCompany v = ManageCompany <$>
-                    v .: "nickName" <*> 
-                    v .: "crudType" <*>
-                    v .: "company"
+parseManageCompany v = do
+					nickName <- v .: "nickName"
+					crudType <- v .: "crudType"
+					company  <- v .: "company"
+					return $ ManageCompany nickName crudType company
 
+
+parseCompany v = do 
+                companyName <- v .: "companyName"
+                companyID <- v .: "companyID"
+                companyImage <- v .: "companyImage"
+                generalMailbox <- v .: "generalMailbox"
+                return $ CompanyT companyName companyID companyImage generalMailbox
+
+genCompany (CompanyT a b c d) = object [
+			"companyName" .= a 
+			, "companyID" .= b
+			, "companyImage" .= c 
+			, "generalMailbox" .= d 
+	]
+instance FromJSON CompanyT where 
+    parseJSON (Object v) = parseCompany v
+    parseJSON _          = Appl.empty
+
+instance ToJSON CompanyT where
+	toJSON = genCompany
 
 instance ToJSON CRUD 
 instance FromJSON CRUD 
