@@ -182,6 +182,9 @@ class MBooks_im {
 			case CCARUpload : {
 				trace("Parsing ccar upload " + incomingMessage);
 			}
+			case ManageCompany : {
+				Company.processManageCompany(incomingMessage);
+			}
 			case ParsedCCARText : {
 				//processParsedCCARText(incomingMessage);
 			}

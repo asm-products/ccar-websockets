@@ -113,20 +113,19 @@ class Company {
 			var reader : FileReader = cast ev.target;
 			var imageSplash : ImageElement = 
 				getCompanySplashElement();
-			imageSplash.src = reader.result;
-			saveCompanyInfo();
+			saveCompanyInfo(reader.result);
 		}catch(e : Dynamic) {
 			trace("Exception " + e);
 		}
 	}
 
-	private function saveCompanyInfo() {
+	private function saveCompanyInfo(encodedString) {
 		trace("Saving company info");
 		var companyName : String = getCompanyName();
 		var companyID : String = getCompanyID();
 		var companyMailbox : String = getCompanyMailbox();
 		var imageSplash : ImageElement = getCompanySplashElement();
-		var imageEncoded : String = imageSplash.src;
+		var imageEncoded : String = encodedString;
 
 		var payload : Dynamic = {
 			nickName : MBooks_im.getSingleton().getNickName()
@@ -136,7 +135,7 @@ class Company {
 				companyName : companyName
 				, companyID : companyID
 				, generalMailbox : companyMailbox
-				, companyImage : ""
+				, companyImage : imageEncoded
 				, updatedBy : MBooks_im.getSingleton().getNickName()
 				} 
 		};
@@ -144,6 +143,12 @@ class Company {
 
 	}
 	
+	public static function processManageCompany(incomingMessage) {
+		trace("Process manage company ");
+		var imageSplash : ImageElement = 
+				getCompanySplashElement();
+		imageSplash.src = incomingMessage.company.companyImage;
+	}
 
 
 }

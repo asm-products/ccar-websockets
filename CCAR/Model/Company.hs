@@ -168,7 +168,6 @@ process c@(ManageCompany nickName crudType company) =  do
 
 
 manageCompany aNickName (Object a) = do 
-	_ <- liftIO $ putStrLn $ "managing company " <> (T.unpack aNickName) <> (show a)
 	case (parse parseManageCompany a) of
 	    Success r -> do
 	    		putStrLn "manage success" 
