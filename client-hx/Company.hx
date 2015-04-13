@@ -156,8 +156,14 @@ class Company {
 		var imageSplash : ImageElement = getCompanySplashElement();
 		var imageEncoded : String = encodedString;
 		var nickName  = MBooks_im.getSingleton().getNickName();
+		var crud = "";
+		if(newCompany) {
+			crud = "Create";
+		}else {
+			crud = "C_Update";
+		}
 		var payload = getPayload(nickName
-				, "Create"
+				, crud
 				, companyName
 				, companyID
 				, companyMailbox
@@ -171,7 +177,7 @@ class Company {
 		trace("Chk company exists");
 		if(Util.isSignificantWS(ev.keyCode)){
 			var nickName = MBooks_im.getSingleton().getNickName();
-			var payload = getPayload(nickName, "Query"
+			var payload = getPayload(nickName, "Read"
 						, ""
 						, getCompanyID()
 						, ""
@@ -188,10 +194,10 @@ class Company {
 		trace(incomingMessage);
 		if(crudType == "Create") {
 			trace("Create successful");
-		}else if (crudType == "Query") {
+		}else if (crudType == "Read") {
 			copyIncomingValues(incomingMessage);
-
-		}else if (crudType == "Update") {
+			newCompany = false;
+		}else if (crudType == "C_Update") {
 			copyIncomingValues(incomingMessage);
 		}else if (crudType == "Delete"){
 			clearFields(incomingMessage);
@@ -201,12 +207,16 @@ class Company {
 
 	}
 	private function copyIncomingValues(incomingMessage){
+		try {
 		getCompanyNameElement().value = incomingMessage.company.companyName;
 		getCompanyIDElement().value = incomingMessage.company.companyID;
 		getCompanyMailboxElement().value = incomingMessage.company.generalMailbox;
 		var imageSplash : ImageElement = 
 				getCompanySplashElement();
-		imageSplash.src = incomingMessage.company.companyImage;
+		imageSplash.src = incomingMessage.company.companyImage;		
+		}catch(error: Dynamic) {
+			throw error;
+		}
 
 	}
 

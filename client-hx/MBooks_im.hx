@@ -243,6 +243,9 @@ class MBooks_im {
 			case UserLeft : {
 				processUserLeft(incomingMessage);
 			}
+			case KeepAlive : {
+				trace("Processing keep alive");
+			}
 
 		}
 	}

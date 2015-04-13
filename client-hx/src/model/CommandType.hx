@@ -23,4 +23,6 @@ enum CommandType {
 	UserLoggedIn;
 	UserBanned;
 	ManageCompany;
+	KeepAlive;
+
 }

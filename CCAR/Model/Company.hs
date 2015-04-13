@@ -48,6 +48,15 @@ data ManageCompany = ManageCompany {
 
 type CompanyID = T.Text 
 
+-- A type converter. The dto/dao hibernate model 
+-- seems to live on!
+manageCommandDTO :: NickName -> CRUD -> Company -> ManageCompany 
+manageCommandDTO a c co = 
+	ManageCompany a c $
+			CompanyT (companyCompanyName co )
+					 (companyCompanyID co)
+					 (companyCompanyImage co) 
+					 (companyGeneralMailbox co)
 
 insertCompany :: NickName -> CompanyT -> IO Company 
 insertCompany aNickName aCompany = do 
@@ -82,7 +91,7 @@ deleteCompany aCompanyId = dbOps $
 					return v
 
 updateCompany :: NickName -> CompanyT -> IO Company 
-updateCompany aNickName aCompany = do 
+updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
 		person <- getBy $ PersonUniqueNickName aNickName 
@@ -91,10 +100,13 @@ updateCompany aNickName aCompany = do
 				company <- getBy $  CompanyUniqueID (companyID aCompany)
 				case company of
 					Just (Entity k v) -> do 
-						Postgresql.replace k $ 
-							v {companyUpdatedTime = currentTime
-									  , companyUpdatedBy = p } -- XXX: Change it back to p
-						return v
+							res <- return v { companyCompanyName = tName
+									, companyCompanyImage = tImage
+									, companyGeneralMailbox = tGen
+									, companyUpdatedTime = currentTime
+									, companyUpdatedBy = p } -- XXX: Change it back to p
+							Postgresql.replace k res
+							return res
 	return x 
 
 
@@ -169,11 +181,11 @@ process c@(ManageCompany nickName crudType company) =  do
 
 manageCompany aNickName (Object a) = do 
 	case (parse parseManageCompany a) of
-	    Success r -> do
+	    Success r@(ManageCompany a cType company) -> do
 	    		putStrLn "manage success" 
 	    		company <- process r  
 	    		return (GC.Reply, 
-	    				serialize company) 
+	    				serialize $ manageCommandDTO aNickName cType company)
 	    Error s -> do 
 			  putStrLn $ " Error " ++ (show s) ++ ("-") ++ show a 
 			  return (GC.Reply, 
