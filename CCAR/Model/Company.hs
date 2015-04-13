@@ -210,8 +210,23 @@ instance FromJSON CompanyT where
     parseJSON (Object v) = parseCompany v
     parseJSON _          = Appl.empty
 
+
+
 instance ToJSON CompanyT where
 	toJSON = genCompany
+
+instance Show Company where
+	show c@(Company cName cID gM _ updatedBy s u ) = 
+		(show cName)
+		++ ":" 
+		++ show cID 
+		++ ":"
+		++ (show gM) 
+		++ ": (image data) " 
+		++ ": " ++ (show updatedBy)
+		++ ":" ++ (show s)
+		++ ":" ++ (show u)
+
 
 instance ToJSON CRUD 
 instance FromJSON CRUD 

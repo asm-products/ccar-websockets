@@ -82,7 +82,7 @@ class MBooks_im {
 
 	static function main() {
 		singleton = new MBooks_im();
-		var company : Company = new Company();
+		singleton.company = new Company();
 		singleton.connect();
 	}
 
@@ -110,6 +110,7 @@ class MBooks_im {
 		}catch(err : Dynamic) {
 			trace("Error establishing connection " + err);
 		}
+		trace("Connection successful");
 	}
 
 
@@ -183,7 +184,7 @@ class MBooks_im {
 				trace("Parsing ccar upload " + incomingMessage);
 			}
 			case ManageCompany : {
-				Company.processManageCompany(incomingMessage);
+				company.processManageCompany(incomingMessage);
 			}
 			case ParsedCCARText : {
 				//processParsedCCARText(incomingMessage);
@@ -628,6 +629,6 @@ class MBooks_im {
 	var timer : Timer;
 	var outputEventStream : Deferred<Dynamic>;
 	var person : model.Person;
-
+	var company : Company;
 
 }

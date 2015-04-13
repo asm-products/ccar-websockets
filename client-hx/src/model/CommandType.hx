@@ -22,4 +22,5 @@ enum CommandType {
 	UserLeft;
 	UserLoggedIn;
 	UserBanned;
+	ManageCompany;
 }

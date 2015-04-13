@@ -70,7 +70,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             signupTime UTCTime default=CURRENT_TIMESTAMP
             updatedTime UTCTime default=CURRENT_TIMESTAMP
             CompanyUniqueID companyID 
-            deriving Show Eq
+            deriving Eq
         CompanyDomain json 
             company CompanyId 
             domain Text 

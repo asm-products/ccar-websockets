@@ -46,11 +46,19 @@ class Company {
 	private static var COMPANY_ID = "companyID";
 	private static var COMPANY_MAILBOX = "generalMailbox";
 	private static var COMPANY_FORM_ID = "companyForm";
+
+	private var newCompany : Bool;
+	
 	public function new() {
+		trace("Instantiating company");
+		newCompany = true;
 		var stream : Stream<Dynamic> = 
 			MBooks_im.getSingleton().initializeElementStream(
 				cast getCompanySignup()
 				,"click");
+		var cidStream : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream(cast getCompanyIDElement(), "keyup");			
+		cidStream.then(chkCompanyExists);
 		stream.then(saveButtonPressed);
 	}
 	private function getCompanySignup () : ButtonElement {
@@ -77,7 +85,7 @@ class Company {
 		return (getCompanyIDElement().value);
 	}
 
-	private function getCompanyMailboxElement() {
+	private function getCompanyMailboxElement() : InputElement {
 		return (cast Browser.document.getElementById(COMPANY_MAILBOX));
 	}
 	private function getCompanyMailbox() {
@@ -106,6 +114,27 @@ class Company {
 		reader.readAsDataURL(file);		
 	}
 
+	private function getPayload(nickName, crudType
+					, companyName
+					, companyID
+					, companyMailbox 
+					, companyImage1
+					, updatedBy) : Dynamic {
+		var payload : Dynamic = {
+			nickName : nickName
+			, commandType : "ManageCompany"
+			, crudType : crudType
+			, company : {
+				companyName : companyName
+				, companyID : companyID
+				, generalMailbox : companyMailbox
+				, companyImage : companyImage1
+				, updatedBy : nickName
+				} 
+		};
+		return payload;
+
+	}
 
 	private function loadImage(ev: Event){
 		trace("Load image");
@@ -126,29 +155,66 @@ class Company {
 		var companyMailbox : String = getCompanyMailbox();
 		var imageSplash : ImageElement = getCompanySplashElement();
 		var imageEncoded : String = encodedString;
-
-		var payload : Dynamic = {
-			nickName : MBooks_im.getSingleton().getNickName()
-			, commandType : "ManageCompany"
-			, crudType : "Create"
-			, company : {
-				companyName : companyName
-				, companyID : companyID
-				, generalMailbox : companyMailbox
-				, companyImage : imageEncoded
-				, updatedBy : MBooks_im.getSingleton().getNickName()
-				} 
-		};
+		var nickName  = MBooks_im.getSingleton().getNickName();
+		var payload = getPayload(nickName
+				, "Create"
+				, companyName
+				, companyID
+				, companyMailbox
+				, imageEncoded
+				, nickName);
 		MBooks_im.getSingleton().doSendJSON(payload);
 
 	}
 	
-	public static function processManageCompany(incomingMessage) {
+	private function chkCompanyExists(ev : KeyboardEvent) {
+		trace("Chk company exists");
+		if(Util.isSignificantWS(ev.keyCode)){
+			var nickName = MBooks_im.getSingleton().getNickName();
+			var payload = getPayload(nickName, "Query"
+						, ""
+						, getCompanyID()
+						, ""
+						, ""
+						, "");
+
+			MBooks_im.getSingleton().doSendJSON(payload);
+		}
+	}
+
+	public function processManageCompany(incomingMessage) {
 		trace("Process manage company ");
+		var crudType = incomingMessage.crudType;
+		trace(incomingMessage);
+		if(crudType == "Create") {
+			trace("Create successful");
+		}else if (crudType == "Query") {
+			copyIncomingValues(incomingMessage);
+
+		}else if (crudType == "Update") {
+			copyIncomingValues(incomingMessage);
+		}else if (crudType == "Delete"){
+			clearFields(incomingMessage);
+		}else {
+			throw ("Invalid crudtype " + crudType);
+		}
+
+	}
+	private function copyIncomingValues(incomingMessage){
+		getCompanyNameElement().value = incomingMessage.company.companyName;
+		getCompanyIDElement().value = incomingMessage.company.companyID;
+		getCompanyMailboxElement().value = incomingMessage.company.generalMailbox;
 		var imageSplash : ImageElement = 
 				getCompanySplashElement();
 		imageSplash.src = incomingMessage.company.companyImage;
+
 	}
 
+	private function clearFields(incomingMessage) {
+		getCompanyNameElement().value = "";
+		getCompanyIDElement().value = "";
+		getCompanyMailboxElement().value = "";
+		getCompanySplashElement().src = "";
+	}
 
 }
