@@ -146,6 +146,7 @@ class MBooks_im {
 
 	public function onClose(ev: CloseEvent){
 		trace("Connection closed " + ev.code + "->" + ev.reason);
+		setError(ev.code + ":" + ev.reason);
 		disableKeepAlive();
 
 
@@ -621,6 +622,15 @@ class MBooks_im {
 		}else {
 			throw "Null value for input element";
 		}
+	}
+
+	private function getServerErrorElement() {
+		return (cast (Browser.document.getElementById(SERVER_ERROR)));
+	}
+	private static var SERVER_ERROR : String = "serverError";
+
+	private function setError(aMessage) {
+		getServerErrorElement().value = aMessage;
 	}
 
 	var attempts : Int = 0;

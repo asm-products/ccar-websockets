@@ -1,8 +1,10 @@
-ccar-websockets
+Sbr information system
 ===============
 ### Objective
+Design and implement a realtime informmation system for sbr.
+
 ### Architecture
-A haxe based websocket client interacting with a yesod websockets server.
+Haxe based websocket client interacting with a yesod websockets server.
 
 ### Core functions
 
@@ -56,20 +58,6 @@ A haxe based websocket client interacting with a yesod websockets server.
 			for the user: which could be one of the predefined roles. 
 
 
-
-##### CCAR Workbench
-	Query notifications --------------------------------> 
-						<-------------------------------  Sends all notifications
-	Get user design templates --------------------------> 
-						<-------------------------------  Sends all the design templates for the user
-
-	Get all messages ----------------------------------->
-					<----------------------------------- Return all off line messages
-	Get all scenarios ------------------------------->
-					<-----------------------------------  Return all scenarios
-
-
-
 ##### Send a gift
 	Send a request to send a gift and and amount
 	Giftee accepts the requset for the gift.
@@ -99,8 +87,6 @@ A haxe based websocket client interacting with a yesod websockets server.
 	Passphrase used to encode the script - this could get cumbersome to the user.
 	A user will be provided with a passphrase that was used to save the file.
 	Cost of the script for sharing.
-
-
 
 ##### Load rjobs
 	Load a set of jobs using the pdbr library. The user can specify the script, the source of the data
@@ -159,13 +145,16 @@ bells and alarms to ensure that no message is lost.
 
 
 ##### Create a company record
+	. Signup a company with its logo etc.
+	
 
 ##### Create a company slideshow.
-
+	
 ##### Upload company videos.
 
 ##### Create a project case study
 	. Create project summary
 	. Create project financials
 	. Create project slideshow.
+
 	

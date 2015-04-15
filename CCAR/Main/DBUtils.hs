@@ -28,6 +28,14 @@ instance ToJSON ContactType
 instance FromJSON ContactType 
 instance ToJSON PortfolioSymbolType
 instance FromJSON PortfolioSymbolType 
+instance ToJSON PublishState 
+instance FromJSON PublishState 
+instance ToJSON TimeUnit 
+instance FromJSON TimeUnit 
+instance ToJSON ProjectReportType
+instance FromJSON ProjectReportType 
+instance ToJSON DocumentFileFormat
+instance FromJSON DocumentFileFormat
 type NickName = Text
 type Base64Text = Text -- Base64 encoded text representing the image.
 
@@ -106,6 +114,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             support Bool
             locale Text Maybe
             UniqueCompanyUser companyId userId
+        CompanyUserRole json 
+            companyUserId CompanyUserId 
+            companyRole RoleType
+            permissionScope PermissionId 
 
         Person json
             firstName Text 
@@ -298,17 +310,36 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             submittedBy PersonId
             UniqueProject identification companyId  
             deriving Show Eq 
-        ProjectSlideshow json 
-            project ProjectId 
+        ProjectSlideShow json 
+            project ProjectId
+            summary Text 
+            slideDuration Int default = 1000
+            slideUnit TimeUnit default = Millis
+            slideShowState PublishState default = Draft
+            deriving Show Eq 
+        ProjectComment json 
+            commenter PersonId 
+            comment Text 
+            commentDate UTCTime 
+            commentFor ProjectId 
+            deriving Show Eq
+        ProjectSlideShowImage json 
+            project ProjectSlideShowId 
             slidePosition Int 
             slideImage Base64Text
             caption Text 
             deriving Show Eq 
-        ProjectReport 
+        ProjectReport json 
             project ProjectId 
             reportSummary Text 
-            reportData ByteString 
+            reportData Text 
             reportDocumentFormat DocumentFileFormat 
             reportType ProjectReportType
             deriving Show Eq
+        Permission json 
+            permission Text -- Read/Write
+            permissionCode Bool -- True/False
+            UniquePermission permissionCode
+            deriving Show Eq
+
         |]

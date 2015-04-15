@@ -118,5 +118,6 @@ createGuestLogin aNickName = do
             case person of 
                 Just (Entity personId _ ) -> insert $ GuestLogin currentTime personId 
 
+
 instance ToJSON CRUD
 instance FromJSON CRUD

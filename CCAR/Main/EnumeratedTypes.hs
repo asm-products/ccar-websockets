@@ -37,18 +37,15 @@ data DocumentFileFormat = Pdf | MicrosoftWord | OpenOffice
 data ProjectReportType = ClosureReport | ExecutiveSummary | ProjectFinancial
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
+data PublishState = Draft | Review | Published 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
--- The good old way to prevent spammers.
--- A user that sent messages that 
--- the senders deny will be banned or 
--- their privelege to send private messages will 
--- be revoked.
--- It can happen that a set of users could collude to
--- game the system. Each user will have to 
--- to gain some reputation before they can start to 
--- send private messages.
 data MessageCharacteristics = WillAcceptCharges | WillDenyCharges | Undecided
-			deriving (Show, Read, Eq)
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+data PermissionType = Read | Write 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+data TimeUnit = Millis | Seconds | Minutes
+			deriving (Show, Read, Eq, Data, Generic, Typeable) 
 
 derivePersistField "SupportedScript"
 derivePersistField "SurveyResponse"
@@ -62,3 +59,6 @@ derivePersistField "RoleType"
 derivePersistField "ContactType"
 derivePersistField "DocumentFileFormat"
 derivePersistField "ProjectReportType"
+derivePersistField "PublishState"
+derivePersistField "PermissionType"
+derivePersistField "TimeUnit"
