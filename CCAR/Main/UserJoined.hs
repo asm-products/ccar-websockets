@@ -1,3 +1,4 @@
+{--License: license.txt --}
 module CCAR.Main.UserJoined 
 	(UserJoined(..), userJoined, parseUserJoined
 		, userLoggedIn, UserLoggedIn(..)

@@ -2,7 +2,7 @@
 
 <a href="https://assembly.com/ccar-websockets/bounties?utm_campaign=assemblage&utm_source=ccar-websockets&utm_medium=repo_badge"><img src="https://asm-badger.herokuapp.com/ccar-websockets/badges/tasks.svg" height="24px" alt="Open Tasks" /></a>
 
-## CCAR (Comprehensive Capital Analysis and Review) aka stresstests is a model to evaluate a portfolio risk. This project provides a place to manage this for a user.
+## Something realtime....
 
 This is a product being built by the Assembly community. You can help push this idea forward by visiting [https://assembly.com/ccar-websockets](https://assembly.com/ccar-websockets).
 
@@ -14,7 +14,7 @@ Visit [https://assembly.com](https://assembly.com) to learn more.
 =======
 
 
-Software
+Compilers/libraries
 ================
 The versions listed are the ones on my host. Most of the chnages will be backward compatible, so if you 
 have downloaded a leter version, things will most likely work.
@@ -43,3 +43,4 @@ Installation of the yesod toolchain
 Instructions to login to postgres
 ====================================
 sudo -u postgres psql -d <dbname>
+

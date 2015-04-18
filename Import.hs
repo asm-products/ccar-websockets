@@ -1,3 +1,4 @@
+{--License: license.txt --}
 module Import
 	(module Import) where
 import 			 Text.ParserCombinators.Parsec as Import hiding (spaces, count)

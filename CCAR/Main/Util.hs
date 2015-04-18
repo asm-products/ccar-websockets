@@ -1,3 +1,4 @@
+{--License: license.txt --}
 module CCAR.Main.Util where
 import Data.Text as T  hiding(foldl, foldr)
 import Data.Aeson as J

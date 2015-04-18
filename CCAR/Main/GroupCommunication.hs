@@ -1,3 +1,4 @@
+{--License: license.txt --}
 {-# LANGUAGE RecordWildCards #-}
 
 module CCAR.Main.GroupCommunication 

@@ -1,3 +1,4 @@
+{--License: license.txt --}
 module CCAR.Model.CCAR 
 where
 import CCAR.Main.DBUtils

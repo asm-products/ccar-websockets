@@ -1,3 +1,4 @@
+{--License: license.txt --}
 module CCAR.Model.CcarDataTypes where
 import Import
 import Data.Text as Text

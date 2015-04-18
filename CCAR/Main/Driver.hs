@@ -1,3 +1,5 @@
+{--License: license.txt --}
+
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, TypeFamilies, OverloadedStrings #-}
 module CCAR.Main.Driver
 where 

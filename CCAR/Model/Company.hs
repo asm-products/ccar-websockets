@@ -1,9 +1,11 @@
+{--License: license.txt --}
 module CCAR.Model.Company
 	( promoteToChatMinder
 	, revokeChatMinderPermissions
 	, manageCompany
 	, parseManageCompany
 	, process
+	, ManageCompany(..)
 	) where 
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
@@ -28,7 +30,7 @@ import Data.Data
 import Data.Typeable 
 import Data.Time
 import CCAR.Main.Util 
-data CRUD = Create | Read | C_Update | Delete
+data CRUD = Create | Read | C_Update | Delete | SelectAllCompanies
     deriving(Show, Eq, Read, Data, Generic, Typeable)
 
 data CompanyT = CompanyT {
@@ -47,6 +49,8 @@ data ManageCompany = ManageCompany {
 
 
 type CompanyID = T.Text 
+
+
 
 -- A type converter. The dto/dao hibernate model 
 -- seems to live on!
@@ -89,6 +93,11 @@ deleteCompany aCompanyId = dbOps $
 				do 
 					delete k 
 					return v
+
+selectAllCompanies = dbOps $ do
+					companies <- selectList [] [LimitTo resultsPerPage]
+					mapM (\(Entity k v) -> v) companies
+					where resultsPerPage = 10
 
 updateCompany :: NickName -> CompanyT -> IO Company 
 updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 
@@ -171,13 +180,11 @@ revokeChatMinderPermissions :: NickName -> CompanyID -> IO()
 revokeChatMinderPermissions aNickName aCompanyId = updateCompanyChatMinder aNickName aCompanyId False
 
 process c@(ManageCompany nickName crudType company) =  do 
-
 	case crudType of 
 	        Create -> insertCompany nickName company		            		
 	        C_Update -> updateCompany nickName company 
 	        Read -> queryCompany nickName company
 	        Delete -> deleteCompany company
-
 
 manageCompany aNickName (Object a) = do 
 	case (parse parseManageCompany a) of
@@ -187,10 +194,19 @@ manageCompany aNickName (Object a) = do
 	    		return (GC.Reply, 
 	    				serialize $ manageCommandDTO aNickName cType company)
 	    Error s -> do 
-			  putStrLn $ " Error " ++ (show s) ++ ("-") ++ show a 
 			  return (GC.Reply, 
 				    	serialize $ genericErrorCommand $ 
 				    		"Sending message failed " ++ s)
+
+queryAllCompanies aNickName (Object a) = do 
+		case (parse parseManageCompany a) of 
+			Success r -> do 
+					companies <- selectAllCompanies 
+					companiesT <- mapM (\x@(Entity k v) -> 
+										return manageCommandDTO aNickName 
+										SelectAllCompanies v) companies
+					return (GC.Reply
+							, serialize $ companiesT)
 
 
 gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
@@ -218,6 +234,7 @@ genCompany (CompanyT a b c d) = object [
 			, "companyImage" .= c 
 			, "generalMailbox" .= d 
 	]
+
 instance FromJSON CompanyT where 
     parseJSON (Object v) = parseCompany v
     parseJSON _          = Appl.empty

@@ -1,3 +1,5 @@
+{--License: license.txt --}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module CCAR.Command where

@@ -1,3 +1,4 @@
+{--License: license.txt --}
 module CCAR.Parser.CCARParsec 
     (readExpr)
 where

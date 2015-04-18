@@ -1,3 +1,4 @@
+{--License: license.txt --}
 {-# LANGUAGE TemplateHaskell #-}
 
 module CCAR.Main.DBUtils where
@@ -303,38 +304,52 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         Project json 
             identification Text 
             companyId CompanyId
-            projectSummary Text 
-            projectDetails Text 
-            projectStartDate UTCTime 
-            projectEndDate UTCTime 
-            submittedBy PersonId
+            summary Text 
+            details Text 
+            startDate UTCTime 
+            endDate UTCTime 
+            uploadedBy PersonId
+            uploadTime UTCTime default = CURRENT_TIMESTAMP
+            preparedBy Text -- The name on the report (may not be registered with the site)
             UniqueProject identification companyId  
             deriving Show Eq 
         ProjectSlideShow json 
             project ProjectId
+            projectUUID Text 
             summary Text 
             slideDuration Int default = 1000
             slideUnit TimeUnit default = Millis
             slideShowState PublishState default = Draft
+            likes Int default = 0
+            UniqueSlideshow projectUUID
             deriving Show Eq 
         ProjectComment json 
+            commentUUID Text
+            parentCommentUUID Text  
             commenter PersonId 
             comment Text 
             commentDate UTCTime 
-            commentFor ProjectId 
+            commentFor ProjectId
+            UniqueProjectComment commentUUID
             deriving Show Eq
         ProjectSlideShowImage json 
             project ProjectSlideShowId 
+            slideUUID Text 
             slidePosition Int 
             slideImage Base64Text
             caption Text 
+            imageUUID Text 
+            likes Int default = 0
+            UniqueSlideShowImage slideUUID
             deriving Show Eq 
         ProjectReport json 
+            reportUUID Text
             project ProjectId 
             reportSummary Text 
             reportData Text 
             reportDocumentFormat DocumentFileFormat 
             reportType ProjectReportType
+            UniqueReport reportUUID 
             deriving Show Eq
         Permission json 
             permission Text -- Read/Write

@@ -1,3 +1,4 @@
+{--License: license.txt --}
 {-# LANGUAGE TemplateHaskell #-}
 module CCAR.Main.EnumeratedTypes where 
 import Database.Persist.TH
