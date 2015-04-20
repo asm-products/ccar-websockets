@@ -49,6 +49,6 @@ class Project {
 	var endDate : Date;
 	uploadedBy : String;
 	uploadTime : Date;
-	
+
 
 }
