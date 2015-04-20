@@ -5,7 +5,7 @@ module CCAR.Model.Company
 	, manageCompany
 	, parseManageCompany
 	, process
-	, ManageCompany(..)
+	, ManageCompany
 	) where 
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
@@ -94,9 +94,8 @@ deleteCompany aCompanyId = dbOps $
 					delete k 
 					return v
 
-selectAllCompanies = dbOps $ do
-					companies <- selectList [] [LimitTo resultsPerPage]
-					mapM (\(Entity k v) -> v) companies
+selectAllCompanies :: IO [Entity Company]
+selectAllCompanies = dbOps $ selectList [] [LimitTo resultsPerPage]
 					where resultsPerPage = 10
 
 updateCompany :: NickName -> CompanyT -> IO Company 
@@ -123,7 +122,6 @@ queryCompany aNickName aCompany = do
 	x <- dbOps $ getBy $ CompanyUniqueID (companyID aCompany)
 	case x of 
 		Just (Entity p v) -> return v
-		Nothing -> Nothing
 
 insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO ()
 insertCompanyPerson aNickName aCompanyId chatMinder = do
@@ -202,12 +200,15 @@ manageCompany aNickName (Object a) = do
 queryAllCompanies aNickName (Object a) = do 
 		case (parse parseManageCompany a) of 
 			Success r -> do 
-					companies <- selectAllCompanies 
+					companiesD <- selectAllCompanies
 					companiesT <- mapM (\x@(Entity k v) -> 
-										return manageCommandDTO aNickName 
-										SelectAllCompanies v) companies
+											return $ manageCommandDTO 
+											 aNickName 
+											 SelectAllCompanies v) 
+										companiesD
 					return (GC.Reply
-							, serialize $ companiesT)
+							, serialize companiesT)
+					where
 
 
 gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
