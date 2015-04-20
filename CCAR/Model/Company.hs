@@ -123,6 +123,7 @@ queryCompany aNickName aCompany = do
 	x <- dbOps $ getBy $ CompanyUniqueID (companyID aCompany)
 	case x of 
 		Just (Entity p v) -> return v
+		Nothing -> Nothing
 
 insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO ()
 insertCompanyPerson aNickName aCompanyId chatMinder = do

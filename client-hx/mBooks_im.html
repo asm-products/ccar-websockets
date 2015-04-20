@@ -53,7 +53,8 @@
 	<ul id ="workbench" class="tabs col_12">
 	<li><a href="#workbench-messaging">Messaging</a></li>
 	<li><a href="#workbench-general">General Info </a></li>
-	<li><a href="#workbench-company">Add company</a></li>
+	<li><a href="#workbench-company">Manage company</a></li>
+	<li><a href="#workbench-project">Manage projects</a></li>
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content col_12">
@@ -79,7 +80,7 @@
 						<input id="kickUser" style="width:400px"></input>
 
 				</div>
-			</div>
+				</div>
 			</div>
 	</div>
 	<div id="workbench-security" class="tab-content col_12">
@@ -108,12 +109,60 @@
 				<img id="companySplash" height="200"/>
 				</div>
 	 			<div class="col12">
-					<label for="saveCompany"> Signup </label>
-					<button id="saveCompany"> Signup </button>
+					<label for="saveCompany"> Save </label>
+					<button id="saveCompany"> Save </button>
+				</div>
 				</div>			
 			</div>
 		</div>
+
+	<div id="workbench-project" class="tab-content col_12">
+		<div class="col_6">
+			<form class="vertical" id="projectForm">
+				<div class="col_6">
+					<label for="projectIdentification" class="disabled"> 
+						Project Id (system generated)
+					</label>
+					<input id="projectIdentification" type="text" 
+							class="disabled">
+					</input>
+					<label for="companyList"> Company </label>
+					<select id="companyList">
+						<option value="0">-- Choose </option>
+					</select>
+					<label for="projectStart"> Start date </label>
+					<input id="projectStart" type="date" 
+							placeholder="Start date">
+					<label for="projectEnd"> End date </label>
+					<input id="projectEnd" type="date"
+							placeholder = "End date"/>					
+					<label for="preparedBy"> Prepared by </label>
+					<input id="preparedBy" type="text" 
+							placeholder="Prepared by (the project manager on the report)"/>
+
+					<label for="projectSummary">Summary </label>
+					<textarea id="projectSummary" rows ="5" type = "text">
+					</textarea>
+					<label for="projectDetails">Details</label>
+					<textarea id="projectDetails" rows="20">
+					</textarea>
+					<label for="saveProject"></label>
+					<button	id="saveProject"> Save </button>
+				</div>
+			</form>
+		</div>
+		<div class="col_6">
+			<form class="vertical" id="projectListForm">
+				<div class="col_6">
+					<label for="projectList"> Projects (List of all active, published projects) </label>
+					<select id="projectList">
+						<option value="0"> -- choose </option>
+					</select>
+				</div>
+			</form>
+		</div>
 	</div>
+
 
 <div class="haxe:trace"></div>
 <script type="text/javascript" src="mbooks_im.js"></script>
