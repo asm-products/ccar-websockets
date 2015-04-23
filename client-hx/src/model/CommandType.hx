@@ -24,5 +24,6 @@ enum CommandType {
 	UserBanned;
 	ManageCompany;
 	KeepAlive;
+	SelectAllCompanies;
 
 }

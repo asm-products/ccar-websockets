@@ -32,9 +32,11 @@ import js.html.ButtonElement;
 import js.html.TextAreaElement;
 import promhx.Stream;
 import promhx.Promise;
+import promhx.PublicStream;
 import massive.munit.TestRunner;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
+
 
 class Company {
 
@@ -48,19 +50,9 @@ class Company {
 	private static var COMPANY_FORM_ID = "companyForm";
 
 	private var newCompany : Bool;
+	private var selectListEventStream : Deferred<Dynamic>;
 	
-	public function new() {
-		trace("Instantiating company");
-		newCompany = true;
-		var stream : Stream<Dynamic> = 
-			MBooks_im.getSingleton().initializeElementStream(
-				cast getCompanySignup()
-				,"click");
-		var cidStream : Stream<Dynamic> = 
-			MBooks_im.getSingleton().initializeElementStream(cast getCompanyIDElement(), "keyup");			
-		cidStream.then(chkCompanyExists);
-		stream.then(saveButtonPressed);
-	}
+
 	private function getCompanySignup () : ButtonElement {
 		var buttonElement : ButtonElement = cast Browser.document.getElementById(SAVE_COMPANY);
 		return buttonElement;
@@ -112,6 +104,15 @@ class Company {
 				, "load");
 		stream_1.then(loadImage);
 		reader.readAsDataURL(file);		
+	}
+
+	private function selectAllCompanies(loggedInMessage) {
+		trace("Processing select all companies " + loggedInMessage);
+		var payload = {
+			nickName : MBooks_im.getSingleton().getNickName()
+			, commandType : "SelectAllCompanies"
+		};
+		MBooks_im.getSingleton().doSendJSON(payload);
 	}
 
 	private function getPayload(nickName, crudType
@@ -174,8 +175,9 @@ class Company {
 	}
 	
 	private function chkCompanyExists(ev : KeyboardEvent) {
-		trace("Chk company exists");
+		trace("Chk company exists " + ev.keyCode);
 		if(Util.isSignificantWS(ev.keyCode)){
+			try {
 			var nickName = MBooks_im.getSingleton().getNickName();
 			var payload = getPayload(nickName, "Read"
 						, ""
@@ -185,6 +187,10 @@ class Company {
 						, "");
 
 			MBooks_im.getSingleton().doSendJSON(payload);
+
+			}catch(err : Dynamic) {
+				trace("Error checking company " + err);
+			}
 		}
 	}
 
@@ -194,9 +200,15 @@ class Company {
 		trace(incomingMessage);
 		if(crudType == "Create") {
 			trace("Create successful");
-		}else if (crudType == "Read") {
 			copyIncomingValues(incomingMessage);
-			newCompany = false;
+		}else if (crudType == "Read") {
+			if(incomingMessage.company.companyID == "") {
+				newCompany = true;
+				getCompanyIDElement().value = getCompanyID();
+			}else {
+				copyIncomingValues(incomingMessage);
+				newCompany = false;			
+			}
 		}else if (crudType == "C_Update") {
 			copyIncomingValues(incomingMessage);
 		}else if (crudType == "Delete"){
@@ -226,5 +238,31 @@ class Company {
 		getCompanyMailboxElement().value = "";
 		getCompanySplashElement().src = "";
 	}
+
+	//Streams
+	//Called when the client send a request to load all 
+	//companies.
+	public function getSelectListEventStream() {
+		return selectListEventStream;
+	}
+
+	//Initialization
+	public function new() {
+		trace("Instantiating company");
+		newCompany = true;
+		var stream : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream(
+				cast getCompanySignup()
+				,"click");
+		var cidStream : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream(cast getCompanyIDElement(), "keyup");			
+		cidStream.then(chkCompanyExists);
+		stream.then(saveButtonPressed);
+		selectListEventStream = new Deferred<Dynamic>();
+		MBooks_im.getSingleton().getUserLoggedInStream().then(selectAllCompanies);
+
+	}
+
+
 
 }

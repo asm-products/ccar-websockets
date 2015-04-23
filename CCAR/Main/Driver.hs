@@ -140,8 +140,8 @@ genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "
 genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
                                             , "description" .= des
                                             , "acceptDate" .= accept]
-genCommandKeepAlive a  = object ["keepAlive" .= a
-                                , "commandType" .= ("keepAlive" :: T.Text)]
+genCommandKeepAlive a  = object ["KeepAlive" .= a
+                                , "commandType" .= ("KeepAlive" :: T.Text)]
 
 
 instance ToJSON Login where
@@ -462,6 +462,7 @@ processCommandValue app aConn nickName (Object a)   = do
                                 )
                 String "SendMessage" -> processSendMessage (Object a)
                 String "ManageCompany" -> Company.manageCompany nickName (Object a)
+                String "SelectAllCompanies" -> Company.queryAllCompanies nickName (Object a)
                 String "ManageProject" -> Project.manageProject nickName (Object a)
                 String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 _ -> 

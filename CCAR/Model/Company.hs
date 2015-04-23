@@ -5,6 +5,7 @@ module CCAR.Model.Company
 	, manageCompany
 	, parseManageCompany
 	, process
+	, queryAllCompanies
 	, ManageCompany
 	) where 
 import Control.Monad.IO.Class 
@@ -30,7 +31,7 @@ import Data.Data
 import Data.Typeable 
 import Data.Time
 import CCAR.Main.Util 
-data CRUD = Create | Read | C_Update | Delete | SelectAllCompanies
+data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
 
 data CompanyT = CompanyT {
@@ -41,6 +42,11 @@ data CompanyT = CompanyT {
 	} deriving(Show, Eq)
 
 
+data QueryCompany = QueryCompany {
+	qNickName :: T.Text
+	, commandType :: T.Text
+	, qCompany :: [CompanyT] 
+}
 data ManageCompany = ManageCompany {
         nickName :: T.Text
         , crudType :: CRUD 
@@ -51,18 +57,29 @@ data ManageCompany = ManageCompany {
 type CompanyID = T.Text 
 
 
+createQueryCompanyDTO :: NickName -> Company -> CompanyT
+createQueryCompanyDTO a co = 
+			CompanyT (companyCompanyName co )
+					 (companyCompanyID co)
+					 (companyCompanyImage co) 
+					 (companyGeneralMailbox co)	
 
 -- A type converter. The dto/dao hibernate model 
 -- seems to live on!
-manageCommandDTO :: NickName -> CRUD -> Company -> ManageCompany 
-manageCommandDTO a c co = 
+manageCommandDTO :: NickName -> CRUD -> Maybe Company -> ManageCompany 
+manageCommandDTO a c (Just co) = 
 	ManageCompany a c $
 			CompanyT (companyCompanyName co )
 					 (companyCompanyID co)
 					 (companyCompanyImage co) 
 					 (companyGeneralMailbox co)
 
-insertCompany :: NickName -> CompanyT -> IO Company 
+manageCommandDTO a c Nothing = 
+	ManageCompany a c $
+			CompanyT "" "" "" ""
+
+
+insertCompany :: NickName -> CompanyT -> IO (Maybe Company)
 insertCompany aNickName aCompany = do 
 	currentTime <- getCurrentTime 
 	putStrLn "Inside insert company"
@@ -71,7 +88,7 @@ insertCompany aNickName aCompany = do
 		case person of 
 			Just(Entity personId v) -> do  
 				insert c
-				return c
+				return $ Just c
 				where 
 					c = Company 
 							(companyName aCompany)
@@ -84,7 +101,7 @@ insertCompany aNickName aCompany = do
 
 
 
-deleteCompany :: CompanyT -> IO Company 
+deleteCompany :: CompanyT -> IO (Maybe Company)
 deleteCompany aCompanyId = dbOps $ 
 	do 
 		company <- getBy $ CompanyUniqueID (companyID aCompanyId)
@@ -92,13 +109,13 @@ deleteCompany aCompanyId = dbOps $
 			Just (Entity k v) -> 
 				do 
 					delete k 
-					return v
+					return $ Just v
 
 selectAllCompanies :: IO [Entity Company]
 selectAllCompanies = dbOps $ selectList [] [LimitTo resultsPerPage]
 					where resultsPerPage = 10
 
-updateCompany :: NickName -> CompanyT -> IO Company 
+updateCompany :: NickName -> CompanyT -> IO (Maybe Company)
 updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
@@ -115,13 +132,15 @@ updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do
 									, companyUpdatedBy = p } -- XXX: Change it back to p
 							Postgresql.replace k res
 							return res
-	return x 
+	return $ Just x 
 
 
 queryCompany aNickName aCompany = do 
 	x <- dbOps $ getBy $ CompanyUniqueID (companyID aCompany)
-	case x of 
-		Just (Entity p v) -> return v
+	y <- case x of 
+		Just (Entity p v) -> return $ Just v
+		Nothing -> return Nothing
+	return y 
 
 insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO ()
 insertCompanyPerson aNickName aCompanyId chatMinder = do
@@ -188,7 +207,6 @@ process c@(ManageCompany nickName crudType company) =  do
 manageCompany aNickName (Object a) = do 
 	case (parse parseManageCompany a) of
 	    Success r@(ManageCompany a cType company) -> do
-	    		putStrLn "manage success" 
 	    		company <- process r  
 	    		return (GC.Reply, 
 	    				serialize $ manageCommandDTO aNickName cType company)
@@ -198,17 +216,18 @@ manageCompany aNickName (Object a) = do
 				    		"Sending message failed " ++ s)
 
 queryAllCompanies aNickName (Object a) = do 
-		case (parse parseManageCompany a) of 
+		case (parse parseQueryCompany a) of 
 			Success r -> do 
 					companiesD <- selectAllCompanies
 					companiesT <- mapM (\x@(Entity k v) -> 
-											return $ manageCommandDTO 
-											 aNickName 
-											 SelectAllCompanies v) 
+											return $ createQueryCompanyDTO aNickName v) 
 										companiesD
 					return (GC.Reply
-							, serialize companiesT)
-					where
+							, serialize $ QueryCompany aNickName "SelectAllCompanies" companiesT)
+			Error s -> 	return (GC.Reply, 
+				    	serialize $ genericErrorCommand $ 
+				    		"Query all companies failed " ++ s)
+
 
 
 gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
@@ -216,6 +235,20 @@ gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
                     , "commandType" .= ("ManageCompany" :: T.Text)
                     , "nickName" .= nickName]
 
+parseQueryCompany v = do 
+				QueryCompany <$> 
+					v .: "nickName" <*>
+					v .: "commandType" <*>
+					pure []
+					
+
+genQueryCompany (QueryCompany n cType com) = 
+				object 
+				["nickName" .= n 
+				, "crudType" .= cType 
+				, "commandType" .= ("SelectAllCompanies" :: T.Text)
+				, "company" .= com
+				]
 parseManageCompany v = do
 					nickName <- v .: "nickName"
 					crudType <- v .: "crudType"
@@ -267,5 +300,12 @@ instance ToJSON ManageCompany where
 instance FromJSON ManageCompany where 
     parseJSON (Object v ) = parseManageCompany v 
     parseJSON _           = Appl.empty
+
+instance ToJSON QueryCompany where
+	toJSON = genQueryCompany 
+
+instance FromJSON QueryCompany where
+	parseJSON (Object v) = parseQueryCompany v 
+	parseJSON _ 		 = Appl.empty
 
 

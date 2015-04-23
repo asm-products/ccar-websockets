@@ -27,6 +27,7 @@ import model.LoginStatus;
 import model.Command;
 import model.CommandType;
 import model.UserOperation;
+import model.Project;
 import util.Util;
 import util.Config;
 import js.Browser;
@@ -56,6 +57,7 @@ class MBooks_im {
 		clearValue(cast getLastNameElement());
 
 	}
+
 	private var maxAttempts : Int = 3;
 	function new (){
 		trace("Calling MBooks_im");
@@ -78,19 +80,16 @@ class MBooks_im {
 		var mStream : Stream<Dynamic> = 
 			initializeElementStream(getMessageInput(), "keyup");
 		mStream.then(sendMessage);
+		userLoggedIn = new Deferred<Dynamic>();
 	}
 
-	static function main() {
-		singleton = new MBooks_im();
-		singleton.company = new Company();
-		singleton.connect();
-	}
 
 	// Connection details
-	function connectionString() : String {
+	private function connectionString() : String {
 		return protocol + "://" + Browser.location.hostname + ":" + portNumber + "/chat";
 	}
-	function connect() {
+
+	private function connect() {
 		trace("Calling connect");
 		try {
 		websocket = new WebSocket(connectionString());
@@ -114,7 +113,7 @@ class MBooks_im {
 	}
 
 
-	public function logout() : Void{
+	private function logout() : Void{
 		trace("Logging out ");
 		if(websocket != null){
 			websocket.close();
@@ -124,9 +123,10 @@ class MBooks_im {
 	}
 
 	//Server publish queue
-	public function getOutputEventStream() {
+	private function getOutputEventStream() {
 		return outputEventStream.stream();
 	}
+
 	public function initializeElementStream(ws : Element, event : String
 				, ?useCapture: Bool) : Stream<Dynamic>{
 		try {
@@ -139,12 +139,12 @@ class MBooks_im {
 		}
 	}
 
-	public  function onOpen(ev: Event){
+	private  function onOpen(ev: Event){
 		trace("Connection opened");
 		getOutputEventStream().then(sendEvents);
 	}
 
-	public function onClose(ev: CloseEvent){
+	private function onClose(ev: CloseEvent){
 		trace("Connection closed " + ev.code + "->" + ev.reason);
 		setError(ev.code + ":" + ev.reason);
 		disableKeepAlive();
@@ -152,7 +152,7 @@ class MBooks_im {
 
 	}
 
-	public  function onServerConnectionError(ev : Event){
+	private  function onServerConnectionError(ev : Event){
 		trace("Error " + haxe.Json.stringify(ev));
 		// Handle server not available here.
 		getNickNameElement().disabled = true;
@@ -172,7 +172,7 @@ class MBooks_im {
 		}
 	}
 
-	public function parseIncomingMessage(incomingMessage : Dynamic) : Void {
+	private function parseIncomingMessage(incomingMessage : Dynamic) : Void {
 		var commandType : CommandType = 
 			parseCommandType(incomingMessage.commandType);
 		switch(commandType){
@@ -186,6 +186,11 @@ class MBooks_im {
 			}
 			case ManageCompany : {
 				company.processManageCompany(incomingMessage);
+			}
+			case SelectAllCompanies: {
+				trace("Updating company list event stream");
+				company.getSelectListEventStream().resolve(incomingMessage);
+				
 			}
 			case ParsedCCARText : {
 				//processParsedCCARText(incomingMessage);
@@ -251,12 +256,9 @@ class MBooks_im {
 		}
 	}
 
-	public function onMessage(ev: MessageEvent) : Void{
+	private function onMessage(ev: MessageEvent) : Void{
 		trace("Received stream " + ev.data);
 		var incomingMessage = haxe.Json.parse(ev.data);
-		//XXX: Needed to parse the incoming message twice because
-		// of \",s in the response. This is a bug.
-		//incomingMessage = haxe.Json.parse(incomingMessage);
 		trace("Printing incoming message " + incomingMessage);
 		parseIncomingMessage(incomingMessage);
 	}
@@ -322,6 +324,8 @@ class MBooks_im {
 		if(incomingMessage.userName != getNickName()){
 			addToUsersOnline(incomingMessage.userName);
 		}
+		userLoggedIn.resolve(incomingMessage);
+
 	}
 	private function processUserLeft(incomingMessage) {
 		var userNickName = incomingMessage.userName; // Haskell record types and not being modular...
@@ -380,12 +384,6 @@ class MBooks_im {
 	}
 
 
-	/**
-	* Clients could be sending json 
-	*/
-	public  function doSendJSON(aMessage){
-		this.outputEventStream.resolve(aMessage);
-	}
 
 	//UI
 	private static var NICK_NAME = "nickName";
@@ -407,10 +405,20 @@ class MBooks_im {
 		return (cast Browser.document.getElementById(KICK_USER));
 	}
 
+
+
+	/**
+	* Clients could be sending json 
+	*/
+	public  function doSendJSON(aMessage : Dynamic){
+		this.outputEventStream.resolve(aMessage);
+	}
+
 	//The ui disables nickName element once validated.
 	public function getNickName() : String{
 		return getNickNameElement().value;
 	}
+
 	private function getStatusMessageElement() : Element {
 		return Browser.document.getElementById(STATUS_MESSAGE);
 	}
@@ -418,6 +426,7 @@ class MBooks_im {
 		var inputElement : InputElement = cast Browser.document.getElementById(NICK_NAME);
 		return inputElement;
 	}
+
 	private function getPasswordElement() : InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(PASSWORD);
 		return inputElement;
@@ -505,13 +514,11 @@ class MBooks_im {
 			return l;
 
 	}
+
 	//Login and other stuff
 	private function sendLogin (ev: KeyboardEvent){
 		var inputElement : InputElement = cast ev.target;
 		trace("Inside send login " + ev.keyCode);
-		if(Util.isBackspace(ev.keyCode)){
-			//inputElement.value = "";
-		}
 		if(Util.isSignificantWS(ev.keyCode)){
 			this.person.setNickName(inputElement.value);
 			var lStatus : LoginStatus = Undefined;			
@@ -519,7 +526,6 @@ class MBooks_im {
 			var l : Login = new Login(cType, this.person, lStatus);
 			trace("Sending login status " + l);
 			doSendJSON(l);
-
 		}
 	}
 
@@ -633,6 +639,14 @@ class MBooks_im {
 		getServerErrorElement().value = aMessage;
 	}
 
+	public function getCompany() : Company {
+		return company;
+	}
+
+	//Clients can attach or detach from this stream.
+	public function getUserLoggedInStream() : Deferred<Dynamic> {
+		return userLoggedIn;
+	}
 	var attempts : Int = 0;
 	var serverHost : String = "localhost";
 	var protocol : String = "ws";
@@ -640,8 +654,19 @@ class MBooks_im {
 	var keepAliveInterval : Int = 15000;
 	var websocket : WebSocket;
 	var timer : Timer;
+	//General conduit for events going out to the server
 	var outputEventStream : Deferred<Dynamic>;
+	//Pipeline for user logged in events
+	var userLoggedIn : Deferred<Dynamic>;
 	var person : model.Person;
 	var company : Company;
+	var project : model.Project;
+	static function main() {
+		singleton = new MBooks_im();
+		singleton.company = new Company();
+		singleton.project = new Project(singleton.company);
+		singleton.connect();
+	}
+
 
 }
