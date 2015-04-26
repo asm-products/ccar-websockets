@@ -63,9 +63,9 @@ class Project {
 	var endDate : Date;
 	var uploadedBy : String;
 	var uploadTime : Date;
+	var company : Company;
 
-
-	public function new(company : Company) {
+	public function new(companyI : Company) {
 		try {
 			trace("Instantiating Project");
 			newProject = true;
@@ -75,6 +75,7 @@ class Project {
 					, "click"
 					);
 			stream.then(saveProject);
+			this.company = companyI;
 			company.getSelectListEventStream().then(processCompanyList);		
 		}catch(err : Dynamic){
 			trace("Error creating project " + err);
@@ -111,6 +112,12 @@ class Project {
 						cast Browser.document.createOptionElement();
 				optionElement.id = companyID;
 				optionElement.text = companyName;
+				var optionSelectedStream = 
+					MBooks_im.getSingleton().initializeElementStream(
+						cast optionElement
+						, "click"
+					);
+				optionSelectedStream.then(processCompanySelected);
 				companiesSelectElement.appendChild(optionElement);
 			}
 
@@ -125,6 +132,17 @@ class Project {
 		return (cast Browser.document.getElementById(PROJECT_IDENTIFICATION));
 	}
 
+	private function processCompanySelected(ev : Event){
+		trace("Company selected" + " " + ev.target + " " + ev);
 
+		var selectionElement : OptionElement 
+				= cast ev.target;
+	
+		var selectedId = selectionElement.id;
+		trace("Reading company information for " + selectedId);
+		company.read(selectedId);
+
+		
+	}
 
 }

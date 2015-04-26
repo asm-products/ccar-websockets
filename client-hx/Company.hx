@@ -174,20 +174,28 @@ class Company {
 
 	}
 	
-	private function chkCompanyExists(ev : KeyboardEvent) {
-		trace("Chk company exists " + ev.keyCode);
-		if(Util.isSignificantWS(ev.keyCode)){
+	public function read(companyID: String){
 			try {
 			var nickName = MBooks_im.getSingleton().getNickName();
 			var payload = getPayload(nickName, "Read"
 						, ""
-						, getCompanyID()
+						, companyID
 						, ""
 						, ""
 						, "");
 
 			MBooks_im.getSingleton().doSendJSON(payload);
 
+			}catch(err : Dynamic) {
+				trace("Error checking company " + err);
+			}
+
+	}
+	private function chkCompanyExists(ev : KeyboardEvent) {
+		trace("Chk company exists " + ev.keyCode);
+		if(Util.isSignificantWS(ev.keyCode)){
+			try {
+				read(getCompanyID());
 			}catch(err : Dynamic) {
 				trace("Error checking company " + err);
 			}

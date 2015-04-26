@@ -16,9 +16,5 @@
 ##### Manage surveys (publish them)
 ##### Poll registration
 ##### Manage colored coins
-##### Integrate with contentful for posting blogs, notes etc.
-##### Make it simple to take users data 
-	(actually, we should be storing nothing, if that would work).
-
 
 
