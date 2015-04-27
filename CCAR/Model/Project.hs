@@ -2,6 +2,7 @@
 module CCAR.Model.Project
 (
 	manageProject
+	, processP
 )
 
 where

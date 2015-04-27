@@ -140,9 +140,12 @@ class Project {
 	
 		var selectedId = selectionElement.id;
 		trace("Reading company information for " + selectedId);
-		company.read(selectedId);
+		company.read(selectedId);	
+	}
 
+	private function processManageProject(incomingMessage){
 		
 	}
+
 
 }
