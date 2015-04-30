@@ -184,6 +184,8 @@ class MBooks_im {
 			}
 			case CCARUpload : {
 				trace("Parsing ccar upload " + incomingMessage);
+				ccar.processCCARUpload(incomingMessage);
+				
 			}
 			case ManageCompany : {
 				company.processManageCompany(incomingMessage);
@@ -194,7 +196,8 @@ class MBooks_im {
 				
 			}
 			case ParsedCCARText : {
-				//processParsedCCARText(incomingMessage);
+				trace("Parsing ccar text " + incomingMessage);
+				ccar.processParsedCCARText(incomingMessage);
 			}
 			case ManageUser: {
 				processManageUser(incomingMessage);
@@ -662,10 +665,12 @@ class MBooks_im {
 	var person : model.Person;
 	var company : Company;
 	var project : model.Project;
+	var ccar : model.CCAR;
 	static function main() {
 		singleton = new MBooks_im();
 		singleton.company = new Company();
 		singleton.project = new Project(singleton.company);
+		singleton.ccar = new CCAR("", "", "");
 		singleton.connect();
 	}
 

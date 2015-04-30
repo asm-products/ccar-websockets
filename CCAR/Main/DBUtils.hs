@@ -190,7 +190,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             scenarioText Text
             creator Text -- This needs to be the unique name from the person table.
             deleted Bool default=False
-            CCARUniqueName scenarioName
+            CCARUniqueName scenarioName 
             deriving Show Eq
         MessageP -- Persistent version of messages. This table is only for general messages and private messages.
                  -- MessageDestinationType is mainly, private message or broadcast.

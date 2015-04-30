@@ -13,12 +13,6 @@ import promhx.Deferred;
 
 
 //The model is also doing most of the ui work.
-typedef CCARStruct = {
-		var scenarioName : String;
-		var scenarioText : String;
-		var creator : String;
-		var deleted : Bool;
-	}
 
 
 class CCAR {
@@ -26,9 +20,13 @@ class CCAR {
 	private static var SCENARIO_NAME = "scenarioName";
 	private static var SCENARIO_TEXT = "scenarioText";
 	private static var SAVE_SCENARIO = "saveScenario";
+	private static var PARSED_SCENARIO = "parsedScenario";
+	private var scenarioName : String;
+	private var scenarioText : String;
+	private var creator : String;
+	private var deleted : Bool;
 
 	private var crudType : String ;
-	private var ccarStruct : CCARStruct;
 	// UI Accessors
 	private function getScenarioName() : String {
 		return getScenarioNameElement().value;
@@ -48,67 +46,130 @@ class CCAR {
 		return (cast Browser.document.getElementById(SAVE_SCENARIO));
 	}
 
-	public function new(name : String, text : String, creator : String) {
-		ccarStruct.scenarioName = name;
-		ccarStruct.scenarioText = text;
-		ccarStruct.creator = creator;
-		ccarStruct.deleted = false;	
+	public function new(name : String, text : String, cr : String) {
+		try {
+
+		scenarioName = name;
+		scenarioText = text;
+		creator = cr;
+		deleted = false;	
 		var stream : Stream<Dynamic> = 
 			MBooks_im.getSingleton().initializeElementStream(
 				cast getScenarioNameElement()
 				, "keyup"
 			);
 		stream.then(checkScenarioExists);
+		var saveStream : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream(
+				cast getSaveScenarioElement()
+				, "click"
+				);
+			saveStream.then(sendPT);
+		}catch(err : Dynamic) {
+			trace("Exceptiong creating ccar " + err);
+		}
 
 	}
 
 
 	private function copyIncomingValues(aMessage) {
-		this.ccarStruct.scenarioName = aMessage.ccarData.scenarioName;
-		this.ccarStruct.scenarioText = aMessage.ccarData.scenarioText;
-		this.ccarStruct.creator = aMessage.ccarData.createdBy;
-		this.ccarStruct.deleted = aMessage.ccarData.deleted;
+		this.scenarioName = aMessage.ccarData.scenarioName;
+		this.scenarioText = aMessage.ccarData.scenarioText;
+		this.creator = aMessage.ccarData.createdBy;
+		this.deleted = aMessage.ccarData.deleted;
 	}
 	private function copyValuesFromUI() {
-		ccarStruct.scenarioName = getScenarioName();
-		ccarStruct.scenarioText = getScenarioText();
-		ccarStruct.creator = MBooks_im.getSingleton().getNickName();
-		ccarStruct.deleted = false ; // Need to pick up from ui
+		scenarioName = getScenarioName();
+		scenarioText = getScenarioText();
+		creator = MBooks_im.getSingleton().getNickName();
+		deleted = false ; // Need to pick up from ui
 	}
 
-	private function checkScenarioExists(ev : KeyboardEvent) {
-		if(Util.isSignificantWS(ev.keyCode)){
+	private function saveScenario(ev : Event) {
+		trace ("Saving scenario " );
+		copyValuesFromUI();
 			var payload : Dynamic =  {
 				nickName : MBooks_im.getSingleton().getNickName()
+				, uploadedBy : MBooks_im.getSingleton().getNickName()
 				, commandType : "CCARUpload"
-				, ccarOperation : crudType
-				, ccarData : ccarStruct
+				, ccarOperation : { tag: crudType, contents : []}
+				, ccarData : {
+					scenarioName : scenarioName
+					, scenarioText : scenarioText
+					, creator : MBooks_im.getSingleton().getNickName()
+					, deleted : false
+				}
+			};
+			MBooks_im.getSingleton().doSendJSON(payload);
+
+	}
+	private function checkScenarioExists(ev : KeyboardEvent) {
+		trace("Checking if scenario exists ");
+		if(Util.isSignificantWS(ev.keyCode)){
+			copyValuesFromUI();
+			var payload : Dynamic =  {
+				nickName : MBooks_im.getSingleton().getNickName()
+				, uploadedBy : MBooks_im.getSingleton().getNickName()
+				, commandType : "CCARUpload"
+				, ccarOperation : { tag: "Query", contents : []}
+				, ccarData : {
+					scenarioName : scenarioName
+					, scenarioText : scenarioText
+					, creator : MBooks_im.getSingleton().getNickName()
+					, deleted : false
+				}
 			};
 			MBooks_im.getSingleton().doSendJSON(payload);
 		}
 	}
 
+	private function sendPT(ev : Event){
+		sendParsingRequest();
+	}
+	private function sendParsingRequest() {
+		var payload : Dynamic = {
+			nickName : MBooks_im.getSingleton().getNickName()
+			, uploadedBy : MBooks_im.getSingleton().getNickName()
+			, scenarioName : getScenarioName()
+			, ccarText : getScenarioText()
+			, commandType : "ParsedCCARText"
+		};
+		MBooks_im.getSingleton().doSendJSON(payload);
+	}
 
 	public function processCCARUpload(incomingMessage : Dynamic){
 		trace("Processing ccar upload");
-		var ccarStruct : CCARStruct = incomingMessage.ccarData;
-		var crudType = incomingMessage.crudType;
+		var ccarStruct : Dynamic = incomingMessage.ccarData;
+		var crudType = incomingMessage.ccarOperation.tag;
 		copyIncomingValues(incomingMessage);
 		if(crudType == "Create"){
 			trace("Create successful");
 			copyIncomingValues(incomingMessage);
+			sendParsingRequest();
 		}else if(crudType == "Update"){
 			trace("Update successful");
 			copyIncomingValues(incomingMessage);
+			sendParsingRequest();
 		}else if (crudType == "Query") {
 			trace("Read returned " + incomingMessage);
 			copyIncomingValues(incomingMessage);
-			if(ccarStruct.scenarioText == "") {
+			if(ccarStruct.ccarResultSet == []) {
 				crudType = "Create";
 			}else {
 				crudType = "Update";
 			}
+			sendParsingRequest();
 		}
+	}
+	public function processParsedCCARText(incomingMessage : Dynamic){
+		trace("Processing parsed text");
+		setParsedScenario(haxe.Json.stringify(incomingMessage));
+	}
+	private function setParsedScenario(incomingM) {
+		getParsedScenarioElement().value = incomingM;
+	}
+	private function getParsedScenarioElement(): InputElement {
+		return (cast Browser.document.getElementById(PARSED_SCENARIO));
 	}
 
 

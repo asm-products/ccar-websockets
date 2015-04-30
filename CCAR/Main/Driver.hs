@@ -299,9 +299,14 @@ updateCCAR c = dbOps $ do
 
 queryAllCCAR :: T.Text -> IO [Entity CCAR]
 queryAllCCAR aNickName = dbOps $ selectList [] []
- 
-queryCCAR :: CCARId -> IO (Maybe CCAR) 
-queryCCAR pid =  dbOps $ get pid 
+
+type ScenarioName = T.Text 
+queryCCAR :: ScenarioName -> IO (Maybe CCAR) 
+queryCCAR scenarioName =  dbOps $ do 
+                r <- getBy $ CCARUniqueName scenarioName 
+                case r of 
+                    Just (Entity k v) -> return $ Just v
+                    Nothing -> return Nothing
 
 deleteCCAR :: CCAR -> IO (Maybe CCAR)
 deleteCCAR c = dbOps $ do
@@ -375,11 +380,13 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
         CC.Delete  -> do 
                 res <- deleteCCAR ccar 
                 return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation (res) [])
-        CC.Query ccarId -> do 
-                maybeCCAR <- queryCCAR (ccarId)
-                case maybeCCAR of 
-                    Nothing -> return $ (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) Nothing [])
-                    Just x -> return $  (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.Query ccarId) (Just x) []) 
+        CC.Query -> do 
+                case aCCAR of 
+                    Just x -> do 
+                        maybeCCAR <- queryCCAR (cCARScenarioName x)
+                        case maybeCCAR of 
+                            Nothing -> return $ (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName CC.Query Nothing [])
+                            Just x -> return $  (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName CC.Query (Just x) []) 
         CC.QueryAll nickName -> do
                 maybeCCAR <- queryAllCCAR nickName
                 case maybeCCAR of 
