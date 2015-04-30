@@ -28,6 +28,7 @@ import model.Command;
 import model.CommandType;
 import model.UserOperation;
 import model.Project;
+import model.CCAR;
 import util.Util;
 import util.Config;
 import js.Browser;

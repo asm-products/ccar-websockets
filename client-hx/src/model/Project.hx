@@ -34,7 +34,6 @@ import js.html.ButtonElement;
 import js.html.TextAreaElement;
 import promhx.Stream;
 import promhx.Promise;
-import massive.munit.TestRunner;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
 import promhx.base.EventLoop;
@@ -235,7 +234,7 @@ class Project {
 		sendReadRequest(selectionId);
 	}
 
-	private function processManageProject(incomingMessage){
+	public function processManageProject(incomingMessage){
 		trace("Process manage company ");
 		var crudType = incomingMessage.crudType;
 		trace(incomingMessage);
