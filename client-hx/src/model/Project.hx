@@ -54,6 +54,7 @@ class Project {
 	private static var PROJECT_DETAILS = "projectDetails";
 	private static var PROJECT_LIST = "projectList";
 
+	
 	private var crudType : String;
 	private var projectID : String;
 	private var uniqueCompanyID : String;
@@ -88,9 +89,17 @@ class Project {
 		var buttonElement : ButtonElement 
 			= cast Browser.document.getElementById(SAVE_PROJECT);
 		return buttonElement;
+
 	}
 
 	private function saveProject(ev : Event) {
+			try {
+				var nickName = MBooks_im.getSingleton().getNickName();
+				var payload = getPayload(nickName, crudType);
+				MBooks_im.getSingleton().doSendJSON(payload);
+			}catch(err : Dynamic) {
+				trace("Error checking company " + err);
+			}
 
 	}
 
@@ -308,7 +317,6 @@ class Project {
 				, preparedBy : preparedBy
 			};
 		return result;
-
 	}
 
 	private function getPayload(nickName, crudType) : Dynamic {

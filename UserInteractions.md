@@ -24,7 +24,8 @@ company details.
 
 ### Retrieving details that are not visible
 As the model can be spread across multiple elements, charts etc, only the visible 
-elements need to trigger a model refresh from the server. ?
+elements need to trigger a model refresh from the server.
+
 
 
 #### Notes
