@@ -3,6 +3,8 @@ module CCAR.Model.Project
 (
 	manageProject
 	, processP
+	, queryAllProjects
+	, parseDate
 )
 
 where
@@ -25,6 +27,7 @@ import Database.Persist.Postgresql as DB
 import Data.Aeson.Encode as En
 import Data.Text.Lazy.Encoding as E
 import Data.Aeson as J
+import Data.HashMap.Lazy as LH (HashMap, lookup)
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
@@ -33,6 +36,7 @@ import Data.Data
 import Data.Typeable 
 import System.IO
 import Data.Time
+
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util 
@@ -57,16 +61,15 @@ data ProjectT = ProjectT {
 		, companyUniqueId :: T.Text 
 		, summary :: T.Text 
 		, details :: T.Text
-		, startDate :: UTCTime
-		, endDate :: UTCTime
+		, startDate :: Maybe UTCTime
+		, endDate :: Maybe UTCTime
 		, uploadedBy :: T.Text
-		, uploadTime :: UTCTime 
+		, uploadTime :: Maybe UTCTime 
 		, preparedBy :: T.Text	
 	} deriving (Show, Eq, Data, Generic, Typeable)
 
 
 insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do 
-	upT <- getCurrentTime 
 	dbOps $ do 
 		uploader <- getBy $ PersonUniqueNickName up 
 		company <- getBy $ CompanyUniqueID cid 
@@ -114,6 +117,7 @@ deleteProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 					case project of 
 						Just (Entity k2 prValue) -> do 
 								Postgresql.delete k2 
+
 								return $ Right t 
 processP t@(ProjectT c i cid s de sd ed up upT pr) = return $ 
 	case c of 
@@ -139,7 +143,10 @@ manageProject aNickName (Object a) = do
 		    	serialize $ genericErrorCommand $ 
 		    		"Sending message failed " ++ s)
 
+queryAllProjects aNickName (Object a) = undefined
 
+
+parseDate (Just aDate) = undefined
 
 instance FromJSON ProjectT where 
     parseJSON (Object a) = ProjectT <$> 
@@ -148,10 +155,13 @@ instance FromJSON ProjectT where
 								(a .: "uniqueCompanyID") <*>
 								(a .: "summary") <*>
 								(a .: "details") <*>
-								(a .: "startDate") <*>
-								(a .: "endDate") <*>
+								--parseDate (LH.lookup "startDate" a) <*>
+								pure Nothing <*>
+								-- parseDate (LH.lookup "endDate" a ) <*>
+								pure Nothing <*> 
 								(a .: "uploadedBy") <*> 
-								(a .: "uploadeTime") <*>
+								-- parseDate (LH.lookup "uploadTime" a) <*>
+								pure Nothing <*>
 								(a .: "preparedBy")
 
     parseJSON _          = Appl.empty

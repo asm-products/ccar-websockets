@@ -73,7 +73,7 @@ class Company {
 	private function getCompanyIDElement() : InputElement {
 		return (cast Browser.document.getElementById(COMPANY_ID));
 	}
-	private function getCompanyID() {
+	public function getCompanyID() {
 		return (getCompanyIDElement().value);
 	}
 

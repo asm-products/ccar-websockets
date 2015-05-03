@@ -53,8 +53,12 @@ class Project {
 	private static var PROJECT_SUMMARY = "projectSummary";
 	private static var PROJECT_DETAILS = "projectDetails";
 	private static var PROJECT_LIST = "projectList";
+	private static var CREATE = "Create";
+	private static var UPDATE = "P_Update";
+	private static var DELETE = "Delete";
+	private static var READ = "Read";
 
-	
+
 	private var crudType : String;
 	private var projectID : String;
 	private var uniqueCompanyID : String;
@@ -95,7 +99,7 @@ class Project {
 	private function saveProject(ev : Event) {
 			try {
 				var nickName = MBooks_im.getSingleton().getNickName();
-				var payload = getPayload(nickName, crudType);
+				var payload = getPayload(nickName, getCrudType());
 				MBooks_im.getSingleton().doSendJSON(payload);
 			}catch(err : Dynamic) {
 				trace("Error checking company " + err);
@@ -166,14 +170,19 @@ class Project {
 		trace("Completed processing companies");
 	}
 
-	private function getProjectId() : String {
-		return getProjectIdElement().value;
+	private function getProjectID() : String {
+		if(getProjectIDElement().value != "") {
+			return getProjectIDElement().value;	
+		}else{
+			return "";
+		}
+		
 	}
-	private function getProjectIdElement() : InputElement {
+	private function getProjectIDElement() : InputElement {
 		return (cast Browser.document.getElementById(PROJECT_IDENTIFICATION));
 	}
-	private function setProjectId(pid : String) {
-		getProjectIdElement().value = pid;
+	private function setProjectID(pid : String) {
+		getProjectIDElement().value = pid;
 	}
 
 	private function getProjectStart() : String {
@@ -235,6 +244,7 @@ class Project {
 		company.read(selectedId);	
 	}
 
+
 	private function processProjectSelected(ev : Event) {
 		trace ("Project selected " + ev.target);
 		var selectionElement :OptionElement  = 
@@ -247,10 +257,10 @@ class Project {
 		trace("Process manage company ");
 		var crudType = incomingMessage.crudType;
 		trace(incomingMessage);
-		if(crudType == "Create") {
+		if(crudType == CREATE) {
 			trace("Create successful");
 			copyIncomingValues(incomingMessage);
-		}else if (crudType == "Read") {
+		}else if (crudType == READ) {
 			if(incomingMessage.projectID == "") {
 				newProject = true;
 				
@@ -258,9 +268,9 @@ class Project {
 				copyIncomingValues(incomingMessage);
 				newProject = false;			
 			}
-		}else if (crudType == "P_Update") {
+		}else if (crudType == UPDATE) {
 			copyIncomingValues(incomingMessage);
-		}else if (crudType == "Delete"){
+		}else if (crudType == DELETE){
 			clearFields(incomingMessage);
 		}else {
 			throw ("Invalid crudtype " + crudType);
@@ -269,7 +279,7 @@ class Project {
 	}
 	private function copyIncomingValues(aMessage){
 		try {
-			this.setProjectId(aMessage.projectID);
+			this.setProjectID(aMessage.projectID);
 			this.setProjectSummary(aMessage.summary);
 			this.setProjectDetails(aMessage.details);
 			this.setProjectStart(aMessage.startDate);
@@ -281,7 +291,7 @@ class Project {
 	}
 	private function clearFields(aMessage) {
 		try {
-			this.setProjectId("");
+			this.setProjectID("");
 			this.setProjectSummary("");
 			this.setProjectDetails("");
 			this.setProjectStart("");
@@ -303,28 +313,28 @@ class Project {
 
 	}
 
-
-	private function getProjectStructure () {
-		var result :Dynamic = 
-			{
-				projectId : projectID
-				, uniqueCompanyID : uniqueCompanyID
-				, summary : summary
-				, details : details
-				, startDate : startDate
-				, endDate : endDate
-				, uploadTime : Date.now()
-				, preparedBy : preparedBy
-			};
-		return result;
+	private function getCrudType() {
+		if (getProjectID() == ""){
+			return CREATE;
+		}else {
+			return UPDATE;
+		}
 	}
-
 	private function getPayload(nickName, crudType) : Dynamic {
 		var payload : Dynamic = {
 			nickName : nickName
 			, commandType : MANAGE_PROJECT
 			, crudType : crudType
-			, project : getProjectStructure()
+			, projectId : getProjectID()
+			, uniqueCompanyID : company.getCompanyID()
+			, summary : getProjectSummary()
+			, details : getProjectDetails()
+//			, startDate : [haxe.Json.stringify(Date.now())] // XXX: Fix this
+//			, endDate : [haxe.Json.stringify(Date.now())]
+//			, uploadTime : [haxe.Json.stringify(Date.now())]
+			, preparedBy : getPreparedBy()
+			, uploadedBy : nickName
+	
 		};
 		return payload;
 

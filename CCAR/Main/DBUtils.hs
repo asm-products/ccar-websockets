@@ -306,10 +306,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             companyId CompanyId
             summary Text 
             details Text 
-            startDate UTCTime 
-            endDate UTCTime 
+            startDate UTCTime Maybe
+            endDate UTCTime Maybe
             uploadedBy PersonId
-            uploadTime UTCTime default = CURRENT_TIMESTAMP
+            uploadTime UTCTime Maybe --default = Just CURRENT_TIMESTAMP
             preparedBy Text -- The name on the report (may not be registered with the site)
             UniqueProject identification companyId  
             deriving Show Eq 
