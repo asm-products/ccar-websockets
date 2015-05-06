@@ -37,6 +37,9 @@ instance ToJSON ProjectReportType
 instance FromJSON ProjectReportType 
 instance ToJSON DocumentFileFormat
 instance FromJSON DocumentFileFormat
+instance ToJSON SupportedScript
+instance FromJSON SupportedScript
+
 type NickName = Text
 type Base64Text = Text -- Base64 encoded text representing the image.
 
@@ -350,6 +353,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             reportDocumentFormat DocumentFileFormat 
             reportType ProjectReportType
             UniqueReport reportUUID 
+            deriving Show Eq
+        ProjectWorkbench json 
+            project ProjectId 
+            scriptType SupportedScript
+            scriptData Text -- The script
+            numberOfCores Int 
+            jobStartDate UTCTime Maybe 
+            jobEndDate UTCTime Maybe
             deriving Show Eq
         Permission json 
             permission Text -- Read/Write

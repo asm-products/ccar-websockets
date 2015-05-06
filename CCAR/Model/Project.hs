@@ -3,7 +3,7 @@ module CCAR.Model.Project
 (
 	manageProject
 	, processP
-	, queryAllProjects
+	, queryActiveProjects
 	, parseDate
 )
 
@@ -36,7 +36,8 @@ import Data.Data
 import Data.Typeable 
 import System.IO
 import Data.Time
-
+import Data.UUID.V1
+import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util 
@@ -69,31 +70,43 @@ data ProjectT = ProjectT {
 	} deriving (Show, Eq, Data, Generic, Typeable)
 
 
+data QueryProject = QueryProject {
+	qNickName :: T.Text
+	, commandType :: T.Text
+	, companyId :: T.Text
+	, qCompany :: [Project] 
+}
+
+
+insertProject :: ProjectT -> IO (Either a ProjectT)
 insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do 
 	dbOps $ do 
 		uploader <- getBy $ PersonUniqueNickName up 
-		company <- getBy $ CompanyUniqueID cid 
+		company <- getBy $ CompanyUniqueID cid
 		case (uploader, company) of 
 			(Just (Entity personId personV)
 				, Just(Entity companyId cValue)) -> do 
-				insert $ Project i companyId s de sd ed personId upT pr
+				insert $ Project i 
+							companyId s de sd ed personId upT pr
 				return $ Right t 
 
-
+readProject :: ProjectT -> IO (Either T.Text ProjectT)
 readProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
-	company <- getBy $ CompanyUniqueID cid  
+	company <- getBy $ CompanyUniqueID cid	
 	case company of 
 		Just (Entity k v) -> do 
 			project <- getBy $ UniqueProject i k
 			case project of 
 				-- Assert that k and k2 are the same
-				Just (Entity k (Project i k2 s de sd ed u upT pr)) -> do 
+				Just (Entity k (Project uuid k2 s de sd ed u upT pr)) -> do 
 						person <- get u 
 						case person of 
 							Just (Person f l nn pass lo lastLogin) -> 
-								return $ Right $ ProjectT Read i (companyCompanyID v ) s de sd ed nn upT pr
+								return $ Right $ ProjectT Read 
+										i (companyCompanyID v ) s de sd ed nn upT pr
 							Nothing -> return $ Left ("reading project failed" :: T.Text)
 
+updateProject :: ProjectT -> IO (Either T.Text ProjectT)
 updateProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 	company <- getBy $ CompanyUniqueID cid
 	case company of 
@@ -109,6 +122,7 @@ updateProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 								Postgresql.replace k2 res 
 								return $ Right t
 
+deleteProject :: ProjectT -> IO (Either T.Text ProjectT)
 deleteProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 		company <- getBy $ CompanyUniqueID cid 
 		case company of 
@@ -117,8 +131,8 @@ deleteProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 					case project of 
 						Just (Entity k2 prValue) -> do 
 								Postgresql.delete k2 
-
 								return $ Right t 
+processP :: Monad m => ProjectT -> m (IO (Either T.Text ProjectT))
 processP t@(ProjectT c i cid s de sd ed up upT pr) = return $ 
 	case c of 
 		Create -> insertProject t 
@@ -126,24 +140,44 @@ processP t@(ProjectT c i cid s de sd ed up upT pr) = return $
 		P_Update -> updateProject t 
 		Delete -> deleteProject t
 
+
+manageProject :: t -> Value -> IO (GC.DestinationType, T.Text)
 manageProject aNickName (Object a) = do
 	case (parse parseJSON (Object a)) of 
 		Success r -> do 
 				case project of 
 					Right x -> do 
-						reply <- x 
-						return (GC.Reply, 
-								serialize reply)
+							mProject <- x 
+							return (GC.Reply, 
+								serialize mProject)
 					Left y -> return (GC.Reply, 
-							serialize $ genericErrorCommand $ "Project processing failed ")
+							serialize $ genericErrorCommand $ "Project processing failed " 
+									++ y)
 				where 
 					project = processP r
 		Error s -> 
 			  return (GC.Reply, 
 		    	serialize $ genericErrorCommand $ 
-		    		"Sending message failed " ++ s)
+		    		"Manage project failed " ++ s)
 
-queryAllProjects aNickName (Object a) = undefined
+
+queryActiveProjects aNickName (Object a) = do 
+	case (parse parseQueryProject a) of
+		Success r@(QueryProject n cType cid _) -> do
+				ap <- selectActiveProjects cid
+				resAP <- mapM (\x@(Entity k v) -> return v) ap 
+				return (GC.Reply, 
+						serialize $ QueryProject n cType cid resAP)
+		Error s -> return (GC.Reply, 
+						serialize $ genericErrorCommand $ 
+							"Query active projects failed " ++ s)
+
+type CompanyUniqueID = T.Text
+selectActiveProjects  :: CompanyUniqueID-> IO [Entity Project]
+selectActiveProjects x = dbOps $ do 
+				company <- getBy $ CompanyUniqueID x
+				case company of 
+					Just (Entity k v) -> selectList [ProjectCompanyId ==. k ][]
 
 
 parseDate (Just aDate) = undefined
@@ -190,3 +224,28 @@ instance ToJSON ProjectT where
 				, "uploadTime" .= uploadTime
 				, "preparedBy" .= preparedBy
 			] 
+
+
+parseQueryProject v = do 
+				QueryProject <$> 
+					v .: "nickName" <*>
+					v .: "commandType" <*>
+					v .: "companyId" <*>
+					pure []
+					
+
+genQueryProject (QueryProject n cType cId projects) = 
+				object 
+				["nickName" .= n 
+				, "crudType" .= cType 
+				, "commandType" .= ("SelectActiveProjects" :: T.Text)
+				, "companyId" .= cId
+				, "projects" .= projects
+				]
+
+instance ToJSON QueryProject where 
+	toJSON = genQueryProject 
+
+instance FromJSON QueryProject where
+	parseJSON (Object a) = parseQueryProject a 
+	parseJSON _			= Appl.empty

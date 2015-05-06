@@ -70,6 +70,7 @@ class Project {
 	private var uploadedBy : String;
 	private var uploadTime : Date;
 	private var company : Company;
+	private var projectStream : Deferred<Dynamic>;
 
 	public function new(companyI : Company) {
 		try {
@@ -83,12 +84,18 @@ class Project {
 			stream.then(saveProject);
 			this.company = companyI;
 			company.getSelectListEventStream().then(processCompanyList);
+			projectStream = new Deferred<Dynamic>();
+			projectStream.then(processProjectList);
+
 
 		}catch(err : Dynamic){
 			trace("Error creating project " + err);
 		}
 	}
 
+	public function getSelectActiveProjectsStream() {
+		return projectStream;
+	}
 	private function getSaveProject() : ButtonElement {
 		var buttonElement : ButtonElement 
 			= cast Browser.document.getElementById(SAVE_PROJECT);
@@ -111,13 +118,13 @@ class Project {
 		return (cast Browser.document.getElementById(PROJECT_LIST));
 	}
 
-	private function processProjectList(incomingMessage : Dynamic) {
+	public function processProjectList(incomingMessage : Dynamic) {
 		trace("Project list " + incomingMessage);
-		var projects = incomingMessage.project;
+		var projects = incomingMessage.projects;
 		var projectList = getProjectsListElement();
 		var pArray : Array<Dynamic> = projects;
 		for (project in pArray){
-			var projectId = project.projectID;
+			var projectId = project.identification;
 			var projectSummary = project.summary;
 			var optionElement : OptionElement = 
 				cast Browser.document.getElementById(projectId);
@@ -132,6 +139,7 @@ class Project {
 						"click"
 						);
 				projectSelectedStream.then(processProjectSelected);
+				projectList.appendChild(optionElement);
 			}
 		}
 	}
@@ -241,9 +249,20 @@ class Project {
 	
 		var selectedId = selectionElement.id;
 		trace("Reading company information for " + selectedId);
-		company.read(selectedId);	
+		company.read(selectedId);
+		getProjectList(selectedId);	
 	}
 
+
+	private function getProjectList(companyId: String) {
+		trace("Processing select all projects " + companyId);
+		var payload = {
+			nickName : MBooks_im.getSingleton().getNickName()
+			, commandType : "SelectActiveProjects"
+			, companyId : companyId
+		};
+		MBooks_im.getSingleton().doSendJSON(payload);
+	}	
 
 	private function processProjectSelected(ev : Event) {
 		trace ("Project selected " + ev.target);
@@ -254,38 +273,43 @@ class Project {
 	}
 
 	public function processManageProject(incomingMessage){
-		trace("Process manage company ");
-		var crudType = incomingMessage.crudType;
-		trace(incomingMessage);
-		if(crudType == CREATE) {
-			trace("Create successful");
-			copyIncomingValues(incomingMessage);
-		}else if (crudType == READ) {
-			if(incomingMessage.projectID == "") {
-				newProject = true;
-				
-			}else {
+		trace("Process manage company  ");
+		try {
+			var crudType = incomingMessage.Right.crudType;
+			trace(incomingMessage);
+			if(crudType == CREATE) {
+				trace("Create successful");
 				copyIncomingValues(incomingMessage);
-				newProject = false;			
+			}else if (crudType == READ) {
+				if(incomingMessage.Right.projectId == "") {
+					newProject = true;
+					
+				}else {
+					copyIncomingValues(incomingMessage);
+					newProject = false;			
+				}
+			}else if (crudType == UPDATE) {
+				copyIncomingValues(incomingMessage);
+			}else if (crudType == DELETE){
+				clearFields(incomingMessage);
+			}else {
+				throw ("Invalid crudtype " + crudType);
 			}
-		}else if (crudType == UPDATE) {
-			copyIncomingValues(incomingMessage);
-		}else if (crudType == DELETE){
-			clearFields(incomingMessage);
-		}else {
-			throw ("Invalid crudtype " + crudType);
+		}catch(err : Dynamic){
+			throw err;
 		}
 		
 	}
-	private function copyIncomingValues(aMessage){
+	private function copyIncomingValues(wMessage){
 		try {
-			this.setProjectID(aMessage.projectID);
+			var aMessage = wMessage.Right;
+			this.setProjectID(aMessage.projectId);
 			this.setProjectSummary(aMessage.summary);
 			this.setProjectDetails(aMessage.details);
 			this.setProjectStart(aMessage.startDate);
 			this.setProjectEnd(aMessage.endDate);		
 		}catch(err : Dynamic){
-			trace("Error copying values "  + aMessage);
+			trace("Error copying values "  + wMessage);
 		}
 
 	}

@@ -25,5 +25,7 @@ enum CommandType {
 	ManageCompany;
 	KeepAlive;
 	SelectAllCompanies;
+	SelectActiveProjects;
+	ManageProject;
 
 }

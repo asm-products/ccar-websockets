@@ -47,6 +47,7 @@ data QueryCompany = QueryCompany {
 	, commandType :: T.Text
 	, qCompany :: [CompanyT] 
 }
+
 data ManageCompany = ManageCompany {
         nickName :: T.Text
         , crudType :: CRUD 

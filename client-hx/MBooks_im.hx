@@ -176,6 +176,9 @@ class MBooks_im {
 	private function parseIncomingMessage(incomingMessage : Dynamic) : Void {
 		var commandType : CommandType = 
 			parseCommandType(incomingMessage.commandType);
+		if(commandType == Undefined){
+			commandType = parseCommandType(incomingMessage.Right.commandType);
+		}
 		switch(commandType){
 			case Login : {
 			    var person  : model.Person = incomingMessage.login;
@@ -192,8 +195,15 @@ class MBooks_im {
 			}
 			case SelectAllCompanies: {
 				trace("Updating company list event stream");
-				company.getSelectListEventStream().resolve(incomingMessage);
-				
+				company.getSelectListEventStream().resolve(incomingMessage);	
+			}
+			case SelectActiveProjects : {
+				trace("Processing all active projects ");
+				project.getSelectActiveProjectsStream().resolve(incomingMessage);		
+			}
+			case ManageProject : {
+				trace("Manage project");
+				project.processManageProject(incomingMessage);
 			}
 			case ParsedCCARText : {
 				trace("Parsing ccar text " + incomingMessage);
