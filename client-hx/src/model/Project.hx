@@ -93,7 +93,8 @@ class Project {
 		}
 	}
 
-	public function getSelectActiveProjectsStream() {
+
+	public function getSelectActiveProjectsStream() : Deferred<Dynamic> {
 		return projectStream;
 	}
 	private function getSaveProject() : ButtonElement {

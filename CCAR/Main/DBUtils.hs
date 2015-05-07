@@ -354,14 +354,46 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             reportType ProjectReportType
             UniqueReport reportUUID 
             deriving Show Eq
+        -- An ability to create 
+        -- an analytics script
+        -- that can be submitted immediately,
+        -- to get instant results if possible.
+        -- The user should be able to test run
+        -- the script with a subset of the data
+        -- and then specify a task cron job to 
+        -- have the results sent to their group
+        -- mailbox.
         ProjectWorkbench json 
-            project ProjectId 
+            project ProjectId
+            -- UUID for the workbench. 
+            workbenchId Text 
             scriptType SupportedScript
             scriptData Text -- The script
             numberOfCores Int 
+            -- The data path for the script
+            -- This should be normalized to 
+            -- support file sharing services  
+            -- or public file systems
+            -- such as the ones mounted on 
+            -- ec2, for example. 
+            scriptDataPath Text Maybe                               
             jobStartDate UTCTime Maybe 
             jobEndDate UTCTime Maybe
             deriving Show Eq
+        -- A cron job to run the scripts
+        -- at a specified time and intervals.
+        -- This needs to closely model 
+        -- the cron jobs. That probably 
+        -- seems to have worked.
+        ProjectCronJob json 
+            workbench ProjectWorkbenchId 
+            scheduleStartTime UTCTime Maybe
+            actualStartTime UTCTime Maybe
+            actualEndTime UTCTime 
+            jobResult Text Maybe
+            jobErrors Text Maybe 
+            deriving Show Eq
+
         Permission json 
             permission Text -- Read/Write
             permissionCode Bool -- True/False

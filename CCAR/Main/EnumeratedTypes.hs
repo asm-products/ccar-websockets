@@ -5,9 +5,15 @@ import Database.Persist.TH
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
+import Data.Text as T
+
+
+
+getSupportedScripts :: [SupportedScript]
+getSupportedScripts = [minBound..maxBound]
 
 data SupportedScript = RScript | Stata | UnsupportedScriptType
-			deriving(Show, Read, Eq, Data, Generic, Typeable)
+			deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
 
 data SurveyResponse = A | B | C | D | E | F
 			deriving(Show, Read, Eq)

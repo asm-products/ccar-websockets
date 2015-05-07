@@ -55,6 +55,7 @@ import CCAR.Command.ErrorCommand
 import CCAR.Model.Person
 import CCAR.Model.Company as Company 
 import CCAR.Model.Project as Project
+import CCAR.Model.ProjectWorkbench as ProjectWorkbench
 
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
@@ -473,6 +474,7 @@ processCommandValue app aConn nickName (Object a)   = do
                 String "ManageProject" -> Project.manageProject nickName (Object a)
                 String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 String "SelectActiveProjects" -> Project.queryActiveProjects nickName (Object a)
+                String "GetSupportedScripts" -> ProjectWorkbench.getSupportedScripts nickName (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply
