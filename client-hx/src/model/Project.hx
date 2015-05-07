@@ -105,8 +105,9 @@ class Project {
 
 	private function saveProject(ev : Event) {
 			try {
+				trace("Saving project");
 				var nickName = MBooks_im.getSingleton().getNickName();
-				var payload = getPayload(nickName, getCrudType());
+				var payload = getPayloadD(nickName, getCrudType());
 				MBooks_im.getSingleton().doSendJSON(payload);
 			}catch(err : Dynamic) {
 				trace("Error checking company " + err);
@@ -125,6 +126,7 @@ class Project {
 		var pArray : Array<Dynamic> = projects;
 		for (project in pArray){
 			var projectId = project.identification;
+			trace("Adding project id " + projectId);
 			var projectSummary = project.summary;
 			var optionElement : OptionElement = 
 				cast Browser.document.getElementById(projectId);
@@ -246,7 +248,6 @@ class Project {
 
 		var selectionElement : OptionElement 
 				= cast ev.target;
-	
 		var selectedId = selectionElement.id;
 		trace("Reading company information for " + selectedId);
 		company.read(selectedId);
@@ -276,7 +277,7 @@ class Project {
 		trace("Process manage company  ");
 		try {
 			var crudType = incomingMessage.Right.crudType;
-			trace(incomingMessage);
+			//trace(incomingMessage);
 			if(crudType == CREATE) {
 				trace("Create successful");
 				copyIncomingValues(incomingMessage);
@@ -329,7 +330,7 @@ class Project {
 	private function sendReadRequest(projectID){
 			try {
 			var nickName = MBooks_im.getSingleton().getNickName();
-			var payload = getPayload(nickName, "Read");
+			var payload = getPayload(nickName, "Read", projectID);
 			MBooks_im.getSingleton().doSendJSON(payload);
 			}catch(err : Dynamic) {
 				trace("Error checking company " + err);
@@ -344,12 +345,12 @@ class Project {
 			return UPDATE;
 		}
 	}
-	private function getPayload(nickName, crudType) : Dynamic {
+	private function getPayload(nickName, crudType, projectId) : Dynamic {
 		var payload : Dynamic = {
 			nickName : nickName
 			, commandType : MANAGE_PROJECT
 			, crudType : crudType
-			, projectId : getProjectID()
+			, projectId : projectId
 			, uniqueCompanyID : company.getCompanyID()
 			, summary : getProjectSummary()
 			, details : getProjectDetails()
@@ -361,7 +362,10 @@ class Project {
 	
 		};
 		return payload;
+	}
 
+	private function getPayloadD(nickName, crudType) : Dynamic {
+		return getPayload(nickName, crudType, getProjectID());
 	}
 
 

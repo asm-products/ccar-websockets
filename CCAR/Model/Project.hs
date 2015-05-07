@@ -78,17 +78,25 @@ data QueryProject = QueryProject {
 }
 
 
-insertProject :: ProjectT -> IO (Either a ProjectT)
+insertProject :: ProjectT -> IO (Either T.Text ProjectT)
 insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do 
-	dbOps $ do 
-		uploader <- getBy $ PersonUniqueNickName up 
-		company <- getBy $ CompanyUniqueID cid
-		case (uploader, company) of 
-			(Just (Entity personId personV)
-				, Just(Entity companyId cValue)) -> do 
-				insert $ Project i 
-							companyId s de sd ed personId upT pr
-				return $ Right t 
+	uuid <- nextUUID
+	case uuid of 
+		Just uuidJ -> do
+			dbOps $ do 
+				uploader <- getBy $ PersonUniqueNickName up 
+				company <- getBy $ CompanyUniqueID cid
+				case (uploader, company) of 
+					(Just (Entity personId personV)
+						, Just(Entity companyId cValue)) -> do 
+						insert $ do 
+								Project companyUniId 
+									companyId s de sd ed personId upT pr
+						return $ Right t {identification = companyUniId}
+						where
+							companyUniId = T.pack $ UUID.toString uuidJ 
+		Nothing -> return $ Left ("UUID generated too quickly?" :: T.Text)
+
 
 readProject :: ProjectT -> IO (Either T.Text ProjectT)
 readProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
