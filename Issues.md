@@ -10,11 +10,21 @@
 ##### Clear field after a send.
 
 
+
 #### Features for version 2
+##### Manage companies and their slideshows.
+##### Manage projects for the company.
+##### Manage project workbench, slideshows for a project.
+##### Handle runtime exceptions in yesod.
+
+#### Features for version 3
 
 ##### Create one time wallets for a user with a configurable initial amount.
 ##### Manage surveys (publish them)
 ##### Poll registration
 ##### Manage colored coins
+
+
+
 
 

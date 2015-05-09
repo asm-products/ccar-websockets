@@ -8,6 +8,7 @@ Haxe based websocket client interacting with a yesod websockets server.
 
 ### Core functions
 
+
 ### Login (Regular User  - Not through a reseller)
 ##### Login (Returning user)
 	* Connect to the server 
@@ -160,3 +161,28 @@ Questions:
 	Send a few messages.
 	Stay online for 5 - 10 mins as a guest user.
 	Decrements the number of guest logins allowed.
+
+
+Haskell Naming conventions till I get the type system right
+==========================================================
+Public methods in database operations are query and manage.
+insert, update, delete and select are private methods. 
+
+SPA related stuff
+==================================================
+Incremental save is implemented using a global stream.
+What are the conventional key maps for commonly used actions?
+
+
+FRP
+=================================================
+We are currently using promHx from haxe as an frp library. There
+is a gap between the theoretical definiton of an frp library and 
+what is implemented here. However, the architecture is still better
+than the traditional listener approach.
+
+Acronyms (Jargon??)
+==============================================
+SPA : Single page application
+FRP : Functional reactive programming
+

@@ -41,21 +41,57 @@ class ProjectWorkbench {
 	//constants
 	var PROJECT_WORKBENCH_LIST : String = "projectWorkbenches";
 
-	//Initialization should populate the workbench list.
-	//It should populate the types of scripts supported.
-	//Selecting a workbench, should display
+	//Initialization populates the workbench list
+	//for the selected project. (single selection only)
+	//Populates the types of scripts supported.
+	//Selecting a workbench, displays the details.
 	//ideally syntax highlighted script.
-	//Run should run the script.
-	//Console should show the results.
+	//Run the script
+	//Console or a display area displays the result.
+
+	//Save saves/inserts a new script.
+	//Delete deletes.
+	//Update: is automatic with a timer.
+	//Actions - generate json actions to be handled.
+	//Actions: -- User triggers them
+	//Save: Saves or inserts a new script.
+	//Delete: delete.
+	//Update: Updates the script.
+	//Run : action to run the script.
+	//Select a workbench.
+	//query all workbenches.
+	//query all supported scripts
+
+	//Actions -- system generated based on user preferences
+	//Automatic workspace saver timer thread.
+	//User should be able to pause the thread
+	//anytime.
+
+	//Events:
+	//project selected. -> triggers query all workbenches.
+	//script type selected -> triggers any syntax rules for the script.
+	//Supported script types selected
+	//workbench list published.
+	//workbench selected.
+	//save button clicked 
+	//delete button clicked
+	//update button clicked
+	//run button pressed 
+
 
 	//private variables.
 	var selectedProject : Project;
+	var workbenchId : String;
 	var supportedScripts : Array<String>;
+	//To help classify the script
 	var scriptData : String;
 	var numberOfCores : int;
 	var scriptDataPath : String;
 	var newWorkBench : Boolean;
-	var workbenchId : String;
+	var scriptMetaTags : String;
+	//A better pnemonic than the uuid.
+	var scriptSummary : String 
 
-	var autosave : Boolean; //Enable when workbench is not new.
+	var autosave : Boolean; //Enable when workbench has been inserted.
+
 }

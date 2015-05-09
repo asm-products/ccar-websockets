@@ -46,7 +46,3 @@ Instructions to login to postgres
 sudo -u postgres psql -d <dbname>
 
 
-Some Naming conventions till I get the type system right
-==========================================================
-Public methods in database operations are query and manage.
-insert, update, delete and select are public methods. 
