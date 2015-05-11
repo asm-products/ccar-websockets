@@ -47,18 +47,28 @@ class ProjectWorkbench {
 	//constants
 	var PROJECT_WORKBENCH_LIST : String = "projectWorkbenches";
 	var SAVE_WORKBENCH : String = "saveWorkbench";
+	var SUPPORTED_SCRIPT_LIST_ELEMENT : String = "supportedScriptTypes";
+	var WORKBENCH_ID_ELEMENT : String = "workbenchId";
+	var SCRIPT_DATA_ELEMENT : String = "scriptData";
+	var SCRIPT_UPLOAD_ELEMENT : String = "scriptUpload";
+	var NUMBER_OF_CORES : String = "numberOfCores";	
+	var SCRIPT_SUMMARY : String = "scriptSummary";
+	var SCRIPT_DATA_PATH : String = "scriptDataPath";	
+	var SCRIPT_META_TAGS : String = "scriptMetaTags";
 	var SUPPORTED_SCRIPT_TYPES : String = "GetSupportedScripts";
 
+	private function getSupportedScriptsListElement() : SelectElement {
+		return (cast Browser.document.getElementById(SUPPORTED_SCRIPT_LIST_ELEMENT));
+	}
 	public var supportedScriptsStream(default, null) : Deferred<QuerySupportedScript>;
 	public function new(project : Project){
 		trace("Instantiating project workbench");
-		/*
 		var stream : Stream<Dynamic> = 
 				MBooks_im.getSingleton().initializeElementStream(
 					cast getSaveWorkbench()
 					, "click"
 					);
-		stream.then(saveWorkbench);  */
+		stream.then(saveWorkbench); 
 
 		supportedScriptsStream = new Deferred<QuerySupportedScript>();
 		supportedScriptsStream.then(processSupportedScripts);
@@ -68,13 +78,33 @@ class ProjectWorkbench {
 	private function saveWorkbench(ev : Event){
 		trace("Saving workbench");
 	}
+
 	private function getSaveWorkbench() : ButtonElement {
 		return (cast Browser.document.getElementById(SAVE_WORKBENCH));
 	}
 
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
+		var supportedScriptListElement : SelectElement 
+				= getSupportedScriptsListElement();
+		if(supportedScriptListElement == null){
+			throw "Script type list element is not defined";
+		}
+		for (sType in supportedScripts.scriptTypes) {
+			var optionElement : OptionElement = 
+				cast (Browser.document.getElementById(sType));
+			if(optionElement == null){
+				optionElement = 
+					cast Browser.document.createOptionElement();
+				optionElement.id = sType;
+				optionElement.text = sType;
+				supportedScriptListElement.appendChild(optionElement);
+			}else {
+				trace("Option element exists " + sType);
+			}	
+		}
 	}
+
 	private function querySupportedScripts(){
 		trace("Query supported scripts");
 		var payload : QuerySupportedScript = 
@@ -85,10 +115,10 @@ class ProjectWorkbench {
 
 			};
 		MBooks_im.getSingleton().doSendJSON(payload);
-
 	}
+
 	//Initialization populates the workbench list
-	//for the selected project. (single selection only)
+	//for the selected project. (User can select a single project at any time)
 	//Populates the types of scripts supported.
 	//Selecting a workbench, displays the details.
 	//ideally syntax highlighted script.

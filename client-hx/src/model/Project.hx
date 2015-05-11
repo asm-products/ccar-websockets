@@ -297,6 +297,7 @@ class Project {
 					newProject = false;
 					var projectWorkbench : ProjectWorkbench = 
 						new ProjectWorkbench(this);
+					activeProjectWorkbench = projectWorkbench;
 
 				}
 			}else if (crudType == UPDATE) {
