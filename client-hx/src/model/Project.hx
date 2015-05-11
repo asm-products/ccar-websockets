@@ -71,6 +71,15 @@ class Project {
 	private var uploadTime : Date;
 	private var company : Company;
 	private var projectStream : Deferred<Dynamic>;
+	private var activeProjectWorkbench : ProjectWorkbench;
+
+	public function getSupportedScriptsStream() : Deferred<Dynamic> {
+		if(activeProjectWorkbench == null){
+			throw "No active project workbench found";
+		}else {
+			return activeProjectWorkbench.supportedScriptsStream;
+		}
+	}
 
 	public function new(companyI : Company) {
 		try {
@@ -86,8 +95,6 @@ class Project {
 			company.getSelectListEventStream().then(processCompanyList);
 			projectStream = new Deferred<Dynamic>();
 			projectStream.then(processProjectList);
-
-
 		}catch(err : Dynamic){
 			trace("Error creating project " + err);
 		}
@@ -284,11 +291,13 @@ class Project {
 				copyIncomingValues(incomingMessage);
 			}else if (crudType == READ) {
 				if(incomingMessage.Right.projectId == "") {
-					newProject = true;
-					
+					newProject = true;					
 				}else {
 					copyIncomingValues(incomingMessage);
-					newProject = false;			
+					newProject = false;
+					var projectWorkbench : ProjectWorkbench = 
+						new ProjectWorkbench(this);
+
 				}
 			}else if (crudType == UPDATE) {
 				copyIncomingValues(incomingMessage);

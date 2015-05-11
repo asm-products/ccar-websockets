@@ -37,10 +37,56 @@ import promhx.Promise;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
 
+typedef QuerySupportedScript = {
+		var nickName : String;
+		var commandType : String;
+		var scriptTypes : Array<String>;
+};
+
 class ProjectWorkbench {
 	//constants
 	var PROJECT_WORKBENCH_LIST : String = "projectWorkbenches";
+	var SAVE_WORKBENCH : String = "saveWorkbench";
+	var SUPPORTED_SCRIPT_TYPES : String = "GetSupportedScripts";
 
+	public var supportedScriptsStream(default, null) : Deferred<QuerySupportedScript>;
+	public function new(project : Project){
+		trace("Instantiating project workbench");
+		/*
+		var stream : Stream<Dynamic> = 
+				MBooks_im.getSingleton().initializeElementStream(
+					cast getSaveWorkbench()
+					, "click"
+					);
+		stream.then(saveWorkbench);  */
+
+		supportedScriptsStream = new Deferred<QuerySupportedScript>();
+		supportedScriptsStream.then(processSupportedScripts);
+		querySupportedScripts();
+	}
+
+	private function saveWorkbench(ev : Event){
+		trace("Saving workbench");
+	}
+	private function getSaveWorkbench() : ButtonElement {
+		return (cast Browser.document.getElementById(SAVE_WORKBENCH));
+	}
+
+	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
+		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
+	}
+	private function querySupportedScripts(){
+		trace("Query supported scripts");
+		var payload : QuerySupportedScript = 
+			{
+				nickName : MBooks_im.getSingleton().getNickName()
+				, commandType : SUPPORTED_SCRIPT_TYPES
+				, scriptTypes : []
+
+			};
+		MBooks_im.getSingleton().doSendJSON(payload);
+
+	}
 	//Initialization populates the workbench list
 	//for the selected project. (single selection only)
 	//Populates the types of scripts supported.
@@ -82,16 +128,15 @@ class ProjectWorkbench {
 	//private variables.
 	var selectedProject : Project;
 	var workbenchId : String;
-	var supportedScripts : Array<String>;
 	//To help classify the script
 	var scriptData : String;
-	var numberOfCores : int;
+	var numberOfCores : Int;
 	var scriptDataPath : String;
-	var newWorkBench : Boolean;
+	var newWorkBench : Bool;
 	var scriptMetaTags : String;
 	//A better pnemonic than the uuid.
-	var scriptSummary : String 
+	var scriptSummary : String;
 
-	var autosave : Boolean; //Enable when workbench has been inserted.
+	var autosave : Bool; //Enable when workbench has been inserted.
 
 }

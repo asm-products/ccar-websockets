@@ -162,23 +162,22 @@ class MBooks_im {
 	}
 
 	// Message processing 
-
-	private function parseCommandType(commandType : String) : CommandType {
-	 	trace("Parsing command type " + commandType);
+	private function parseCommandType(incomingMessage : Dynamic) : CommandType {
+		var commandType = incomingMessage.commandType;
+		if (commandType == null){
+			commandType = incomingMessage.Right.commandType;
+		}
 		try {
 		return Type.createEnum(CommandType, commandType);
 		}catch(e : Dynamic){
-			trace("Error " + e);
+			trace("Error " + e + " Command type " + commandType);
 			return Undefined;
 		}
 	}
 
 	private function parseIncomingMessage(incomingMessage : Dynamic) : Void {
 		var commandType : CommandType = 
-			parseCommandType(incomingMessage.commandType);
-		if(commandType == Undefined){
-			commandType = parseCommandType(incomingMessage.Right.commandType);
-		}
+			parseCommandType(incomingMessage);
 		switch(commandType){
 			case Login : {
 			    var person  : model.Person = incomingMessage.login;
@@ -196,6 +195,15 @@ class MBooks_im {
 			case SelectAllCompanies: {
 				trace("Updating company list event stream");
 				company.getSelectListEventStream().resolve(incomingMessage);	
+			}
+			case GetSupportedScripts : {
+				trace("Processing get supported scripts");
+				try {
+					project.getSupportedScriptsStream().resolve(incomingMessage);
+				}catch(err : Dynamic){
+					trace("Error processing supported scripts "  + err);
+				}
+				
 			}
 			case SelectActiveProjects : {
 				trace("Processing all active projects ");
@@ -273,7 +281,7 @@ class MBooks_im {
 	private function onMessage(ev: MessageEvent) : Void{
 		trace("Received stream " + ev.data);
 		var incomingMessage = haxe.Json.parse(ev.data);
-		trace("Printing incoming message " + incomingMessage);
+		trace("Printing incoming message " + haxe.Json.stringify(incomingMessage));
 		parseIncomingMessage(incomingMessage);
 	}
 	

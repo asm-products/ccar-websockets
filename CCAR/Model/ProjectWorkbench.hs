@@ -47,8 +47,10 @@ data QuerySupportedScript = QuerySupportedScript {
 
 instance ToJSON QuerySupportedScript
 instance FromJSON QuerySupportedScript
-getSupportedScripts :: T.Text -> T.Text
-getSupportedScripts n = Util.serialize $ QuerySupportedScript n 
-					"SupportedScripts"
-					EnumeratedTypes.getSupportedScripts
+getSupportedScripts :: T.Text -> Value -> IO(GC.DestinationType, T.Text)
+getSupportedScripts n (Object a) = 
+			return(GC.Reply, 
+					Util.serialize $ QuerySupportedScript n 
+					"GetSupportedScripts"
+					EnumeratedTypes.getSupportedScripts)
 
