@@ -314,7 +314,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             uploadedBy PersonId
             uploadTime UTCTime Maybe --default = Just CURRENT_TIMESTAMP
             preparedBy Text -- The name on the report (may not be registered with the site)
-            UniqueProject identification companyId  
+            UniqueProject identification   
             deriving Show Eq 
         ProjectSlideShow json 
             project ProjectId
@@ -379,6 +379,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             scriptDataPath Text Maybe                               
             jobStartDate UTCTime Maybe 
             jobEndDate UTCTime Maybe
+            UniqueWorkbench workbenchId 
             deriving Show Eq
         -- A cron job to run the scripts
         -- at a specified time and intervals.

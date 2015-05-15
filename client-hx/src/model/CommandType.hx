@@ -27,5 +27,6 @@ enum CommandType {
 	SelectAllCompanies;
 	SelectActiveProjects;
 	ManageProject;
-	GetSupportedScripts;
+	QuerySupportedScripts;
+	QueryActiveWorkbenches;
 }

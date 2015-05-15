@@ -60,7 +60,7 @@ class Project {
 
 
 	private var crudType : String;
-	private var projectID : String;
+	public var projectID(default, null) : String;
 	private var uniqueCompanyID : String;
 	private var summary : String;
 	private var details : String;
@@ -71,7 +71,7 @@ class Project {
 	private var uploadTime : Date;
 	private var company : Company;
 	private var projectStream : Deferred<Dynamic>;
-	private var activeProjectWorkbench : ProjectWorkbench;
+	public var activeProjectWorkbench(default, null) : ProjectWorkbench;
 
 	public function getSupportedScriptsStream() : Deferred<Dynamic> {
 		if(activeProjectWorkbench == null){
@@ -298,7 +298,6 @@ class Project {
 					var projectWorkbench : ProjectWorkbench = 
 						new ProjectWorkbench(this);
 					activeProjectWorkbench = projectWorkbench;
-
 				}
 			}else if (crudType == UPDATE) {
 				copyIncomingValues(incomingMessage);
@@ -315,6 +314,11 @@ class Project {
 	private function copyIncomingValues(wMessage){
 		try {
 			var aMessage = wMessage.Right;
+			this.projectID = aMessage.projectId;
+			//This is an issue.
+			//UI elements need to listen on multiple events.
+			//From the user as well as the server.
+			//Need to handle this.
 			this.setProjectID(aMessage.projectId);
 			this.setProjectSummary(aMessage.summary);
 			this.setProjectDetails(aMessage.details);

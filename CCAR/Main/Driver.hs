@@ -474,7 +474,9 @@ processCommandValue app aConn nickName (Object a)   = do
                 String "ManageProject" -> Project.manageProject nickName (Object a)
                 String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 String "SelectActiveProjects" -> Project.queryActiveProjects nickName (Object a)
-                String "GetSupportedScripts" -> ProjectWorkbench.getSupportedScripts nickName (Object a)
+                String "QuerySupportedScripts" -> ProjectWorkbench.querySupportedScripts nickName (Object a)
+                String "QueryActiveWorkbenches" -> ProjectWorkbench.queryActiveWorkbenches (Object a)
+                String "ManageWorkbench" -> ProjectWorkbench.manageWorkbench (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

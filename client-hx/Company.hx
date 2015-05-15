@@ -141,8 +141,6 @@ class Company {
 		trace("Load image");
 		try {
 			var reader : FileReader = cast ev.target;
-			var imageSplash : ImageElement = 
-				getCompanySplashElement();
 			saveCompanyInfo(reader.result);
 		}catch(e : Dynamic) {
 			trace("Exception " + e);
@@ -171,8 +169,8 @@ class Company {
 				, imageEncoded
 				, nickName);
 		MBooks_im.getSingleton().doSendJSON(payload);
-
 	}
+	
 	
 	public function read(companyID: String){
 			try {

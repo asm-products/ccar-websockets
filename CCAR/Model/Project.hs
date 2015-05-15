@@ -103,7 +103,7 @@ readProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 	company <- getBy $ CompanyUniqueID cid	
 	case company of 
 		Just (Entity k v) -> do 
-			project <- getBy $ UniqueProject i k
+			project <- getBy $ UniqueProject i
 			case project of 
 				-- Assert that k and k2 are the same
 				Just (Entity k (Project uuid k2 s de sd ed u upT pr)) -> do 
@@ -119,7 +119,7 @@ updateProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 	company <- getBy $ CompanyUniqueID cid
 	case company of 
 		Just (Entity k v) -> do 
-						project <- getBy $ UniqueProject i k
+						project <- getBy $ UniqueProject i
 						case project of 
 							Just (Entity k2 prValue) -> do 	
 								res <- return  $ prValue {projectSummary = s 
@@ -135,7 +135,7 @@ deleteProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 		company <- getBy $ CompanyUniqueID cid 
 		case company of 
 			Just (Entity k v) -> do 
-					project <- getBy $ UniqueProject i k 
+					project <- getBy $ UniqueProject i 
 					case project of 
 						Just (Entity k2 prValue) -> do 
 								Postgresql.delete k2 
@@ -181,6 +181,7 @@ queryActiveProjects aNickName (Object a) = do
 							"Query active projects failed " ++ s)
 
 type CompanyUniqueID = T.Text
+
 selectActiveProjects  :: CompanyUniqueID-> IO [Entity Project]
 selectActiveProjects x = dbOps $ do 
 				company <- getBy $ CompanyUniqueID x

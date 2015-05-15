@@ -155,9 +155,7 @@ class MBooks_im {
 
 	private  function onServerConnectionError(ev : Event){
 		trace("Error " + haxe.Json.stringify(ev));
-		// Handle server not available here.
 		getNickNameElement().disabled = true;
-		//Upon clicking ok, take them to the company home page or the support page.
 		js.Lib.alert("Server not available. Please try back later or call support at <>");
 	}
 
@@ -165,7 +163,9 @@ class MBooks_im {
 	private function parseCommandType(incomingMessage : Dynamic) : CommandType {
 		var commandType = incomingMessage.commandType;
 		if (commandType == null){
-			commandType = incomingMessage.Right.commandType;
+			if(incomingMessage.Right != null) {
+				commandType = incomingMessage.Right.commandType;	
+			}			
 		}
 		try {
 		return Type.createEnum(CommandType, commandType);
@@ -196,14 +196,21 @@ class MBooks_im {
 				trace("Updating company list event stream");
 				company.getSelectListEventStream().resolve(incomingMessage);	
 			}
-			case GetSupportedScripts : {
+			case QuerySupportedScripts : {
 				trace("Processing get supported scripts");
 				try {
 					project.getSupportedScriptsStream().resolve(incomingMessage);
 				}catch(err : Dynamic){
 					trace("Error processing supported scripts "  + err);
+				}				
+			}
+			case QueryActiveWorkbenches : {
+				trace("Processing query active workbenches");
+				try {
+					project.activeProjectWorkbench.queryActiveWorkbenchesStream.resolve(incomingMessage);
+				}catch(err : Dynamic){
+					trace("Error processing query active workbenches " + err);
 				}
-				
 			}
 			case SelectActiveProjects : {
 				trace("Processing all active projects ");
