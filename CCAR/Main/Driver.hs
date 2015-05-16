@@ -42,11 +42,12 @@ import Data.ByteString as DBS hiding (putStrLn)
 import Data.ByteString.Char8 as C8 hiding(putStrLn) 
 import System.Environment
 
-
+import CCAR.Main.Util
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
 import Database.Persist.Postgresql as DB
+import Database.Persist 
 import Data.Map as IMap
 import CCAR.Main.DBUtils
 import CCAR.Main.GroupCommunication as GroupCommunication
@@ -517,7 +518,13 @@ processIncomingMessage app conn aNickName aCommand = do
                     
         Just (Object a) -> do 
                 putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                processCommandValue app conn aNickName (Object a)
+                (processCommandValue app conn aNickName (Object a)) `catch`
+                    (\e -> do
+                            putStrLn $  ("Exception "  ++ show (e :: PersistException)) 
+                            atomically $ deleteConnection app conn aNickName
+                            return (GroupCommunication.Broadcast, 
+                                    serialize $ UserJoined.userLeft aNickName)
+                            )
                 --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
 

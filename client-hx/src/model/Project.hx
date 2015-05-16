@@ -282,7 +282,7 @@ class Project {
 	}
 
 	public function processManageProject(incomingMessage){
-		trace("Process manage company  ");
+		trace("Process manage Projects  ");
 		try {
 			var crudType = incomingMessage.Right.crudType;
 			//trace(incomingMessage);

@@ -142,7 +142,7 @@ readWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId
 
 
 insertWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
-insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
+insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId 
 				scriptType scriptData 
 				numberOfCores
 				scriptDataPath
@@ -153,7 +153,7 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId
 		case uuidM of 
 			Just uuid -> do 
 				dbOps $ do 
-					project <- getBy $ UniqueProject uuidAsString 
+					project <- getBy $ UniqueProject uniqueProjectId 
 					case project of 
 						Just (Entity prKey project) -> do 
 							wid <- insert $ ProjectWorkbench prKey 
@@ -231,13 +231,13 @@ queryActiveWorkbenches aValue@(Object a) = do
 
 
 
-manageWorkbench :: T.Text -> Value -> IO (GC.DestinationType, T.Text)
-manageWorkbench nickName aValue@(Object a) = do 
+manageWorkbench :: Value -> IO (GC.DestinationType, T.Text)
+manageWorkbench aValue@(Object a) = do 
 	case (fromJSON aValue) of 
 		Success r -> do 
 				res <- process r 
 				case res of
-					Right r -> return (GC.Reply, serialize r) 
+					Right _ -> return (GC.Reply, serialize r)  -- If things work, return the original value?
 					Left f -> return (GC.Reply, serialize $ genericErrorCommand $ 
 								"Error processing manageWorkbench " ++ (T.unpack f))
 

@@ -54,7 +54,7 @@ typedef QuerySupportedScript = {
 //needs to be fixed.
 
 typedef PrjWorkbench = {
-	var crudType : WorkbenchCrudType;
+	var crudType : String; //The default json writer add the code to the enum
 	var workbenchId : String;
 	var uniqueProjectId : String;
 	var scriptType : String;
@@ -99,6 +99,7 @@ class ProjectWorkbench {
 	private function getSupportedScriptsListElement() : SelectElement {
 		return (cast Browser.document.getElementById(SUPPORTED_SCRIPT_LIST_ELEMENT));
 	}
+
 	public var supportedScriptsStream(default, null) : Deferred<QuerySupportedScript>;
 	public var queryActiveWorkbenchesStream(default, null) : Deferred<QueryActiveWorkbenches>;
 	public function new(project : Project){
@@ -132,8 +133,23 @@ class ProjectWorkbench {
 		stream.then(uploadScript);
 		reader.readAsDataURL(file);
 	}
+	private function read(anId){
+		try {
+			var payload = getPayloadFromUI(Read, "");
+			payload.workbenchId = anId;
+			trace("Reading workbench");
+			MBooks_im.getSingleton().doSendJSON(payload);			
+		}catch(err : Dynamic){
+			trace("Error " + err);		
+		}
+	}
+
 	private function saveWorkbenchModel(scriptData : String){
 		try {
+			if(scriptData == null || scriptData == "") {
+				trace("Nothing to save");
+				return;
+			}
 			var crudType = getCrudType();
 			var payload = getPayloadFromUI(crudType, scriptData);
 			trace("Saving workbench model " + haxe.Json.stringify(payload));
@@ -158,6 +174,9 @@ class ProjectWorkbench {
 		}
 	}
 
+	private function getProjectWorkbenchListElement()  : InputElement {
+		return (cast Browser.document.getElementById(PROJECT_WORKBENCH_LIST));
+	}
 	private function getWorkbenchIdElement() : InputElement {
 		return (cast Browser.document.getElementById(WORKBENCH_ID_ELEMENT));
 
@@ -168,8 +187,9 @@ class ProjectWorkbench {
 	private function getScriptTypeElement() : InputElement {
 		return (cast Browser.document.getElementById(SUPPORTED_SCRIPT_LIST_ELEMENT));
 	}
+
 	private function getScriptTypeFromUI() : String {
-		return (getScriptTypeElement().value);
+		return selectedScriptType;
 	}
 	private function getScriptSummaryElement() : InputElement {
 		return (cast Browser.document.getElementById(SCRIPT_SUMMARY));
@@ -194,10 +214,18 @@ class ProjectWorkbench {
 	private function getJobEndDateFromUI() : String {
 		return null;
 	}
-
+	private function toString(crudType : WorkbenchCrudType) {
+		switch(crudType) {
+			case Create: return "Create";
+			case WrkBench_Update : return "WrkBench_Update";
+			case Delete : return "Delete";
+			case Read : return "Read";
+		}
+	}
 	private function getPayloadFromUI(crudType : WorkbenchCrudType, scriptData) : PrjWorkbench {
+
 		var result : PrjWorkbench =  {
-			crudType : crudType
+			crudType : toString(crudType)
 			, workbenchId : getWorkbenchIdFromUI()
 			, uniqueProjectId : selectedProject.projectID
 			, scriptType : getScriptTypeFromUI()
@@ -234,6 +262,14 @@ class ProjectWorkbench {
 				optionElement.id = sType;
 				optionElement.text = sType;
 				supportedScriptListElement.appendChild(optionElement);
+				var supportedScriptListStream = 
+					MBooks_im.getSingleton().initializeElementStream(
+						cast optionElement
+						, "click"
+						);
+				supportedScriptListStream.then(processScriptTypeSelected);
+
+
 			}else {
 				trace("Option element exists " + sType);
 			}	
@@ -271,6 +307,38 @@ class ProjectWorkbench {
 	}
 	private function processQueryActiveWorkbenches(queryActiveWorkbenches : QueryActiveWorkbenches) {
 		trace("Processing query active workbenches " + queryActiveWorkbenches);
+		var workbenches : Array<PrjWorkbench> = queryActiveWorkbenches.workbenches;
+		var workbenchesUI : InputElement = getProjectWorkbenchListElement();
+		for (wrk in workbenches) {
+			var wId : String = wrk.workbenchId;
+			var optionElement : OptionElement = 
+				cast Browser.document.getElementById(wId);
+			if(optionElement == null){
+				optionElement = cast (Browser.document.createOptionElement());
+				optionElement.id = wId;
+				optionElement.text = wId;
+				var optionSelectedStream = 
+					MBooks_im.getSingleton().initializeElementStream(
+						cast optionElement
+						, "click"
+					);
+				optionSelectedStream.then(processWorkbenchSelected);
+				workbenchesUI.appendChild(optionElement);
+			}else {
+				trace("Element already exists " + wId);
+			}
+		}
+	}
+
+	private function processWorkbenchSelected(ev : Event) {
+		var selectionElement : OptionElement =
+			cast ev.target;
+		var selectionId = selectionElement.id;
+		read(selectionId);
+	}
+
+	private function processManageWorkbench(incomingMessage) {
+		trace("Processing manage workbench " + incomingMessage);
 	}
 	
 	//Initialization populates the workbench list
@@ -323,7 +391,17 @@ class ProjectWorkbench {
 	var scriptMetaTags : String;
 	//A better pnemonic than the uuid.
 	var scriptSummary : String;
-
+	//How to access the currently selected option from an input element?
+	var selectedScriptType : String;
 	var autosave : Bool; //Enable when workbench has been inserted.
 
+	private function processScriptTypeSelected(ev : Event) {
+		trace("Script type selected " + ev);
+		try {
+			var selectionElement : OptionElement = 
+				cast ev.target;
+			selectedScriptType = selectionElement.id;
+		}
+
+	}
 }

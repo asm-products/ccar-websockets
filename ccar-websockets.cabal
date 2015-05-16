@@ -99,6 +99,7 @@ executable ccar-websockets
                         GeneralizedNewtypeDeriving
                         GADTs
                         QuasiQuotes
+                        RecordWildCards
                         NamedFieldPuns
 
   --ghc-options: -ddump-splices

@@ -12,7 +12,9 @@ import Data.Text as T
 getSupportedScripts :: [SupportedScript]
 getSupportedScripts = [minBound..maxBound]
 
-data SupportedScript = RScript | Stata | UnsupportedScriptType
+-- We could support a basic script or a file format.
+-- Do we need to split these types. 
+data SupportedScript = RScript | Stata | Collada | SVG | ThreeJS | UnsupportedScriptType
 			deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
 
 data SurveyResponse = A | B | C | D | E | F
