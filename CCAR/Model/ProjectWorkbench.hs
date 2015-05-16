@@ -128,7 +128,7 @@ updateWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId
 		Nothing -> liftIO $ return $ Left $ "Workbench not found " `mappend` wId
 	
 readWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
-readWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
+readWorkbench wT@(ProjectWorkbenchT cType wId uniqueProjedtId 
 				scriptType scriptData 
 				numberOfCores
 				scriptDataPath
@@ -235,9 +235,21 @@ manageWorkbench :: Value -> IO (GC.DestinationType, T.Text)
 manageWorkbench aValue@(Object a) = do 
 	case (fromJSON aValue) of 
 		Success r -> do 
-				res <- process r 
+				res
+					 <- process r 
 				case res of
-					Right _ -> return (GC.Reply, serialize r)  -- If things work, return the original value?
+					Right wbR@(ProjectWorkbench project workbenchId 
+							scriptType scriptData numberOfCores 
+							scriptDataPath jobStartDate jobEndDate)
+						-> return (GC.Reply, 
+								serialize r {
+									scriptType = scriptType
+									, scriptData = scriptData
+									, numberOfCores = numberOfCores
+									, scriptDataPath = scriptDataPath
+									, jobStartDate = jobStartDate
+									, jobEndDate = jobEndDate
+								})  -- If things work, return the original value?
 					Left f -> return (GC.Reply, serialize $ genericErrorCommand $ 
 								"Error processing manageWorkbench " ++ (T.unpack f))
 

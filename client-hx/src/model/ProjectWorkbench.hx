@@ -111,6 +111,7 @@ class ProjectWorkbench {
 					);
 		stream.then(saveWorkbench); 
 		this.selectedProject = project;
+		this.selectedScriptType = "UnsupportedScriptType";
 		supportedScriptsStream = new Deferred<QuerySupportedScript>();
 		supportedScriptsStream.then(processSupportedScripts);
 		queryActiveWorkbenchesStream = new Deferred<QueryActiveWorkbenches>();
@@ -184,6 +185,9 @@ class ProjectWorkbench {
 	private function getWorkbenchIdFromUI() {
 		return getWorkbenchIdElement().value;
 	}
+	private function setWorkbenchIdFromMessage(wid) {
+		getWorkbenchIdElement().value = wid;
+	}
 	private function getScriptTypeElement() : InputElement {
 		return (cast Browser.document.getElementById(SUPPORTED_SCRIPT_LIST_ELEMENT));
 	}
@@ -197,6 +201,10 @@ class ProjectWorkbench {
 
 	private function getScriptSummaryFromUI():String{
 		return (getScriptSummaryElement().value);
+	}
+
+	private function setScriptSummaryFromMessage(aMessage: String) {
+		getScriptSummaryElement().value = aMessage;
 	}
 	private function getScriptDataElement() : InputElement {
 		return (cast Browser.document.getElementById(SCRIPT_UPLOAD_ELEMENT));
@@ -337,10 +345,19 @@ class ProjectWorkbench {
 		read(selectionId);
 	}
 
-	private function processManageWorkbench(incomingMessage) {
+	private function processManageWorkbench(incomingMessage : PrjWorkbench) {
 		trace("Processing manage workbench " + incomingMessage);
+		var crudType : String = incomingMessage.crudType;
+		copyIncomingValues(incomingMessage);
 	}
-	
+	private function copyIncomingValues(incomingMessage) {
+		this.setWorkbenchIdFromMessage(incomingMessage.workbenchId);
+		this.setScriptSummaryFromMessage(incomingMessage.scriptSummary);
+		processScriptData(incomingMessage.scriptData);
+	}
+	private function processScriptData(scriptData: String){
+		trace("Processing script data " + scriptData);
+	}
 	//Initialization populates the workbench list
 	//for the selected project. (User can select a single project at any time)
 	//Populates the types of scripts supported.
