@@ -5,6 +5,7 @@ import haxe.Utf8;
 import haxe.Timer;
 import haxe.ds.ArraySort;
 import js.html.Element;
+import haxe.crypto.BaseCode;
 import haxe.ds.GenericStack;
 import js.html.Event;
 import js.html.CloseEvent;
@@ -102,6 +103,7 @@ class ProjectWorkbench {
 
 	public var supportedScriptsStream(default, null) : Deferred<QuerySupportedScript>;
 	public var queryActiveWorkbenchesStream(default, null) : Deferred<QueryActiveWorkbenches>;
+	public var manageWorkbenchStream(default, null) : Deferred<PrjWorkbench>;
 	public function new(project : Project){
 		trace("Instantiating project workbench " + haxe.Json.stringify(project));
 		var stream : Stream<Dynamic> = 
@@ -115,9 +117,10 @@ class ProjectWorkbench {
 		supportedScriptsStream = new Deferred<QuerySupportedScript>();
 		supportedScriptsStream.then(processSupportedScripts);
 		queryActiveWorkbenchesStream = new Deferred<QueryActiveWorkbenches>();
+		manageWorkbenchStream = new Deferred<PrjWorkbench>();
 		queryActiveWorkbenchesStream.then(processQueryActiveWorkbenches);
 		querySupportedScripts();
-		
+		manageWorkbenchStream.then(processManageWorkbench);
 	}
 
 
@@ -132,7 +135,7 @@ class ProjectWorkbench {
 					, "load"
 				);
 		stream.then(uploadScript);
-		reader.readAsDataURL(file);
+		reader.readAsText(file);
 	}
 	private function read(anId){
 		try {

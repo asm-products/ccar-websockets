@@ -168,7 +168,8 @@ class MBooks_im {
 			}			
 		}
 		try {
-		return Type.createEnum(CommandType, commandType);
+			trace("Command type " + commandType);
+			return Type.createEnum(CommandType, commandType);
 		}catch(e : Dynamic){
 			trace("Error " + e + " Command type " + commandType);
 			return Undefined;
@@ -210,6 +211,14 @@ class MBooks_im {
 					project.activeProjectWorkbench.queryActiveWorkbenchesStream.resolve(incomingMessage);
 				}catch(err : Dynamic){
 					trace("Error processing query active workbenches " + err);
+				}
+			}
+			case ManageWorkbench : {
+				trace("Processing manage workbench ");
+				try {
+					project.activeProjectWorkbench.manageWorkbenchStream.resolve(incomingMessage);
+				}catch(err : Dynamic) {
+					trace("Error processing manage workbench " + err);
 				}
 			}
 			case SelectActiveProjects : {

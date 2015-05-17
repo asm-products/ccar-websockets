@@ -369,6 +369,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             workbenchId Text 
             scriptType SupportedScript
             scriptData Text -- The script
+            scriptSummary Text Default = "Summary"
             numberOfCores Int 
             -- The data path for the script
             -- This should be normalized to 

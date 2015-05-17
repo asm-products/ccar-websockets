@@ -29,4 +29,5 @@ enum CommandType {
 	ManageProject;
 	QuerySupportedScripts;
 	QueryActiveWorkbenches;
+	ManageWorkbench;
 }

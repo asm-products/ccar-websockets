@@ -66,26 +66,30 @@ data ProjectWorkbenchT = ProjectWorkbenchT {
 	, workbenchId :: T.Text
 	, uniqueProjectId :: T.Text
 	, scriptType :: EnumeratedTypes.SupportedScript
+	, scriptSummary :: T.Text
 	, scriptData :: T.Text
 	, numberOfCores :: Int 
 	, scriptDataPath :: Maybe T.Text 
 	, jobStartDate :: Maybe UTCTime 
 	, jobEndDate :: Maybe UTCTime
+	, workbenchCommandType :: T.Text
 } deriving(Show, Read, Eq, Data, Generic, Typeable)
 
 
 dto :: CRUD -> T.Text -> ProjectWorkbench -> ProjectWorkbenchT 
-dto c pid p@(ProjectWorkbench  _ w s sdata cores sdPath jobStartDate jobEndDate) = ProjectWorkbenchT 
-		c w pid s (sdata) cores sdPath (jobStartDate) (jobEndDate)
+dto c pid p@(ProjectWorkbench  _ w s ssummary sdata cores sdPath jobStartDate jobEndDate) = 
+	ProjectWorkbenchT 
+		c w pid s ssummary (sdata) cores sdPath (jobStartDate) (jobEndDate) "ManageWorkbench"
 
 
 process :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 process r@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptData 
+				scriptType scriptData scriptSummmary
 				numberOfCores
 				scriptDataPath
 				jobStartDate
 				jobEndData 
+				wcType
 				) = case cType of 
 					Create 			-> insertWorkbench r 
 					Read 			-> readWorkbench r
@@ -94,11 +98,11 @@ process r@(ProjectWorkbenchT cType wId uniqueProjedtId
 
 deleteWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 deleteWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptData 
+				scriptType scriptSummary scriptData
 				numberOfCores
 				scriptDataPath
 				jobStartDate
-				jobEndDate) = dbOps $ do 
+				jobEndDate wcType) = dbOps $ do 
 	workbench <- getBy $ UniqueWorkbench wId 
 	case workbench of 
 		Just (Entity k v) -> do 
@@ -109,18 +113,19 @@ deleteWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId
 
 updateWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 updateWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptData 
+				scriptType scriptSummary scriptData 
 				numberOfCores
 				scriptDataPath
 				jobStartDate
-				jobEndDate) = dbOps $ do 
+				jobEndDate wcType) = dbOps $ do 
 	workbench <- getBy $ UniqueWorkbench wId 
 	case workbench of 
 		Just (Entity k v) -> do 
 			Postgresql.replace k rep 
 			liftIO $ return $ Right v 
 			where rep = (ProjectWorkbench (projectWorkbenchProject v) wId scriptType
-						scriptData
+						scriptSummary 
+						scriptData 
 						numberOfCores
 						scriptDataPath
 						jobStartDate
@@ -129,11 +134,11 @@ updateWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId
 	
 readWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 readWorkbench wT@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptData 
+				scriptType scriptSummary scriptData 
 				numberOfCores
 				scriptDataPath
 				jobStartDate
-				jobEndDate) = dbOps $ do 
+				jobEndDate wcType) = dbOps $ do 
 	workbench <- getBy $ UniqueWorkbench wId 
 	case workbench of 
 		Just (Entity kWork w) -> return $ Right  w 
@@ -143,11 +148,13 @@ readWorkbench wT@(ProjectWorkbenchT cType wId uniqueProjedtId
 
 insertWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId 
-				scriptType scriptData 
+				scriptType 
+				scriptSummary
+				scriptData 
 				numberOfCores
 				scriptDataPath
 				jobStartDate
-				jobEndDate 
+				jobEndDate wcType
 				) = do 
 		uuidM <- nextUUID
 		case uuidM of 
@@ -159,6 +166,7 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId
 							wid <- insert $ ProjectWorkbench prKey 
 											uuidAsString
 											scriptType
+											scriptSummary
 											scriptData 
 											numberOfCores
 											scriptDataPath 
@@ -200,9 +208,62 @@ instance FromJSON QueryAllWorkbenches where
 
 instance ToJSON QuerySupportedScript
 instance FromJSON QuerySupportedScript
-instance ToJSON ProjectWorkbenchT 
-instance FromJSON ProjectWorkbenchT
+
+instance ToJSON ProjectWorkbenchT where
+	toJSON p@(ProjectWorkbenchT c wid pid stype sSummary sdata 
+			n sdp jsd jen wcType
+			) = object [
+			"crudType" .= c 
+			, "workbenchId" .= wid 
+			, "uniqueProjectId" .= pid 
+			, "scriptType" .= stype
+			, "scriptSummary" .= sSummary
+			, "scriptData" .=  sdata 
+			, "numberOfCores" .= n 
+			, "scriptDataPath" .= sdp 
+			, "jobStartDate" .= jsd
+			, "jobEndDate" .= jen
+			, "commandType" .= wcType
+		]
+
+
+{-- 
+
+data ProjectWorkbenchT = ProjectWorkbenchT {
+	crudType :: CRUD
+	, workbenchId :: T.Text
+	, uniqueProjectId :: T.Text
+	, scriptType :: EnumeratedTypes.SupportedScript
+	, scriptSummary :: T.Text
+	, scriptData :: T.Text
+	, numberOfCores :: Int 
+	, scriptDataPath :: Maybe T.Text 
+	, jobStartDate :: Maybe UTCTime 
+	, jobEndDate :: Maybe UTCTime
+	, workbenchCommandType :: T.Text
+} deriving(Show, Read, Eq, Data, Generic, Typeable)
+
+
+--}
+
+instance FromJSON ProjectWorkbenchT where 
+	parseJSON (Object a ) = ProjectWorkbenchT <$> 
+								(a .: "crudType") <*> 
+								(a .: "workbenchId") <*>
+								(a .: "uniqueProjectId") <*>
+								(a .: "scriptType") <*> 
+								(a .: "scriptSummary") <*>
+								(a .: "scriptData") <*> 
+								(a .: "numberOfCores") <*> 
+								(a .: "scriptDataPath") <*> 
+								(a .: "jobStartDate") <*> 
+								(a .: "jobEndDate") <*> 
+								(a .: "commandType")
+	parseJSON _			  = Appl.empty 
+
 -- The project uuid (not the internal database id)
+
+
 selectActiveWorkbenches aProjectId = dbOps $ do 
 		project <- getBy $ UniqueProject aProjectId 
 		case project of
@@ -239,12 +300,14 @@ manageWorkbench aValue@(Object a) = do
 					 <- process r 
 				case res of
 					Right wbR@(ProjectWorkbench project workbenchId 
-							scriptType scriptData numberOfCores 
+							scriptType scriptData scriptSummary 
+							numberOfCores 
 							scriptDataPath jobStartDate jobEndDate)
 						-> return (GC.Reply, 
 								serialize r {
 									scriptType = scriptType
 									, scriptData = scriptData
+									, scriptSummary = scriptSummary
 									, numberOfCores = numberOfCores
 									, scriptDataPath = scriptDataPath
 									, jobStartDate = jobStartDate
