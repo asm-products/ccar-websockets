@@ -2,6 +2,7 @@ module CCAR.Model.ProjectWorkbench(
 	querySupportedScripts
 	, queryActiveWorkbenches
 	, manageWorkbench
+	, executeWorkbench
 )where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -75,11 +76,18 @@ data ProjectWorkbenchT = ProjectWorkbenchT {
 	, workbenchCommandType :: T.Text
 } deriving(Show, Read, Eq, Data, Generic, Typeable)
 
+data ScriptResult = {
+		wrkBench :: ProjectWorkbenchT
+		, scriptResult :: T.Text
+} deriving (Show, Read, Eq, Data, Generic, Typeable)
+
 
 dto :: CRUD -> T.Text -> ProjectWorkbench -> ProjectWorkbenchT 
 dto c pid p@(ProjectWorkbench  _ w s ssummary sdata cores sdPath jobStartDate jobEndDate) = 
 	ProjectWorkbenchT 
 		c w pid s ssummary (sdata) cores sdPath (jobStartDate) (jobEndDate) "ManageWorkbench"
+
+
 
 
 process :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
@@ -96,6 +104,25 @@ process r@(ProjectWorkbenchT cType wId uniqueProjedtId
 					WrkBench_Update -> updateWorkbench r 
 					Delete			-> deleteWorkbench r
 
+
+executeScript :: EnumeratedTypes.SupportedScript -> T.Text -> IO ScriptResult 
+executeScript EnumeratedTypes.RScript scriptDetails = undefined
+
+
+executeWorkbench :: ProjectWorkbenchT -> IO (Either T.Text (ProjectWorkbenchT, ScriptResult))
+executeWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
+				scriptType scriptSummary scriptData
+				numberOfCores
+				scriptDataPath
+				jobStartDate
+				jobEndDate wcType) = dbOps $ do
+				workbench <- getBy $ UniqueWorkbench wId
+				case workbench of 
+					Just (Entity k v) -> do 
+						result <- liftIO $ executeScript scriptType scriptData
+						liftIO $ return $ Right (w , result)
+					Nothing -> liftIO $ return $ Left $ "Workbench not found to execute " 
+													`mappend` wId
 deleteWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 deleteWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
 				scriptType scriptSummary scriptData

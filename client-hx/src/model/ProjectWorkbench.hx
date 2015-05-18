@@ -323,31 +323,52 @@ class ProjectWorkbench {
 			trace("Error query workbenches " + err);
 		}
 	}
+	private function insertToActiveWorkbenches(workbenchesUI : InputElement, wrk : PrjWorkbench) 
+			: OptionElement{
+		var wId : String = wrk.workbenchId;
+		var optionElement : OptionElement = 
+			cast Browser.document.getElementById(wId);
+		if(optionElement == null){
+			optionElement = cast (Browser.document.createOptionElement());
+			optionElement.id = wId;
+			optionElement.text = wId;
+			var optionSelectedStream = 
+				MBooks_im.getSingleton().initializeElementStream(
+					cast optionElement
+					, "click"
+				);
+			optionSelectedStream.then(processWorkbenchSelected);
+			workbenchesUI.appendChild(optionElement);
+		}else {
+			trace("Element already exists " + wId);
+		}
+		return optionElement;
+	}
+
 	private function processQueryActiveWorkbenches(queryActiveWorkbenches : QueryActiveWorkbenches) {
 		trace("Processing query active workbenches " + queryActiveWorkbenches);
 		var workbenches : Array<PrjWorkbench> = queryActiveWorkbenches.workbenches;
 		var workbenchesUI : InputElement = getProjectWorkbenchListElement();
+		var firstElement  = true;
 		for (wrk in workbenches) {
-			var wId : String = wrk.workbenchId;
-			var optionElement : OptionElement = 
-				cast Browser.document.getElementById(wId);
-			if(optionElement == null){
-				optionElement = cast (Browser.document.createOptionElement());
-				optionElement.id = wId;
-				optionElement.text = wId;
-				var optionSelectedStream = 
-					MBooks_im.getSingleton().initializeElementStream(
-						cast optionElement
-						, "click"
-					);
-				optionSelectedStream.then(processWorkbenchSelected);
-				workbenchesUI.appendChild(optionElement);
-			}else {
-				trace("Element already exists " + wId);
+			var optElement = insertToActiveWorkbenches(workbenchesUI, wrk);
+			if(firstElement) {
+				optElement.selected = true;
+				read(wrk.workbenchId);
+				firstElement = false;
 			}
 		}
+
 	}
 
+	private function deleteFromActiveWorkbenches(workbenchesUI, wrk: PrjWorkbench){
+		var optionElement = cast Browser.document.getElementById(wrk.workbenchId);
+		if(optionElement != null){
+			workbenchesUI.removeChild(optionElement);
+		}else {
+			trace("Element not found " + wrk);
+		}
+	}
 	private function processWorkbenchSelected(ev : Event) {
 		var selectionElement : OptionElement =
 			cast ev.target;
@@ -358,6 +379,13 @@ class ProjectWorkbench {
 	private function processManageWorkbench(incomingMessage : PrjWorkbench) {
 		trace("Processing manage workbench " + incomingMessage);
 		var crudType : String = incomingMessage.crudType;
+		if(crudType == "Create"){
+			insertToActiveWorkbenches(getProjectWorkbenchListElement()
+							, incomingMessage);
+		}else if (crudType == "Delete"){
+			deleteFromActiveWorkbenches(getProjectWorkbenchListElement()
+				, incomingMessage);
+		}
 		copyIncomingValues(incomingMessage);
 	}
 	private function copyIncomingValues(incomingMessage) {
