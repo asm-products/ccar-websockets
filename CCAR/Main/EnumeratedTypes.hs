@@ -14,7 +14,8 @@ getSupportedScripts = [minBound..maxBound]
 
 -- We could support a basic script or a file format.
 -- Do we need to split these types. 
-data SupportedScript = RScript | Stata | Collada | SVG | ThreeJS | UnsupportedScriptType
+-- ThreeJS_JSON - invokes JSONLoader for threejs based models.
+data SupportedScript = RScript | Stata | Collada | SVG | ThreeJS | ThreeJS_JSON | UnsupportedScriptType
 			deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
 
 data SurveyResponse = A | B | C | D | E | F

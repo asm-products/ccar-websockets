@@ -122,7 +122,7 @@ updateWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId
 	case workbench of 
 		Just (Entity k v) -> do 
 			Postgresql.replace k rep 
-			liftIO $ return $ Right v 
+			liftIO $ return $ Right rep 
 			where rep = (ProjectWorkbench (projectWorkbenchProject v) wId scriptType
 						scriptSummary 
 						scriptData 

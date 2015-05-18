@@ -21,6 +21,8 @@ import js.html.SelectElement;
 import js.html.OptionElement;
 import js.html.FileReader;
 import js.html.ImageElement;
+import js.Browser;
+import js.Lib;
 import model.Contact;
 import model.Login;
 import model.Person;
@@ -198,6 +200,11 @@ class ProjectWorkbench {
 	private function getScriptTypeFromUI() : String {
 		return selectedScriptType;
 	}
+	private function setScriptTypeFromMessage(aScriptType : String){
+		var element : OptionElement
+			 = cast Browser.document.getElementById(aScriptType);
+		element.selected = true;
+	}
 	private function getScriptSummaryElement() : InputElement {
 		return (cast Browser.document.getElementById(SCRIPT_SUMMARY));
 	}
@@ -356,10 +363,30 @@ class ProjectWorkbench {
 	private function copyIncomingValues(incomingMessage) {
 		this.setWorkbenchIdFromMessage(incomingMessage.workbenchId);
 		this.setScriptSummaryFromMessage(incomingMessage.scriptSummary);
-		processScriptData(incomingMessage.scriptData);
+		this.setScriptTypeFromMessage(incomingMessage.scriptType);
+		processScriptData(incomingMessage.scriptType, incomingMessage.scriptData);
 	}
-	private function processScriptData(scriptData: String){
+	private function processScriptData(scriptType : String, scriptData: String){
 		trace("Processing script data " + scriptData);
+		if(scriptType == "ThreeJS") {
+			try {
+				handleThreeJS(scriptData);
+			}catch(err : Dynamic){
+				trace("Error handling threejs " +  err);	
+			}
+			
+		}else if (scriptType == "ThreeJS_JSON"){
+			handleThreeJSJSON(scriptData);
+		}else {
+			throw ("Invalid script type " + scriptType);
+		}
+	}
+	private function handleThreeJS(scriptData : String){
+		trace("processing three js");
+	}
+
+	private function handleThreeJSJSON(scriptData : String) {
+		trace("Processing three js json loading");
 	}
 	//Initialization populates the workbench list
 	//for the selected project. (User can select a single project at any time)
