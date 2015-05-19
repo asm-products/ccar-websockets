@@ -76,7 +76,7 @@ data ProjectWorkbenchT = ProjectWorkbenchT {
 	, workbenchCommandType :: T.Text
 } deriving(Show, Read, Eq, Data, Generic, Typeable)
 
-data ScriptResult = {
+data ScriptResult = ScriptResult {
 		wrkBench :: ProjectWorkbenchT
 		, scriptResult :: T.Text
 } deriving (Show, Read, Eq, Data, Generic, Typeable)
