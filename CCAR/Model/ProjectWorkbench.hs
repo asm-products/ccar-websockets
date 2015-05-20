@@ -193,7 +193,7 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId
 							-- We need to address the 
 							-- case where the insert may fail
 							-- due to unique workbench id.
-							wid` <- insert $ ProjectWorkbench prKey 
+							wid <- insert $ ProjectWorkbench prKey 
 											uuidAsString
 											scriptType
 											scriptSummary
@@ -202,7 +202,7 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId
 											scriptDataPath 
 											jobStartDate
 											jobEndDate
-							resP <- get wid`
+							resP <- get wid
 							case resP of 
 								Just r -> liftIO $ return $ Right r
 								Nothing -> liftIO $ return $ Left $ 
@@ -330,7 +330,7 @@ manageWorkbench aValue@(Object a) = do
 					 <- process r 
 				case res of
 					Right wbR@(ProjectWorkbench project workbenchId 
-							scriptType scriptData scriptSummary 
+							scriptType scriptSummary scriptData
 							numberOfCores 
 							scriptDataPath jobStartDate jobEndDate)
 						-> return (GC.Reply, 

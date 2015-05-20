@@ -199,10 +199,6 @@ class ProjectWorkbench {
 
 	private function saveWorkbenchModel(scriptData : String){
 		try {
-			if(scriptData == null || scriptData == "") {
-				trace("Nothing to save");
-				return;
-			}
 			var crudType = getCrudType();
 			var payload = getPayloadFromUI(crudType, scriptData);
 			trace("Saving workbench model " + haxe.Json.stringify(payload));
@@ -305,7 +301,13 @@ class ProjectWorkbench {
 		}
 	}
 	private function getPayloadFromUI(crudType : WorkbenchCrudType, scriptData) : PrjWorkbench {
-
+		var lCrudType : String = toString(crudType);
+		if(lCrudType == "Create"){
+			if(scriptData == null || scriptData == "") {
+				trace("Nothing to save");
+				throw "Inserting object with no script data ";
+			}		
+		}
 		var result : PrjWorkbench =  {
 			crudType : toString(crudType)
 			, workbenchId : getWorkbenchIdFromUI()
