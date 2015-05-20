@@ -84,12 +84,21 @@ typedef QueryActiveWorkbenches = {
 
 class ProjectWorkbench {
 	//constants
+	// A special option element that indicates that no 
+	// option has been selected.	
+	var CHOOSE_WORKBENCH 	   : String = "chooseWorkbench";
+	var CHOOSE_SUPPORTED_SCRIPT : String = "chooseSupportedScriptType";
 	var PROJECT_WORKBENCH_LIST : String = "projectWorkbenches";
-	var SAVE_WORKBENCH : String = "saveWorkbench";
+	var UPDATE_WORKBENCH   : String = "updateWorkbench";
+	var CREATE_WORKBENCH   : String = "insertWorkbench";
+	var DELETE_WORKBENCH   : String = "deleteWorkbench";
+	var EXECUTE_WORKBENCH  : String = "executeScript";
+	var CLEAR_FIELDS 	   : String = "clearFields";
+
 	var SUPPORTED_SCRIPT_LIST_ELEMENT : String = "supportedScriptTypes";
 	var WORKBENCH_ID_ELEMENT : String = "workbenchId";
 	var SCRIPT_DATA_ELEMENT : String = "scriptData";
-	var SCRIPT_UPLOAD_ELEMENT : String = "scriptUpload";
+	var SCRIPT_UPLOAD_ELEMENT : String = "uploadScript";
 	var NUMBER_OF_CORES : String = "numberOfCores";	
 	var SCRIPT_SUMMARY : String = "scriptSummary";
 	var SCRIPT_DATA_PATH : String = "scriptDataPath";	
@@ -110,10 +119,28 @@ class ProjectWorkbench {
 		trace("Instantiating project workbench " + haxe.Json.stringify(project));
 		var stream : Stream<Dynamic> = 
 				MBooks_im.getSingleton().initializeElementStream(
-					cast getSaveWorkbench()
+					cast getUpdateWorkbench()
 					, "click"
 					);
-		stream.then(saveWorkbench); 
+		stream.then(updateWorkbench);
+		var createStream : Stream<Dynamic>  = 
+			MBooks_im.getSingleton().initializeElementStream(
+				cast getCreateWorkbench()
+				, "click"
+				);
+		createStream.then(createWorkbench);
+		var deleteStream : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream(
+				cast getDeleteWorkbench()
+				, "click"
+				);
+		deleteStream.then(deleteWorkbench);
+		var clearFieldsStream : Stream<Dynamic> =
+			MBooks_im.getSingleton().initializeElementStream (
+				cast getClearFields()
+				, "click"
+				);
+		clearFieldsStream.then(clearFields);
 		this.selectedProject = project;
 		this.selectedScriptType = "UnsupportedScriptType";
 		supportedScriptsStream = new Deferred<QuerySupportedScript>();
@@ -126,8 +153,28 @@ class ProjectWorkbench {
 	}
 
 
-	private function saveWorkbench(ev : Event){
-		trace("Saving workbench ");
+	private function createWorkbench(ev : Event) {
+		trace("Creating workbench");
+		//Load the upload script and save the workbench.
+		//Clear the workbench id, to indicate that 
+		//this is a new entry
+
+		var file = getScriptDataElement().files[0];
+		var reader = new FileReader();
+		var stream : Stream<Dynamic>  = 
+				MBooks_im.getSingleton().initializeElementStream(
+					cast reader
+					, "load"
+				);
+		stream.then(uploadScript);
+		reader.readAsText(file);
+	}
+	private function deleteWorkbench(ev : Event) {
+		trace("Deleting workbench");
+
+	}
+	private function updateWorkbench(ev : Event){
+		trace("Update workbench ");
 		//Load the upload script and save the workbench.
 		var file = getScriptDataElement().files[0];
 		var reader = new FileReader();
@@ -172,6 +219,7 @@ class ProjectWorkbench {
 			return WrkBench_Update;
 		}
 	}
+
 	private function uploadScript(ev : Event) {
 		trace ("Uploading script " + ev);
 		try {
@@ -190,6 +238,9 @@ class ProjectWorkbench {
 	private function getWorkbenchIdFromUI() {
 		return getWorkbenchIdElement().value;
 	}
+	private function clearWorkbenchId() {
+		getWorkbenchIdElement().value = "";
+	}
 	private function setWorkbenchIdFromMessage(wid) {
 		getWorkbenchIdElement().value = wid;
 	}
@@ -197,6 +248,16 @@ class ProjectWorkbench {
 		return (cast Browser.document.getElementById(SUPPORTED_SCRIPT_LIST_ELEMENT));
 	}
 
+	private function clearSupportedScriptList() {
+		var element : OptionElement = 
+			cast Browser.document.getElementById(CHOOSE_SUPPORTED_SCRIPT);
+		element.selected = true;
+	}
+	private function clearWorkbenchesList() {
+		var element : OptionElement = 
+			cast Browser.document.getElementById(CHOOSE_WORKBENCH);	
+		element.selected = true;
+	}
 	private function getScriptTypeFromUI() : String {
 		return selectedScriptType;
 	}
@@ -213,6 +274,9 @@ class ProjectWorkbench {
 		return (getScriptSummaryElement().value);
 	}
 
+	private function clearScriptSummary() {
+		getScriptSummaryElement().value = "";
+	}
 	private function setScriptSummaryFromMessage(aMessage: String) {
 		getScriptSummaryElement().value = aMessage;
 	}
@@ -260,8 +324,20 @@ class ProjectWorkbench {
 	}
 
 
-	private function getSaveWorkbench() : ButtonElement {
-		return (cast Browser.document.getElementById(SAVE_WORKBENCH));
+	private function getUpdateWorkbench() : ButtonElement {
+		return (cast Browser.document.getElementById(UPDATE_WORKBENCH));
+	}
+	private function getCreateWorkbench() : ButtonElement {
+		return (cast Browser.document.getElementById(CREATE_WORKBENCH));
+	}
+	private function getDeleteWorkbench() : ButtonElement {
+		return (cast Browser.document.getElementById(DELETE_WORKBENCH));
+	}
+	private function getExecuteWorkbench() : ButtonElement {
+		return (cast Browser.document.getElementById(EXECUTE_WORKBENCH));
+	}
+	private function getClearFields() : ButtonElement {
+		return (cast Browser.document.getElementById(CLEAR_FIELDS));
 	}
 
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
@@ -379,6 +455,7 @@ class ProjectWorkbench {
 	private function processManageWorkbench(incomingMessage : PrjWorkbench) {
 		trace("Processing manage workbench " + incomingMessage);
 		var crudType : String = incomingMessage.crudType;
+		setWorkbenchIdFromMessage(incomingMessage.workbenchId);
 		if(crudType == "Create"){
 			insertToActiveWorkbenches(getProjectWorkbenchListElement()
 							, incomingMessage);
@@ -394,6 +471,13 @@ class ProjectWorkbench {
 		this.setScriptTypeFromMessage(incomingMessage.scriptType);
 		processScriptData(incomingMessage.scriptType, incomingMessage.scriptData);
 	}
+	private function clearFields(ev : Event) {
+		clearWorkbenchId();
+		clearScriptSummary();
+		clearSupportedScriptList();
+		clearWorkbenchesList();
+
+	}
 	private function processScriptData(scriptType : String, scriptData: String){
 		trace("Processing script data " + scriptData);
 		if(scriptType == "ThreeJS") {
@@ -406,7 +490,7 @@ class ProjectWorkbench {
 		}else if (scriptType == "ThreeJS_JSON"){
 			handleThreeJSJSON(scriptData);
 		}else {
-			throw ("Invalid script type " + scriptType);
+			trace("Invalid script type " + scriptType);
 		}
 	}
 	private function handleThreeJS(scriptData : String){

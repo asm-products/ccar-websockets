@@ -92,7 +92,7 @@ dto c pid p@(ProjectWorkbench  _ w s ssummary sdata cores sdPath jobStartDate jo
 
 process :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 process r@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptData scriptSummmary
+				scriptType scriptSummary scriptData
 				numberOfCores
 				scriptDataPath
 				jobStartDate
@@ -111,7 +111,7 @@ executeScript EnumeratedTypes.RScript scriptDetails = undefined
 
 executeWorkbench :: ProjectWorkbenchT -> IO (Either T.Text (ProjectWorkbenchT, ScriptResult))
 executeWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptSummary scriptData
+				scriptType scriptSummmary scriptData
 				numberOfCores
 				scriptDataPath
 				jobStartDate
@@ -190,7 +190,10 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId
 					project <- getBy $ UniqueProject uniqueProjectId 
 					case project of 
 						Just (Entity prKey project) -> do 
-							wid <- insert $ ProjectWorkbench prKey 
+							-- We need to address the 
+							-- case where the insert may fail
+							-- due to unique workbench id.
+							wid` <- insert $ ProjectWorkbench prKey 
 											uuidAsString
 											scriptType
 											scriptSummary
@@ -199,7 +202,7 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId
 											scriptDataPath 
 											jobStartDate
 											jobEndDate
-							resP <- get wid
+							resP <- get wid`
 							case resP of 
 								Just r -> liftIO $ return $ Right r
 								Nothing -> liftIO $ return $ Left $ 

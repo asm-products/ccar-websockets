@@ -66,7 +66,7 @@ class CCAR {
 				);
 			saveStream.then(sendPT);
 		}catch(err : Dynamic) {
-			trace("Exceptiong creating ccar " + err);
+			trace("Exception creating ccar " + err);
 		}
 
 	}

@@ -368,8 +368,8 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             -- UUID for the workbench. 
             workbenchId Text 
             scriptType SupportedScript
-            scriptData Text -- The script
             scriptSummary Text Default = "Summary"
+            scriptData Text -- The script
             numberOfCores Int 
             -- The data path for the script
             -- This should be normalized to 
