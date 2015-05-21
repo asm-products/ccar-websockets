@@ -30,4 +30,5 @@ enum CommandType {
 	QuerySupportedScripts;
 	QueryActiveWorkbenches;
 	ManageWorkbench;
+	ExecuteWorkbench;
 }

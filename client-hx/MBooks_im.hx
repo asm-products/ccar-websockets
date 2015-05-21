@@ -221,6 +221,14 @@ class MBooks_im {
 					trace("Error processing manage workbench " + err);
 				}
 			}
+			case ExecuteWorkbench :{
+				trace("Processing execute workbench");
+				try {
+					project.activeProjectWorkbench.executeWorkbenchStream.resolve(incomingMessage);
+				}catch(err : Dynamic){
+					trace("Error processing execute workbench " + err);
+				}
+			}
 			case SelectActiveProjects : {
 				trace("Processing all active projects ");
 				project.getSelectActiveProjectsStream().resolve(incomingMessage);		

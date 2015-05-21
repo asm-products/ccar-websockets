@@ -76,11 +76,6 @@ data ProjectWorkbenchT = ProjectWorkbenchT {
 	, workbenchCommandType :: T.Text
 } deriving(Show, Read, Eq, Data, Generic, Typeable)
 
-data ScriptResult = ScriptResult {
-		wrkBench :: ProjectWorkbenchT
-		, scriptResult :: T.Text
-} deriving (Show, Read, Eq, Data, Generic, Typeable)
-
 
 dto :: CRUD -> T.Text -> ProjectWorkbench -> ProjectWorkbenchT 
 dto c pid p@(ProjectWorkbench  _ w s ssummary sdata cores sdPath jobStartDate jobEndDate) = 
@@ -105,24 +100,11 @@ process r@(ProjectWorkbenchT cType wId uniqueProjedtId
 					Delete			-> deleteWorkbench r
 
 
-executeScript :: EnumeratedTypes.SupportedScript -> T.Text -> IO ScriptResult 
-executeScript EnumeratedTypes.RScript scriptDetails = undefined
 
 
-executeWorkbench :: ProjectWorkbenchT -> IO (Either T.Text (ProjectWorkbenchT, ScriptResult))
-executeWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
-				scriptType scriptSummmary scriptData
-				numberOfCores
-				scriptDataPath
-				jobStartDate
-				jobEndDate wcType) = dbOps $ do
-				workbench <- getBy $ UniqueWorkbench wId
-				case workbench of 
-					Just (Entity k v) -> do 
-						result <- liftIO $ executeScript scriptType scriptData
-						liftIO $ return $ Right (w , result)
-					Nothing -> liftIO $ return $ Left $ "Workbench not found to execute " 
-													`mappend` wId
+
+			
+
 deleteWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 deleteWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
 				scriptType scriptSummary scriptData
@@ -349,3 +331,50 @@ manageWorkbench aValue@(Object a) = do
 		Error errorMsg -> return (GC.Reply, 
 					serialize $ genericErrorCommand $ 
 						"Error in manageworkbench " ++ errorMsg)
+
+
+
+--  To not having carry the id around. 
+-- need a readerT
+
+unknownId = "REPLACE_ME"
+data ExecuteWorkbench = ExecuteWorkbench {
+	executeWorkbenchId :: T.Text
+	, executeWorkbenchCommandType :: T.Text
+	, scriptResult :: T.Text
+
+}deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+instance ToJSON ExecuteWorkbench 
+instance FromJSON ExecuteWorkbench 
+
+type ScriptContent = T.Text
+type WorkbenchIdText = T.Text 
+getScriptDetails :: WorkbenchIdText -> IO (EnumeratedTypes.SupportedScript, ScriptContent, Int)
+getScriptDetails anId = dbOps $ do
+				workbench <- getBy $ UniqueWorkbench anId
+				case workbench of 
+					Just (Entity k v@(ProjectWorkbench 
+								p w' sT' ss' sD n' sdp' js' je')) -> 
+						return $ (sT', sD, n')
+
+
+type Core = Int
+executeScript :: EnumeratedTypes.SupportedScript -> T.Text -> Core -> IO ExecuteWorkbench
+executeScript aType scriptData nCores = return $ ExecuteWorkbench unknownId 
+							"ExecuteWorkbench" "Not yet implemented"
+
+executeWorkbench aValue@(Object a) = case (fromJSON aValue) of 
+	Success r@(ExecuteWorkbench wId cType _ ) -> do 
+		(sType, sContent, cores) <- getScriptDetails wId 
+		result <- executeScript sType sContent cores 
+		return (GC.Reply, 
+				serialize $ 
+						(Right $ 
+							result {executeWorkbenchId = wId 
+									, executeWorkbenchCommandType = cType} :: 
+										Either T.Text ExecuteWorkbench))
+
+	Error errorMsg -> return (GC.Reply
+			, serialize $
+					genericErrorCommand $ "Error processing executeWorkbench " ++ errorMsg)				

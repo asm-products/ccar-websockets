@@ -478,6 +478,7 @@ processCommandValue app aConn nickName (Object a)   = do
                 String "QuerySupportedScripts" -> ProjectWorkbench.querySupportedScripts nickName (Object a)
                 String "QueryActiveWorkbenches" -> ProjectWorkbench.queryActiveWorkbenches (Object a)
                 String "ManageWorkbench" -> ProjectWorkbench.manageWorkbench (Object a)
+                String "ExecuteWorkbench" -> ProjectWorkbench.executeWorkbench(Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

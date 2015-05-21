@@ -72,6 +72,15 @@ typedef PrjWorkbench = {
 
 };
 		
+typedef ExecuteWorkbench = {
+	var executeWorkbenchId : String;
+	var scriptResult : String;
+	var nickName : String;
+	var executeWorkbenchCommandType : String;
+	var commandType : String;
+};
+
+
 
 typedef QueryActiveWorkbenches = {
 	var nickName : String;
@@ -115,6 +124,7 @@ class ProjectWorkbench {
 	public var supportedScriptsStream(default, null) : Deferred<QuerySupportedScript>;
 	public var queryActiveWorkbenchesStream(default, null) : Deferred<QueryActiveWorkbenches>;
 	public var manageWorkbenchStream(default, null) : Deferred<PrjWorkbench>;
+	public var executeWorkbenchStream(default, null) : Deferred<ExecuteWorkbench>;
 	public function new(project : Project){
 		trace("Instantiating project workbench " + haxe.Json.stringify(project));
 		var stream : Stream<Dynamic> = 
@@ -140,16 +150,26 @@ class ProjectWorkbench {
 				cast getClearFields()
 				, "click"
 				);
+
 		clearFieldsStream.then(clearFields);
+		var executeWorkbenchButtonStream : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream (
+				cast getExecuteWorkbench()
+				, "click"
+				);
+		executeWorkbenchButtonStream.then(executeWorkbench);
+
 		this.selectedProject = project;
 		this.selectedScriptType = "UnsupportedScriptType";
 		supportedScriptsStream = new Deferred<QuerySupportedScript>();
 		supportedScriptsStream.then(processSupportedScripts);
 		queryActiveWorkbenchesStream = new Deferred<QueryActiveWorkbenches>();
-		manageWorkbenchStream = new Deferred<PrjWorkbench>();
+		manageWorkbenchStream = new Deferred<PrjWorkbench>();		
 		queryActiveWorkbenchesStream.then(processQueryActiveWorkbenches);
 		querySupportedScripts();
 		manageWorkbenchStream.then(processManageWorkbench);
+		executeWorkbenchStream = new Deferred<ExecuteWorkbench>();
+		executeWorkbenchStream.then(processExecuteWorkbench);
 	}
 
 
@@ -206,6 +226,22 @@ class ProjectWorkbench {
 		}catch(err : Dynamic){
 			trace ("Error saving workbench " + err);
 		}
+	}
+
+	private function executeWorkbench(ev : Event){
+		try {
+			trace("Execute the workbench");
+			var payload : ExecuteWorkbench =  {
+				executeWorkbenchCommandType : "ExecuteWorkbench"
+				, executeWorkbenchId : getWorkbenchIdFromUI()
+				, scriptResult : ""
+				, nickName : MBooks_im.getSingleton().getNickName()
+				, commandType : "ExecuteWorkbench" // A bit of repetition.
+			};
+			MBooks_im.getSingleton().doSendJSON(payload);		
+		}catch(err : Dynamic) {
+			trace("Error saving workbench "  + err);
+		}		
 	}
 
 	private function getCrudType() : WorkbenchCrudType {
@@ -341,7 +377,9 @@ class ProjectWorkbench {
 	private function getClearFields() : ButtonElement {
 		return (cast Browser.document.getElementById(CLEAR_FIELDS));
 	}
-
+	private function processExecuteWorkbench(executeWorkbench : ExecuteWorkbench) : Void {
+		trace("Processing execute workbench " + haxe.Json.stringify(executeWorkbench));
+	}
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
 		var supportedScriptListElement : SelectElement 
