@@ -12,6 +12,7 @@ import Control.Monad.IO.Class(liftIO)
 import Control.Concurrent
 import Control.Concurrent.STM.Lifted
 import Control.Concurrent.Async
+import Control.Exception
 import qualified  Data.Map as IMap
 import Control.Exception
 import Control.Monad
@@ -35,11 +36,14 @@ import System.IO
 import Data.Time
 import Data.UUID.V1
 import Data.UUID as UUID
-import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
+import qualified CCAR.Main.EnumeratedTypes as EnTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util as Util
 import CCAR.Command.ErrorCommand
 import Database.Persist.Postgresql as Postgresql 
+-- For haskell shell
+import HSH
+import System.IO(openFile, writeFile, IOMode(..))
 
 data CRUD = Create | Read | WrkBench_Update | Delete 
 	deriving(Show, Read, Eq, Data, Generic, Typeable)
@@ -51,7 +55,7 @@ instance FromJSON CRUD
 data QuerySupportedScript = QuerySupportedScript {
 		nickName :: T.Text
 		, commandType :: T.Text
-		, scriptTypes :: [EnumeratedTypes.SupportedScript]	
+		, scriptTypes :: [EnTypes.SupportedScript]	
 	} deriving (Show, Read, Data, Typeable, Generic)
 
 {-- All of the database entities have 2 faces: the one that 
@@ -66,7 +70,7 @@ data ProjectWorkbenchT = ProjectWorkbenchT {
 	crudType :: CRUD
 	, workbenchId :: T.Text
 	, uniqueProjectId :: T.Text
-	, scriptType :: EnumeratedTypes.SupportedScript
+	, scriptType :: EnTypes.SupportedScript
 	, scriptSummary :: T.Text
 	, scriptData :: T.Text
 	, numberOfCores :: Int 
@@ -245,7 +249,7 @@ data ProjectWorkbenchT = ProjectWorkbenchT {
 	crudType :: CRUD
 	, workbenchId :: T.Text
 	, uniqueProjectId :: T.Text
-	, scriptType :: EnumeratedTypes.SupportedScript
+	, scriptType :: EnTypes.SupportedScript
 	, scriptSummary :: T.Text
 	, scriptData :: T.Text
 	, numberOfCores :: Int 
@@ -287,7 +291,7 @@ querySupportedScripts n (Object a) =
 			return(GC.Reply, 
 					Util.serialize $ QuerySupportedScript n 
 					"QuerySupportedScripts"
-					EnumeratedTypes.getSupportedScripts)
+					EnTypes.getSupportedScripts)
 
 
 queryActiveWorkbenches aValue@(Object a) = do 
@@ -350,7 +354,7 @@ instance FromJSON ExecuteWorkbench
 
 type ScriptContent = T.Text
 type WorkbenchIdText = T.Text 
-getScriptDetails :: WorkbenchIdText -> IO (EnumeratedTypes.SupportedScript, ScriptContent, Int)
+getScriptDetails :: WorkbenchIdText -> IO (EnTypes.SupportedScript, ScriptContent, Int)
 getScriptDetails anId = dbOps $ do
 				workbench <- getBy $ UniqueWorkbench anId
 				case workbench of 
@@ -360,14 +364,48 @@ getScriptDetails anId = dbOps $ do
 
 
 type Core = Int
-executeScript :: EnumeratedTypes.SupportedScript -> T.Text -> Core -> IO ExecuteWorkbench
-executeScript aType scriptData nCores = return $ ExecuteWorkbench unknownId 
-							"ExecuteWorkbench" "Not yet implemented"
+executeScript :: EnTypes.SupportedScript -> 
+							T.Text -> 
+							T.Text -> 
+							Core -> 
+							IO ExecuteWorkbench
+executeScript EnTypes.UnsupportedScriptType scriptId scriptData nCores = 
+	return $ ExecuteWorkbench unknownId 
+			"ExecuteWorkbench" $ 
+				" Unsupported type " `mappend`
+					T.pack 
+						(show EnTypes.UnsupportedScriptType)
+
+executeScript EnTypes.RScript scriptUUID scriptData nCores = do 
+			timeStamp <- Data.Time.getCurrentTime
+
+			handle <- openFile (scriptFileName timeStamp) WriteMode 
+			hPutStr handle (T.unpack scriptData) -- We need to use a better library here.
+			hClose handle 
+			result <- runSL $ T.unpack $  
+										"mpiexec -np "   
+										`mappend` (T.pack $ show nCores)
+										`mappend` " "
+										`mappend` "Rscript " 
+										`mappend` (T.pack (scriptFileName timeStamp)) 
+			return $ ExecuteWorkbench unknownId 
+							"ExecuteWorkbench" $ 
+								T.pack result
+
+			where 
+				scriptFileName timeStamp= 
+					("." ++ "/" ++ "workbench_data" 
+						++  "/" ++ (T.unpack scriptUUID) 
+{-						++ "_" 
+						++ (show (timeStamp :: UTCTime))
+-}						++ ".r")
+
+
 
 executeWorkbench aValue@(Object a) = case (fromJSON aValue) of 
 	Success r@(ExecuteWorkbench wId cType _ ) -> do 
 		(sType, sContent, cores) <- getScriptDetails wId 
-		result <- executeScript sType sContent cores 
+		result <- executeScript sType wId sContent cores 
 		return (GC.Reply, 
 				serialize $ 
 						(Right $ 
