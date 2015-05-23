@@ -382,7 +382,7 @@ executeScript EnTypes.RScript scriptUUID scriptData nCores = do
 			handle <- openFile (scriptFileName timeStamp) WriteMode 
 			hPutStr handle (T.unpack scriptData) -- We need to use a better library here.
 			hClose handle 
-			result <- runSL $ T.unpack $  
+			result <- run $ T.unpack $  
 										"mpiexec -np "   
 										`mappend` (T.pack $ show nCores)
 										`mappend` " "
