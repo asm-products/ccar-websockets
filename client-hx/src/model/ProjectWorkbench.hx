@@ -103,6 +103,7 @@ class ProjectWorkbench {
 	var DELETE_WORKBENCH   : String = "deleteWorkbench";
 	var EXECUTE_WORKBENCH  : String = "executeScript";
 	var CLEAR_FIELDS 	   : String = "clearFields";
+	var DEFAULT_PROCESSORS : Int = 4;
 
 	var SUPPORTED_SCRIPT_LIST_ELEMENT : String = "supportedScriptTypes";
 	var WORKBENCH_ID_ELEMENT : String = "workbenchId";
@@ -126,7 +127,7 @@ class ProjectWorkbench {
 	public var manageWorkbenchStream(default, null) : Deferred<PrjWorkbench>;
 	public var executeWorkbenchStream(default, null) : Deferred<ExecuteWorkbench>;
 	public function new(project : Project){
-		trace("Instantiating project workbench " + haxe.Json.stringify(project));
+		trace("Instantiating project workbench ");
 		var stream : Stream<Dynamic> = 
 				MBooks_im.getSingleton().initializeElementStream(
 					cast getUpdateWorkbench()
@@ -315,9 +316,23 @@ class ProjectWorkbench {
 	private function getScriptDataElement() : InputElement {
 		return (cast Browser.document.getElementById(SCRIPT_UPLOAD_ELEMENT));
 	}
-	//Default values
+
+	private function setNumberOfCoresFromMessage(numberOfCores : Int) : Void{
+		//The case when the server could not allocate the 
+		//number of cores requested by the client, or
+		//in cases when more than the number specified were used 
+		//, for example under lighter load.
+		getNumberOfCoresElement().value = "" + numberOfCores;
+
+	}
+	private function getNumberOfCoresElement(): InputElement {
+		return (cast Browser.document.getElementById(NUMBER_OF_CORES));
+	}
 	private function getNumberOfCoresFromUI() : Int {
-		return 2;
+		if(getNumberOfCoresElement().value == ""){
+			return DEFAULT_PROCESSORS;
+		}
+		return (Std.parseInt(getNumberOfCoresElement().value));
 	}
 	private function getScriptDataPathFromUI() : String {
 		return null;
@@ -509,6 +524,7 @@ class ProjectWorkbench {
 		this.setWorkbenchIdFromMessage(incomingMessage.workbenchId);
 		this.setScriptSummaryFromMessage(incomingMessage.scriptSummary);
 		this.setScriptTypeFromMessage(incomingMessage.scriptType);
+		this.setNumberOfCoresFromMessage(incomingMessage.numberOfCores);
 		processScriptData(incomingMessage.scriptType, incomingMessage.scriptData);
 	}
 	private function clearFields(ev : Event) {
