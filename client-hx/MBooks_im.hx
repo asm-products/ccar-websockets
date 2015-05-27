@@ -164,7 +164,13 @@ class MBooks_im {
 		var commandType = incomingMessage.commandType;
 		if (commandType == null){
 			if(incomingMessage.Right != null) {
-				commandType = incomingMessage.Right.commandType;	
+				commandType = incomingMessage.Right.commandType;
+				if(commandType == null) {
+					//try the other field...this is 
+					//directly because of the unqualified variable names in 
+					//haskell: need to fix this
+					commandType = incomingMessage.Right.executeWorkbenchCommandType;
+				}
 			}			
 		}
 		try {

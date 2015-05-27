@@ -103,6 +103,7 @@ class ProjectWorkbench {
 	var DELETE_WORKBENCH   : String = "deleteWorkbench";
 	var EXECUTE_WORKBENCH  : String = "executeScript";
 	var CLEAR_FIELDS 	   : String = "clearFields";
+	var SCRIPT_RESULT	   : String = "scriptResult";
 	var DEFAULT_PROCESSORS : Int = 4;
 
 	var SUPPORTED_SCRIPT_LIST_ELEMENT : String = "supportedScriptTypes";
@@ -118,6 +119,8 @@ class ProjectWorkbench {
 	var QUERY_ACTIVE_WORKBENCHES : String = "QueryActiveWorkbenches";
 	var MANAGE_WORKBENCH : String = "ManageWorkbench";
 
+
+
 	private function getSupportedScriptsListElement() : SelectElement {
 		return (cast Browser.document.getElementById(SUPPORTED_SCRIPT_LIST_ELEMENT));
 	}
@@ -128,6 +131,7 @@ class ProjectWorkbench {
 	public var executeWorkbenchStream(default, null) : Deferred<ExecuteWorkbench>;
 	public function new(project : Project){
 		trace("Instantiating project workbench ");
+		executeUponSave = true;
 		var stream : Stream<Dynamic> = 
 				MBooks_im.getSingleton().initializeElementStream(
 					cast getUpdateWorkbench()
@@ -229,7 +233,7 @@ class ProjectWorkbench {
 		}
 	}
 
-	private function executeWorkbench(ev : Event){
+	private function callExecuteWorkbench() {
 		try {
 			trace("Execute the workbench");
 			var payload : ExecuteWorkbench =  {
@@ -243,6 +247,10 @@ class ProjectWorkbench {
 		}catch(err : Dynamic) {
 			trace("Error saving workbench "  + err);
 		}		
+	}
+
+	private function executeWorkbench(ev : Event){
+		callExecuteWorkbench();
 	}
 
 	private function getCrudType() : WorkbenchCrudType {
@@ -394,6 +402,12 @@ class ProjectWorkbench {
 	}
 	private function processExecuteWorkbench(executeWorkbench : ExecuteWorkbench) : Void {
 		trace("Processing execute workbench " + haxe.Json.stringify(executeWorkbench));
+		setScriptResult(executeWorkbench);
+	}
+	private function setScriptResult(workbench : ExecuteWorkbench){
+		var inputElement : InputElement = 
+			cast (Browser.document.getElementById(SCRIPT_RESULT));
+		inputElement.value = haxe.Json.stringify(workbench);
 	}
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
@@ -519,6 +533,10 @@ class ProjectWorkbench {
 				, incomingMessage);
 		}
 		copyIncomingValues(incomingMessage);
+		if(executeUponSave) {
+			callExecuteWorkbench();
+		}
+		
 	}
 	private function copyIncomingValues(incomingMessage) {
 		this.setWorkbenchIdFromMessage(incomingMessage.workbenchId);
@@ -609,7 +627,7 @@ class ProjectWorkbench {
 	//How to access the currently selected option from an input element?
 	var selectedScriptType : String;
 	var autosave : Bool; //Enable when workbench has been inserted.
-
+	var executeUponSave : Bool;
 	private function processScriptTypeSelected(ev : Event) {
 		trace("Script type selected " + ev);
 		try {
