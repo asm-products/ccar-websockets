@@ -8,6 +8,7 @@ import CCAR.Main.DBUtils
 import GHC.Generics
 import Data.Aeson as J
 import Yesod.Core
+
 import Control.Monad.IO.Class(liftIO)
 import Control.Concurrent
 import Control.Concurrent.STM.Lifted
@@ -28,7 +29,10 @@ import Data.HashMap.Lazy as LH (HashMap, lookup)
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
+
 import GHC.Generics
+import GHC.IO.Exception
+
 import Data.Data
 import Data.Monoid (mappend)
 import Data.Typeable 
@@ -379,19 +383,20 @@ executeScript EnTypes.UnsupportedScriptType scriptId scriptData nCores =
 executeScript EnTypes.RScript scriptUUID scriptData nCores = do 
 			timeStamp <- Data.Time.getCurrentTime
 
-			handle <- openFile (scriptFileName timeStamp) WriteMode 
-			hPutStr handle (T.unpack scriptData) -- We need to use a better library here.
-			hClose handle 
-			result <- run $ T.unpack $  
-										"mpiexec -np "   
-										`mappend` (T.pack $ show nCores)
-										`mappend` " "
-										`mappend` "Rscript " 
-										`mappend` (T.pack (scriptFileName timeStamp)) 
+			handle1 <- openFile (scriptFileName timeStamp) WriteMode 
+			hPutStr handle1 (T.unpack scriptData) -- We need to use a better library here.
+			hClose handle1 
+			result <- tryEC $ 
+					run $ 
+						T.unpack $  
+						"mpiexec -np "   
+						`mappend` (T.pack $ show nCores)
+						`mappend` " "
+						`mappend` "Rscript " 
+						`mappend` (T.pack (scriptFileName timeStamp))			
 			return $ ExecuteWorkbench unknownId 
 							"ExecuteWorkbench" $ 
-								T.pack result
-
+							T.pack $ show (result :: Either ExitCode String)
 			where 
 				scriptFileName timeStamp= 
 					("." ++ "/" ++ "workbench_data" 
