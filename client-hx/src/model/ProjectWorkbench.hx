@@ -196,6 +196,15 @@ class ProjectWorkbench {
 	}
 	private function deleteWorkbench(ev : Event) {
 		trace("Deleting workbench");
+		try {
+			var crudType = Delete;
+			scriptData = "";//Wipe out the script?
+			var payload = getPayloadFromUI(crudType, scriptData);
+			trace("Saving workbench model " + haxe.Json.stringify(payload));
+			MBooks_im.getSingleton().doSendJSON(payload);						
+		}catch(err : Dynamic){
+			trace ("Error saving workbench " + err);
+		}
 
 	}
 	private function updateWorkbench(ev : Event){
@@ -525,16 +534,17 @@ class ProjectWorkbench {
 		trace("Processing manage workbench " + incomingMessage);
 		var crudType : String = incomingMessage.crudType;
 		setWorkbenchIdFromMessage(incomingMessage.workbenchId);
+		copyIncomingValues(incomingMessage);
 		if(crudType == "Create"){
 			insertToActiveWorkbenches(getProjectWorkbenchListElement()
 							, incomingMessage);
+			if(executeUponSave) {
+				callExecuteWorkbench();
+			}
+
 		}else if (crudType == "Delete"){
 			deleteFromActiveWorkbenches(getProjectWorkbenchListElement()
 				, incomingMessage);
-		}
-		copyIncomingValues(incomingMessage);
-		if(executeUponSave) {
-			callExecuteWorkbench();
 		}
 		
 	}
