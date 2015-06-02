@@ -15,6 +15,9 @@ Visit [https://assembly.com](https://assembly.com) to learn more.
 =======
 
 
+### The product is in beta.
+
+
 Compilers/libraries
 ================
 The versions listed are the ones on my host. Most of the chnages will be backward compatible, so if you 

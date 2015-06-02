@@ -647,4 +647,20 @@ class ProjectWorkbench {
 		}
 
 	}
+	/*
+	private function doAutoSave() {
+		//Autosave needs to chk if the 
+		//script supports autosave. 
+		//For example, video files being
+		//autosaved, perhaps is not feasible.
+		//check from the script type, 
+		//if autosave is allowed. 
+		//If yes, then start the timer.
+		//Now if the user changes the script, 
+		//the timer needs to stop/detach so 
+		//the previous image is not saved.
+		//We need to evaluate a diff operation
+		//between objects to see if we really need
+		//to save.
+	} */
 }

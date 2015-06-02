@@ -18,6 +18,8 @@ getSupportedScripts = [minBound..maxBound]
 data SupportedScript = RScript | Stata | Collada | SVG | ThreeJS | ThreeJS_JSON | UnsupportedScriptType
 			deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
 
+
+
 data SurveyResponse = A | B | C | D | E | F
 			deriving(Show, Read, Eq)
 
