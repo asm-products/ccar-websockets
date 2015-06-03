@@ -276,7 +276,6 @@ type ClientMap = GroupCommunication.ClientIdentifierMap
 
 -- the broadcast channel for the application.
 data App = App { chan :: (TChan T.Text)
-                , getStatic :: Static
                 , nickNameMap :: ClientMap}
 
 instance Yesod App
@@ -284,7 +283,6 @@ instance Yesod App
 mkYesod "App" [parseRoutes|
 /chat HomeR GET
 /portNumber PortNumberR GET
-/static StaticR  Static getStatic
 |]
 
 
@@ -551,11 +549,11 @@ addConnection app aConn nn = do
 
 
 getAllClients :: App -> T.Text -> STM [ClientState]
-getAllClients app@(App a b c ) nn = do
+getAllClients app@(App a c) nn = do
     nMap <- readTVar c 
     return $ Prelude.filter (\x -> nn /= (nickName x)) $ elems nMap 
 getClientState :: T.Text -> App -> STM [ClientState]
-getClientState nickName app@(App a b c) = do
+getClientState nickName app@(App a c) = do
         nMap <- readTVar c
         if IMap.member nickName nMap then 
             return $ [nMap ! nickName]
@@ -569,7 +567,7 @@ getPersonNickName a = do
         Nothing -> return "Invalid nick name"
 
 authenticate :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text)
-authenticate aConn aText app@(App a b c) = 
+authenticate aConn aText app@(App a c) = 
     do 
         case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
@@ -593,7 +591,7 @@ authenticate aConn aText app@(App a b c) =
 
 
 processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
-processUserLoggedIn aConn aText app@(App a b c) = do
+processUserLoggedIn aConn aText app@(App a c) = do
     case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
                     ser $ CommandError $ genericErrorCommand ("Login has errors"))
@@ -771,6 +769,7 @@ handleDisconnects app connection nickN (CloseRequest a b) = do
                                     UserJoined.userLeft nickN )restOfUs
                     [] -> return ()
             
+readerThread :: App -> T.Text -> Bool -> IO ()
 readerThread app nickN terminate = do
     if (terminate == True) 
         then do 
@@ -797,6 +796,7 @@ readerThread app nickN terminate = do
 
 
 {-- The main processing loop for incoming commands.--}
+writerThread :: App -> WSConn.Connection -> T.Text -> Bool -> IO ()
 writerThread app connection nickName terminate = do
     if (terminate == True) 
         then do 
@@ -894,9 +894,9 @@ driver = do
             flip runSqlPersistMPool pool $ do
                 runMigration migrateAll
     chan <- atomically newBroadcastTChan
-    static@(Static settings) <- static "static"
+--    static@(Static settings) <- static "static"
     nickNameMap <- newTVarIO $ IMap.empty
-    warp 3000 $ App chan static nickNameMap
+    warp 3000 $ App chan  nickNameMap
 
 instance ToJSON LoginStatus
 instance FromJSON LoginStatus

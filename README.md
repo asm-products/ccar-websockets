@@ -24,7 +24,6 @@ The versions listed are the ones on my host. Most of the chnages will be backwar
 have downloaded a leter version, things will most likely work.
 * ghci: > 7.6.3 && < 7.7
 * cabal:  > 1.20 && < 1.21
-Cabal setup may take some time and is not the prettiest in my experience. But eventually it does work well, so if you get stuck let me know.
 
 * haxe : 3.0.0
 
