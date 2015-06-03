@@ -166,8 +166,35 @@ Questions:
 
 
 
-Economic indicators workbench		
-to me
+
+Ricardos comments:
+Get a focused demo so we can get users. According to him the application is in
+four parts
+. The interface (plugins + web)
+. The server to manage the administrivia
+. The actual script library
+. Some form translation from the UI to an R script
+. Close the source - something that Devesh also said.
+. Dont waste too much time on the admin stuff.
+. Support multiple formats.
+. Get data from multiple apis and copy them to a local database.
+Sajis comments:
+. Get a flexible system supporting multiple formats.
+. Get something out of the market soon.
+
+
+Counter points:
+AWS admin is an integral component for the service, so we should 
+take some time to get it right.
+Supporting multiple formats can be accomplished by providing the user 
+with an S3 viewer and data describer.
+Enable multiple apis and their data store in either postgres or on an S3 drive.
+Released product must support login and security features.
+OAUTH support is mandatory.
+
+
+
+Economic indicators workbench 
 http://www.smart-earn.com/gj/5/{replace with a number from below}
 
 example:
@@ -354,6 +381,7 @@ SPA related stuff
 ==================================================
 Incremental save is implemented using a global stream.
 What are the conventional key maps for commonly used keyboard actions (CUA?)?
+
 
 
 FRP
