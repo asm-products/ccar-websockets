@@ -56,6 +56,8 @@ data ClientState = ClientState {
 			, connection :: WSConn.Connection
 			, readChan :: TChan T.Text
 			, writeChan :: TChan T.Text
+            , jobReadChan :: TChan Value 
+            , jobWriteChan :: TChan Value
 	}
 instance Show ClientState where 
     show cs = (show $ nickName cs) ++  " Connected"

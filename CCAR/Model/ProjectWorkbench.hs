@@ -411,7 +411,7 @@ executeWorkbench aValue@(Object a) = case (fromJSON aValue) of
 	Success r@(ExecuteWorkbench wId cType _ ) -> do 
 		(sType, sContent, cores) <- getScriptDetails wId 
 		result <- executeScript sType wId sContent cores 
-		return (GC.Reply, 
+		return  (GC.Reply, 
 				serialize $ 
 						(Right $ 
 							result {executeWorkbenchId = wId 

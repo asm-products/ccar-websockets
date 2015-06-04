@@ -17,7 +17,7 @@ import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
 import Control.Monad.Error
 import Control.Concurrent (threadDelay, forkIO)
-import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth
+import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth, waitAny
                         , concurrently)
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
@@ -476,7 +476,13 @@ processCommandValue app aConn nickName (Object a)   = do
                 String "QuerySupportedScripts" -> ProjectWorkbench.querySupportedScripts nickName (Object a)
                 String "QueryActiveWorkbenches" -> ProjectWorkbench.queryActiveWorkbenches (Object a)
                 String "ManageWorkbench" -> ProjectWorkbench.manageWorkbench (Object a)
-                String "ExecuteWorkbench" -> ProjectWorkbench.executeWorkbench(Object a)
+                String "ExecuteWorkbench" -> do                            
+                            atomically $ do 
+                                clientStates <- getClientState nickName app 
+                                mapM_ (\cs -> writeTChan (jobWriteChan cs) (Object a)) clientStates                            
+                            return(GroupCommunication.Reply, 
+                                ser $ ("Execute workbench received" :: T.Text))
+                --ProjectWorkbench.executeWorkbench(Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply
@@ -539,10 +545,14 @@ addConnection app aConn nn = do
                 nMap <- readTVar $ nickNameMap app 
                 w <- newTChan
                 r <- dupTChan w 
+                jw <- newTChan 
+                jwr <- dupTChan jw
                 clientState <- return ClientState{nickName = nn 
                         , connection = aConn
                         , readChan = r 
-                        , writeChan = w 
+                        , writeChan = w
+                        , jobWriteChan = jw 
+                        , jobReadChan = jwr
                 }
                 _ <- writeTVar (nickNameMap app) (IMap.insert nn clientState nMap)
                 return ()
@@ -689,7 +699,8 @@ ccarApp = do
                                             a <- (A.async (writerThread app connection 
                                                 nickNameV False))
                                             b <- (A.async (liftIO $ readerThread app nickNameV False))
-                                            A.waitEither a b
+                                            c <- (A.async $ liftIO $ jobReaderThread app nickNameV False)
+                                            A.waitAny [a,  b,  c]
                                             return "Threads had exception") 
                             return ("All threads exited" :: T.Text)
                 return () 
@@ -722,7 +733,6 @@ processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
             putStrLn $ "User logged in " ++ (show text)
---            putStrLn $ "Incoming command " ++ (show command)
             messageLimit <- liftIO $ getMessageCount nickNameV
             putStrLn $ "Using message limit " ++ (show messageLimit)
             messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit
@@ -793,6 +803,28 @@ readerThread app nickN terminate = do
             Nothing -> readerThread app nickN True  
         --liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show conn)
         
+jobReaderThread :: App -> T.Text -> Bool -> IO ()
+jobReaderThread app nickN terminate = 
+    if(terminate == True) then do 
+        putStrLn "Job reader thread exiting."
+        return ()
+    else do
+        putStrLn "Waiting for jobs..."
+        (conn , value) <- atomically $ do
+                clientStates <- getClientState nickN app 
+                case clientStates  of 
+                    clientState : _ -> do 
+                        textData <- readTChan (jobReadChan clientState)
+                        return (Just $ connection clientState, textData)
+                    [] -> return (Nothing, "")
+        case conn of 
+            Just connection -> do
+                                (replyType, text) <- ProjectWorkbench.executeWorkbench value 
+                                _ <- WSConn.sendTextData (connection) text `catch` 
+                                        (\h@(CloseRequest e f)-> handleDisconnects app 
+                                                    connection nickN h)
+                                readerThread app nickN terminate
+            Nothing -> jobReaderThread app nickN True  
 
 
 {-- The main processing loop for incoming commands.--}
