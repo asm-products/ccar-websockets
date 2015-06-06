@@ -1,6 +1,8 @@
 ## A script to test normality of data.
 library(pbdDEMO, quiet = TRUE)
 
+
+
 ##Serial read..but we will fix this
 init.grid()
 if(comm.rank() == 0){

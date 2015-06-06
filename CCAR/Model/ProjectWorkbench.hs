@@ -382,10 +382,11 @@ executeScript EnTypes.UnsupportedScriptType scriptId scriptData nCores =
 
 executeScript EnTypes.RScript scriptUUID scriptData nCores = do 
 			timeStamp <- Data.Time.getCurrentTime
-
+			putStrLn $ "Reading script file " ++ (scriptFileName timeStamp)
 			handle1 <- openFile (scriptFileName timeStamp) WriteMode 
 			hPutStr handle1 (T.unpack scriptData) -- We need to use a better library here.
 			hClose handle1 
+			
 			result <- tryEC $ 
 					run $ 
 						T.unpack $  
@@ -394,6 +395,7 @@ executeScript EnTypes.RScript scriptUUID scriptData nCores = do
 						`mappend` " "
 						`mappend` "Rscript " 
 						`mappend` (T.pack (scriptFileName timeStamp))			
+			putStrLn "Completed processing the job"
 			return $ ExecuteWorkbench unknownId 
 							"ExecuteWorkbench" $ 
 							T.pack $ show (result :: Either ExitCode String)

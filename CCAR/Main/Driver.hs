@@ -22,7 +22,6 @@ import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, 
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
-import Conduit
 import Data.Monoid ((<>), mappend)
 import Control.Concurrent.STM.Lifted
 import Data.Text as T  hiding(foldl, foldr)
@@ -658,7 +657,7 @@ processUserLoggedIn aConn aText app@(App a c) = do
                 ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
 
 instance Show WSConn.Connection where
-    show (WSConn.Connection o cType proto msgIn msgOut cl c2) = show proto 
+    show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
 
 -- Do not let multiple connections to the same nick name.
 -- How do we allow multiple connections for handling larger data, such as
@@ -816,15 +815,22 @@ jobReaderThread app nickN terminate =
                     clientState : _ -> do 
                         textData <- readTChan (jobReadChan clientState)
                         return (Just $ connection clientState, textData)
-                    [] -> return (Nothing, "")
+                    [] -> return (Nothing, "Client state doesnt exist")
+        putStrLn("Reading a job " ++ (show value))
         case conn of 
             Just connection -> do
-                                (replyType, text) <- ProjectWorkbench.executeWorkbench value 
-                                _ <- WSConn.sendTextData (connection) text `catch` 
-                                        (\h@(CloseRequest e f)-> handleDisconnects app 
+                        (replyType, text) <- 
+                            (ProjectWorkbench.executeWorkbench value)
+                                `catch` (\ x@(SomeException e) -> return (Reply, "Exception in job " :: T.Text))
+                        _ <- WSConn.sendTextData (connection) text `catch` 
+                                (\h@(CloseRequest e f)-> do
+                                            putStrLn "Shutting down job reader thread." 
+                                            handleDisconnects app 
                                                     connection nickN h)
-                                readerThread app nickN terminate
+                        jobReaderThread app nickN terminate
+                        putStrLn "Finished processing job " 
             Nothing -> jobReaderThread app nickN True  
+        putStrLn "Finished processing job" 
 
 
 {-- The main processing loop for incoming commands.--}
