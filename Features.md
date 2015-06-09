@@ -38,7 +38,7 @@ Haxe based websocket client interacting with a yesod websockets server.
 	accepts the request for a private message, then : create a display area for the users to 
 	have a private chat.
 ##### Send messages (broadcast)
-	WHen no nick name is mentioned, the message is intended to be sent to all the users that 
+	WHen no nick name is provided, the message is intended to be sent to all the users that 
 	have set their preferences. 
 
 ##### List of functions available to the user

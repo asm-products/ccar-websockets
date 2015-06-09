@@ -342,8 +342,8 @@ class MBooks_im {
 		}
 		if(lStatus == UserExists){
 			showDivField(DIV_PASSWORD);
-
 		}
+
 		if(lStatus == InvalidPassword){
 			//createInvalidPassword(lR);
 		}
