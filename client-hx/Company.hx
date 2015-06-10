@@ -97,13 +97,17 @@ class Company {
 	private function saveButtonPressed(ev : Event) {
 		trace("Save button pressed");
 		var file = getCompanyImageElement().files[0];
-		var reader = new FileReader();
-		var stream_1 : Stream<Dynamic> = 
-			MBooks_im.getSingleton().initializeElementStream(
-				cast reader
-				, "load");
-		stream_1.then(loadImage);
-		reader.readAsDataURL(file);		
+		if(file != null){
+			var reader = new FileReader();
+			var stream_1 : Stream<Dynamic> = 
+				MBooks_im.getSingleton().initializeElementStream(
+					cast reader
+					, "load");
+			stream_1.then(loadImage);
+			reader.readAsDataURL(file);					
+		}else {
+			saveCompanyInfo(getCompanySplashImageString());
+		}
 	}
 
 	private function selectAllCompanies(loggedInMessage) {
@@ -238,6 +242,16 @@ class Company {
 
 	}
 
+	private function getCompanySplashImageString () : String {
+		try {
+		var imageSplash : ImageElement = 
+			getCompanySplashElement();
+			return imageSplash.src;
+		}catch(error: Dynamic) {
+			throw error;
+		}
+
+	}
 	private function clearFields(incomingMessage) {
 		getCompanyNameElement().value = "";
 		getCompanyIDElement().value = "";
