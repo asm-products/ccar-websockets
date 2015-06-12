@@ -720,11 +720,7 @@ processClientLost app connection nickNameV iText = do
                                 $ incomingDictionary iText
                     liftIO $ putStrLn $ "Sending " ++ ( show nickNameFound)
                     WSConn.sendTextData connection nickNameFound
-                    command <- (processClientLeft connection app nickNameV ) `catch` 
-                                                (\ (CloseRequest e1 e2) -> do                                                             
-                                                        atomically $ deleteConnection app connection nickNameV
-                                                        return (UserJoined.userLeft nickNameV)
-                                                    )
+                    processClientLeft connection app nickNameV 
                     return ("Threads exited" :: T.Text)
     
 {-- Client hits a refresh or loses connection --}

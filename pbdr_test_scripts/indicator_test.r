@@ -20,6 +20,8 @@ computeShapiroTest<- function(indicatorURL, index) {
 }
 
 init ()
+
+if(comm.rank() == 0){
 indicators <- c(1,5,6, 7,8, 9)
 indicators <- append(indicators, c(10:173))
 
@@ -30,7 +32,7 @@ indicatorURLs <- sapply(indicators, function(y) {
 		index <- sprintf("%d", y)
 		computeShapiroTest(url, index)
 	}
-)
-
+	)
+}
 indicatorURLs
 finalize()

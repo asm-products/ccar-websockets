@@ -27,7 +27,7 @@ Haxe based websocket client interacting with a yesod websockets server.
 	Begin processing events	
 
 
-##### Allow a given user to open multiple connections
+##### Allow a given user to open multiple connections (to be prioritized)
 	Once a user has successfully logged in, the user must be allowed to
 	open multiple connections. This is to enable user to load large data
 	sets on a different channel. 
@@ -86,7 +86,6 @@ Haxe based websocket client interacting with a yesod websockets server.
 	Cost of the script for sharing.
 
 
-
 ##### Load rjobs
 	Load a set of jobs using the pdbr library. The user can specify the script, the source of the data
 	and the number of processors desirable to complete the task.
@@ -116,10 +115,8 @@ Haxe based websocket client interacting with a yesod websockets server.
 	The vote is confirmed after a successful confirmation.
 	During this time, the same user cannot vote more than the number of votes allowed and this number
 	can be more than the number of votes totally allowed per voter. Which is ok, because only
-	confirmed votes are counted. For example, if a voter is allowed 5 votes, the client is a bot
-	sending about 100 votes, before we receive any confirmations, is allowed and we will count it as such.
-	Once we have confirmations, only votes that are left will counted ensuring that each user cannot vote 
-	more than the number of votes allowed in the ballot per voter.
+	confirmed votes are counted. For example, if a voter is allowed 5 votes, and the client is a bot
+	sending about 100 votes, before we receive any confirmations. Once we have confirmations, only votes that are left will counted ensuring that each user cannot vote more than the number of votes allowed in the ballot per voter.
 
 
 
