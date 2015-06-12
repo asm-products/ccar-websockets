@@ -369,9 +369,9 @@ class Project {
 			, uniqueCompanyID : company.getCompanyID()
 			, summary : getProjectSummary()
 			, details : getProjectDetails()
-//			, startDate : [haxe.Json.stringify(Date.now())] // XXX: Fix this
-//			, endDate : [haxe.Json.stringify(Date.now())]
-//			, uploadTime : [haxe.Json.stringify(Date.now())]
+			, startDate : [(Date.now())] // XXX: Fix this
+			, endDate : [Date.now()]
+			, uploadTime : [(Date.now())]
 			, preparedBy : getPreparedBy()
 			, uploadedBy : nickName
 	

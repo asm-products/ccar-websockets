@@ -114,7 +114,7 @@ deleteCompany aCompanyId = dbOps $
 
 selectAllCompanies :: IO [Entity Company]
 selectAllCompanies = dbOps $ selectList [] [LimitTo resultsPerPage]
-					where resultsPerPage = 10
+					where resultsPerPage = 100
 
 updateCompany :: NickName -> CompanyT -> IO (Maybe Company)
 updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 

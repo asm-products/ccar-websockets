@@ -40,7 +40,7 @@ import Data.UUID.V1
 import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
-import CCAR.Main.Util 
+import CCAR.Main.Util as Util
 import CCAR.Command.ErrorCommand
 import Database.Persist.Postgresql as Postgresql 
 
@@ -62,10 +62,10 @@ data ProjectT = ProjectT {
 		, companyUniqueId :: T.Text 
 		, summary :: T.Text 
 		, details :: T.Text
-		, startDate :: Maybe UTCTime
-		, endDate :: Maybe UTCTime
+		, startDate :: Maybe [UTCTime]
+		, endDate :: Maybe [UTCTime]
 		, uploadedBy :: T.Text
-		, uploadTime :: Maybe UTCTime 
+		, uploadTime :: Maybe [UTCTime]
 		, preparedBy :: T.Text	
 	} deriving (Show, Eq, Data, Generic, Typeable)
 
@@ -77,6 +77,14 @@ data QueryProject = QueryProject {
 	, qCompany :: [Project] 
 }
 
+setDate :: (Maybe UTCTime) -> Maybe [UTCTime]
+setDate Nothing = Nothing
+setDate (Just x) = Just ([x])
+
+getDate :: Maybe [UTCTime] -> Maybe UTCTime
+getDate (Just  (h:[])) = Just h
+getDate (Just []) = Nothing
+getDate (Nothing) = Nothing
 
 insertProject :: ProjectT -> IO (Either T.Text ProjectT)
 insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do 
@@ -89,9 +97,10 @@ insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do
 				case (uploader, company) of 
 					(Just (Entity personId personV)
 						, Just(Entity companyId cValue)) -> do 
-						insert $ do 
+						insert $ do 								
 								Project companyUniId 
-									companyId s de sd ed personId upT pr
+									companyId s de (getDate sd) (getDate ed) 
+									personId (getDate upT) pr
 						return $ Right t {identification = companyUniId}
 						where
 							companyUniId = T.pack $ UUID.toString uuidJ 
@@ -111,7 +120,9 @@ readProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 						case person of 
 							Just (Person f l nn pass lo lastLogin) -> 
 								return $ Right $ ProjectT Read 
-										i (companyCompanyID v ) s de sd ed nn upT pr
+										i (companyCompanyID v ) s de (setDate sd) 
+											(setDate ed) nn 
+											(setDate upT) pr
 							Nothing -> return $ Left ("reading project failed" :: T.Text)
 
 updateProject :: ProjectT -> IO (Either T.Text ProjectT)
@@ -124,8 +135,8 @@ updateProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 							Just (Entity k2 prValue) -> do 	
 								res <- return  $ prValue {projectSummary = s 
 											, projectDetails = de 
-											, projectStartDate = sd
-											, projectEndDate = ed 
+											, projectStartDate = (getDate sd)
+											, projectEndDate = (getDate ed) 
 											, projectPreparedBy = pr}
 								Postgresql.replace k2 res 
 								return $ Right t
@@ -189,23 +200,19 @@ selectActiveProjects x = dbOps $ do
 					Just (Entity k v) -> selectList [ProjectCompanyId ==. k ][]
 
 
-parseDate (Just aDate) = undefined
 
 instance FromJSON ProjectT where 
     parseJSON (Object a) = ProjectT <$> 
-								(a .: "crudType") <*>
-								(a .: "projectId") <*>
-								(a .: "uniqueCompanyID") <*>
-								(a .: "summary") <*>
-								(a .: "details") <*>
-								--parseDate (LH.lookup "startDate" a) <*>
-								pure Nothing <*>
-								-- parseDate (LH.lookup "endDate" a ) <*>
-								pure Nothing <*> 
-								(a .: "uploadedBy") <*> 
-								-- parseDate (LH.lookup "uploadTime" a) <*>
-								pure Nothing <*>
-								(a .: "preparedBy")
+				(a .: "crudType") <*>
+				(a .: "projectId") <*>
+				(a .: "uniqueCompanyID") <*>
+				(a .: "summary") <*>
+				(a .: "details") <*>
+				(a .: "startDate") <*>
+				(a .: "endDate") <*>
+				(a .: "uploadedBy") <*> 
+				(a .: "uploadTime") <*>
+				(a .: "preparedBy")
 
     parseJSON _          = Appl.empty
 
