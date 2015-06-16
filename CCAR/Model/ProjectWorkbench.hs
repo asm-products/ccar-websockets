@@ -396,9 +396,15 @@ executeScript EnTypes.RScript scriptUUID scriptData nCores = do
 						`mappend` "Rscript " 
 						`mappend` (T.pack (scriptFileName timeStamp))			
 			putStrLn "Completed processing the job"
-			return $ ExecuteWorkbench unknownId 
-							"ExecuteWorkbench" $ 
-							T.pack $ show (result :: Either ExitCode String)
+			case result of
+				Right str -> 
+					return $ ExecuteWorkbench unknownId 
+								"ExecuteWorkbench" $ 
+									T.pack str
+				Left code -> 
+					return $ ExecuteWorkbench unknownId 
+								"ExecuteWorkbench" $ 
+									T.pack $ show code
 			where 
 				scriptFileName timeStamp= 
 					("." ++ "/" ++ "workbench_data" 

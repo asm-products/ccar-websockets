@@ -17,10 +17,14 @@
 <body>
 
 	<h3 align="center"> R2 Online (Beta)</h3>
-	<label for="serverError" class="error">Text Field (Error)</label>
-	<input id="serverError" class="error" type="text" />
+		
 
-	<div class="grid flex" >
+
+	<div id="serverError" class="error" type="text">
+			<label for="serverError" class="error">Text Field (Error)</label>
+	</div>
+
+	<div class="grid flex" class="callout clearfix">
 		<div class="col_12" style="margin-top:10px;">
 			<h4 class="center"><p><i class="fa fa-fire"></i>
 				</p id="support_title">Query/manage pbdR scripts</h4>
@@ -29,12 +33,14 @@
 		<form class="vertical">
 			<div id="nickNameDiv" class="col_12">
 				<label for="nickName">Enter email to login or signup</label>
-				<input id="nickName" type="text" />
+				<input id="nickName" type="text" tabIndex="1"/>
 			</div>
 			<div id="passwordDiv" class="col_12" style="display:none">
 				<!-- Placeholder Text -->
 				<label for="password">Password</label>
-				<input id="password" type="password" placeholder="Password" />
+				<input id="password" type="password" placeholder="" 
+					   tabIndex="2"
+						/>
 			</div>
 			<div id="firstNameDiv" class="col_12" style="display:none">
 				<label for="firstName" >First Name</label>
@@ -197,27 +203,62 @@
 				<button id="clearFields"> Clear Fields </button>
 			</div>
 			</form>
+			</div>
+			<div id="project_notes">
+				<h4 align="center"> Notes/Instructions </h4>
+				<p align="center">
+					<ul> 
+						<li>You can save all your scripts under your company's user id. </li>
+						<li>All your jobs that are run for R will have an id and you can request for a webhook </li>
+						<li>If you are uploadinrg larger data sets, let us help you setup your cloud: either AWS.</li>
+						<li>Feature requests or bug requests can be entered here (implement href) </li>
+					</ul>
+				</p>
+			</div>
 	</div>
 
-<h4 align="center"> Notes/Instructions </h4>
-<p align="center">
-	<ul> 
-		<li>You can save all your scripts under your company's user id. </li>
-		<li>All your jobs that are run for R will have an id and you can request for a webhook </li>
-		<li>If you are uploadinrg larger data sets, let us help you setup your cloud: either AWS.</li>
-		<li>Feature requests or bug requests can be entered here (implement href) </li>
-	</ul>
-</p>
-<p>
-	Enter your email id to signup or login.
-</p>
-<div class="security_status" display:none>
-	<p>
-		The site is not <strong>secure</strong>. You have been warned.
-	</p>
-</div>
+
 <div class="haxe:trace"></div>
+<script src="js/d3/d3.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="mbooks_im.js"></script>
+
+<div class="clear"></div>
+<div id="usage_stuff" class="callout">
+	<h3 align="center">
+		What can you do on this site: 
+	</h3>
+	<ul class="tabs-content">
+		<li> Create and save R (using pbdR) scripts to run computations </li>
+		<li> Create CCAR scenarios to test risks if you are so inclined </li>
+		<li> Realtime graphs  </li>
+		<li> Gift/share scripts with other users. </li>
+		<li> Share results with other users </li>
+		<li> Private conversations with other users if you allow them to </li>
+		<li> Create and publish surveys </li>
+		<li> Create and manage projects of various kinds including 3d models </li>
+		<li> Create a market place for products </li>
+		<li> Create bids, trades for products </li>
+		<li> Send us feature requsets </li>
+		<li> Send us bug requests </li>
+		<li> View source </li>
+		<li> More to follow or less to offer ...depends on you </li>
+	</ul>
+
+	<div class="security_status" display:none>
+		<p>
+			The site is not <strong>secure</strong>. You have been warned.
+		</p>
+	</div>
+</div>
+
+<div id="footer">
+&copy; Copyright 2014 All Rights Reserved. This website was built with
+		<a href="http://www.99lime.com">HTML KickStart</a> . 
+		<a href="http://www.yesodweb.com/">Yesod </a>. 
+		<a href="http://haxe.org/"> Haxe </a> . 
+		<a href="http://d3js.org"> D3 </a> .
+		<a href="mailto:dinkar.ganti@gmail.com">Dinkar Ganti</a>
+</div>
 
 </body>
 

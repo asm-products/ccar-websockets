@@ -71,7 +71,11 @@ typedef PrjWorkbench = {
 	var commandType : String;
 
 };
-		
+
+typedef ExecuteWorkbenchResult = {
+	var Right : ExecuteWorkbench;
+	var Left : Dynamic;
+}		
 typedef ExecuteWorkbench = {
 	var executeWorkbenchId : String;
 	var scriptResult : String;
@@ -128,7 +132,7 @@ class ProjectWorkbench {
 	public var supportedScriptsStream(default, null) : Deferred<QuerySupportedScript>;
 	public var queryActiveWorkbenchesStream(default, null) : Deferred<QueryActiveWorkbenches>;
 	public var manageWorkbenchStream(default, null) : Deferred<PrjWorkbench>;
-	public var executeWorkbenchStream(default, null) : Deferred<ExecuteWorkbench>;
+	public var executeWorkbenchStream(default, null) : Deferred<ExecuteWorkbenchResult>;
 	public function new(project : Project){
 		trace("Instantiating project workbench ");
 		executeUponSave = true;
@@ -173,7 +177,7 @@ class ProjectWorkbench {
 		queryActiveWorkbenchesStream.then(processQueryActiveWorkbenches);
 		querySupportedScripts();
 		manageWorkbenchStream.then(processManageWorkbench);
-		executeWorkbenchStream = new Deferred<ExecuteWorkbench>();
+		executeWorkbenchStream = new Deferred<ExecuteWorkbenchResult>();
 		executeWorkbenchStream.then(processExecuteWorkbench);
 	}
 
@@ -409,14 +413,26 @@ class ProjectWorkbench {
 	private function getClearFields() : ButtonElement {
 		return (cast Browser.document.getElementById(CLEAR_FIELDS));
 	}
-	private function processExecuteWorkbench(executeWorkbench : ExecuteWorkbench) : Void {
+	private function processExecuteWorkbench(executeWorkbench : ExecuteWorkbenchResult) : Void {
 		trace("Processing execute workbench " + haxe.Json.stringify(executeWorkbench));
 		setScriptResult(executeWorkbench);
 	}
-	private function setScriptResult(workbench : ExecuteWorkbench){
+	private function setScriptResult(workbench : ExecuteWorkbenchResult){
 		var inputElement : InputElement = 
 			cast (Browser.document.getElementById(SCRIPT_RESULT));
-		inputElement.value = haxe.Json.stringify(workbench);
+		trace("Workbench " + workbench.Right);
+		if(workbench.Right != null){
+			var tempResult : ExecuteWorkbench = workbench.Right;
+			var tempResultS : Array<Dynamic> = haxe.Json.parse(tempResult.scriptResult);
+			for(i in tempResultS){
+				var result = i.statistic;
+				inputElement.value = inputElement.value + result;
+			}
+			//inputElement.value = tempResult.scriptResult;
+		}else {
+			inputElement.value = haxe.Json.stringify(workbench);
+		}
+		
 	}
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));

@@ -36,6 +36,7 @@ import js.html.ButtonElement;
 import js.html.TextAreaElement;
 import promhx.Stream;
 import promhx.Promise;
+import js.D3;
 import massive.munit.TestRunner;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
@@ -156,7 +157,7 @@ class MBooks_im {
 	private  function onServerConnectionError(ev : Event){
 		trace("Error " + haxe.Json.stringify(ev));
 		getNickNameElement().disabled = true;
-		js.Lib.alert("Server not available. Please try back later or call support at <>");
+		setError("Server not available. Please try back later.");
 	}
 
 	// Message processing 
@@ -484,7 +485,7 @@ class MBooks_im {
 		return inputElement;
 	}
 	private function getPassword() : String {
-		return getPasswordElement().value;
+		return StringTools.trim(getPasswordElement().value);
 	}
 
 	private function getFirstName() : String {
@@ -572,12 +573,18 @@ class MBooks_im {
 		var inputElement : InputElement = cast ev.target;
 		trace("Inside send login " + ev.keyCode);
 		if(Util.isSignificantWS(ev.keyCode)){
-			this.person.setNickName(inputElement.value);
-			var lStatus : LoginStatus = Undefined;			
-			var cType : String = Std.string(CommandType.Login);
-			var l : Login = new Login(cType, this.person, lStatus);
-			trace("Sending login status " + l);
-			doSendJSON(l);
+			var inputValue : String = StringTools.trim(inputElement.value);
+			trace("Sending login information: " +  inputValue + ":");
+			if((inputValue != "")) {
+				this.person.setNickName(inputElement.value);
+				var lStatus : LoginStatus = Undefined;			
+				var cType : String = Std.string(CommandType.Login);
+				var l : Login = new Login(cType, this.person, lStatus);
+				trace("Sending login status " + l);
+				doSendJSON(l);			
+			}else {
+				trace("Not sending any login");
+			}
 		}
 	}
 
@@ -609,6 +616,11 @@ class MBooks_im {
 	}
 	private function validatePassword(ev : KeyboardEvent){
 		if(Util.isSignificantWS(ev.keyCode)){
+			trace("Password: " + getPassword() + ":");
+			if(getPassword() == ""){
+				trace("Not sending password");
+				return;
+			}
 			if(getPassword() != this.person.password){
 				js.Lib.alert("Invalid password. Try again");
 				attempts++;
@@ -688,7 +700,7 @@ class MBooks_im {
 	private static var SERVER_ERROR : String = "serverError";
 
 	private function setError(aMessage) {
-		getServerErrorElement().value = aMessage;
+		getServerErrorElement().innerHTML = aMessage;
 	}
 
 	public function getCompany() : Company {
@@ -698,6 +710,12 @@ class MBooks_im {
 	//Clients can attach or detach from this stream.
 	public function getUserLoggedInStream() : Deferred<Dynamic> {
 		return userLoggedIn;
+	}
+	public function createD3Element(){
+		trace('Test creating d3 element.');
+		D3.selectAll("p").style("color", function() {
+  			return "hsl(" + Math.random() * 360 + ",100%,50%)";
+		});
 	}
 	var attempts : Int = 0;
 	var serverHost : String = "localhost";
@@ -716,6 +734,7 @@ class MBooks_im {
 	var ccar : model.CCAR;
 	static function main() {
 		singleton = new MBooks_im();
+		singleton.createD3Element();
 		singleton.company = new Company();
 		singleton.project = new Project(singleton.company);
 		singleton.connect();

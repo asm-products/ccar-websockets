@@ -432,7 +432,9 @@ processCommandValue app aConn nickName (Object a)   = do
                                 bConns <- atomically $ getClientState a1 app 
                                 mapM_ (\bconn -> WSConn.sendClose (connection bconn)
                                         ("Bye"
-                                            :: T.Text)) bConns  -- To handle multiple connections to a client.
+                                            :: T.Text) `catch` (
+                                            \c@(ConnectionClosed) -> atomically $ deleteConnection app (connection bconn) a1                    
+                                            )) bConns  -- To handle multiple connections to a client.
                                 return (GroupCommunication.Broadcast, ser u)
                             Error s ->  return (GroupCommunication.Reply 
                                     , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
