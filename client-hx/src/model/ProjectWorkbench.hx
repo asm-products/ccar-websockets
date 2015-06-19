@@ -469,12 +469,15 @@ class ProjectWorkbench {
 		var index : Int = 0;
 		for(i in inputData) {
 			trace("Inside loop " + inputData);
-			if(i.p != null){
-				var t : Point = { "x": index, "y" : i.pValue};
+			if(i.pValue != null){
+				var t : Point = { "x": index, "y" : 10000 * i.pValue};
 				values[index] = t ;
 				index = index + 1;
 			}
 		}
+		// A formatter for counts.
+		var formatCount = D3.format(",.0f");
+		
 		// A formatter for counts.
 		var formatCount = D3.format(",.0f");
 
@@ -483,15 +486,14 @@ class ProjectWorkbench {
 			height = 500 - margin.top - margin.bottom;
 
 		var x:Linear = D3.scale.linear()
-			.domain([0, 1])
+			.domain([0, values.length])
 			.range([0, width]);
 		
-		
+		// Generate a histogram using twenty uniformly-spaced bins.
 		var data = values;
 		
 		var y = D3.scale.linear()
-			.domain([D3.min(data, function(d) { return d.x;})
-					, D3.max(data, function(d) { return d.y; })])
+			.domain([0, D3.max(data, function(d) { return d.y; })])
 			.range([height, 0]);
 		
 		var xAxis = D3.svg.axis().scale(x);
@@ -510,21 +512,20 @@ class ProjectWorkbench {
 
 		bar.append("rect")
 			.attr("x", 1)
-			.attr("width", function(d) { return d.x - 1;})
-			.attr("height", function(d) { return height - d.y; });
+			.attr("width", 10)
+			.attr("height", function(d) { return height - getDynamic("y")(d.y); });
 
 		bar.append("text")
 			.attr("dy", ".75em")
 			.attr("y", 6)
-			.attr("x", function(d) { return d.x /2; })
+			.attr("x", 5)
 			.attr("text-anchor", "middle")
 			.text(function(d) { return formatCount(d.y); });
 
 		svg.append("g")
 			.attr("class", "x axis")
 			.attr("transform", "translate(0," + height + ")")
-			.call(xAxis);
-		}
+			.call(xAxis);		}
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
 		var supportedScriptListElement : SelectElement 
