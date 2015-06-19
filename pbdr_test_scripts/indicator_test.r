@@ -22,7 +22,7 @@ computeShapiroTest<- function(indicatorURL, index) {
 init ()
 
 indicators <- c(1,5,6, 7,8, 9)
-#indicators <- append(indicators, c(10:173))
+indicators <- append(indicators, c(10:173))
 
 #indicators <- c(1)
 baseURL <- "http://www.smart-earn.com/gj/5/"

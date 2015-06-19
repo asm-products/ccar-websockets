@@ -40,12 +40,23 @@ import promhx.Promise;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
 
+import js.d3.D3;
+import js.d3.D3;
+import js.d3.scale.Scale;
+
+import js.d3.selection.Selection;
+import js.d3.selection.Selection;
+import js.d3.layout.Layout;
+
+
+
 enum WorkbenchCrudType {
 	Create;
 	WrkBench_Update;
 	Delete;
 	Read;
 	}
+
 
 typedef QuerySupportedScript = {
 		var nickName : String;
@@ -71,6 +82,11 @@ typedef PrjWorkbench = {
 	var commandType : String;
 
 };
+
+typedef Point = {
+		var x : Int;
+		var y : Float;
+	};
 
 typedef ExecuteWorkbenchResult = {
 	var Right : ExecuteWorkbench;
@@ -109,6 +125,7 @@ class ProjectWorkbench {
 	var CLEAR_FIELDS 	   : String = "clearFields";
 	var SCRIPT_RESULT	   : String = "scriptResult";
 	var DEFAULT_PROCESSORS : Int = 4;
+	var PROJECT_DETAILS : String = "project-details";
 
 	var SUPPORTED_SCRIPT_LIST_ELEMENT : String = "supportedScriptTypes";
 	var WORKBENCH_ID_ELEMENT : String = "workbenchId";
@@ -214,7 +231,7 @@ class ProjectWorkbench {
 	private function updateWorkbench(ev : Event){
 		trace("Update workbench ");
 		//Load the upload script and save the workbench.
-		var file = getScriptDataElement().files[0];
+		var file = getScriptUploadElement().files[0];
 		var reader = new FileReader();
 		var stream : Stream<Dynamic>  = 
 				MBooks_im.getSingleton().initializeElementStream(
@@ -313,7 +330,12 @@ class ProjectWorkbench {
 		element.selected = true;
 	}
 	private function getScriptTypeFromUI() : String {
-		return selectedScriptType;
+		var result = (cast getScriptTypeElement()).selected;
+		if(result == null){
+			return "UnsupportedScriptType";
+		}else {
+			return result;
+		}
 	}
 	private function setScriptTypeFromMessage(aScriptType : String){
 		var element : OptionElement
@@ -334,8 +356,19 @@ class ProjectWorkbench {
 	private function setScriptSummaryFromMessage(aMessage: String) {
 		getScriptSummaryElement().value = aMessage;
 	}
-	private function getScriptDataElement() : InputElement {
+	private function getScriptUploadElement() : InputElement {
 		return (cast Browser.document.getElementById(SCRIPT_UPLOAD_ELEMENT));
+	}
+	private function getScriptDataElement() : InputElement {
+		return (cast Browser.document.getElementById(SCRIPT_DATA_ELEMENT));
+	}
+	private function setScriptDataFromMessage(aMessage : String) {
+		try {
+			getScriptDataElement().value = aMessage;	
+		}catch(err : Dynamic){
+			getScriptDataElement().value = (haxe.Json.stringify(err));
+		}
+		
 	}
 
 	private function setNumberOfCoresFromMessage(numberOfCores : Int) : Void{
@@ -424,16 +457,74 @@ class ProjectWorkbench {
 		if(workbench.Right != null){
 			var tempResult : ExecuteWorkbench = workbench.Right;
 			var tempResultS : Array<Dynamic> = haxe.Json.parse(tempResult.scriptResult);
-			for(i in tempResultS){
-				var result = i.statistic;
-				inputElement.value = inputElement.value + result;
-			}
+			drawGraph(tempResultS);
 			//inputElement.value = tempResult.scriptResult;
 		}else {
 			inputElement.value = haxe.Json.stringify(workbench);
-		}
-		
+		}		
 	}
+	private function drawGraph(inputData : Array<Dynamic>) {		
+		trace("Input data " + inputData);
+		var values : Array < Point > = new Array< Point > ();
+		var index : Int = 0;
+		for(i in inputData) {
+			trace("Inside loop " + inputData);
+			if(i.p != null){
+				var t : Point = { "x": index, "y" : i.pValue};
+				values[index] = t ;
+				index = index + 1;
+			}
+		}
+		// A formatter for counts.
+		var formatCount = D3.format(",.0f");
+
+		var margin = {top: 10, right: 30, bottom: 30, left: 30},
+			width = 960 - margin.left - margin.right,
+			height = 500 - margin.top - margin.bottom;
+
+		var x:Linear = D3.scale.linear()
+			.domain([0, 1])
+			.range([0, width]);
+		
+		
+		var data = values;
+		
+		var y = D3.scale.linear()
+			.domain([D3.min(data, function(d) { return d.x;})
+					, D3.max(data, function(d) { return d.y; })])
+			.range([height, 0]);
+		
+		var xAxis = D3.svg.axis().scale(x);
+		
+		var svg = D3.select("body").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+			.append("g")
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		var bar = svg.selectAll(".bar")
+			.data(data)
+			.enter().append("g")
+			.attr("class", "bar")
+			.attr("transform", function(d) { return "translate(" + getDynamic("x")(d.x) + "," + getDynamic("y")(d.y) + ")"; });
+
+		bar.append("rect")
+			.attr("x", 1)
+			.attr("width", function(d) { return d.x - 1;})
+			.attr("height", function(d) { return height - d.y; });
+
+		bar.append("text")
+			.attr("dy", ".75em")
+			.attr("y", 6)
+			.attr("x", function(d) { return d.x /2; })
+			.attr("text-anchor", "middle")
+			.text(function(d) { return formatCount(d.y); });
+
+		svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + height + ")")
+			.call(xAxis);
+		}
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
 		var supportedScriptListElement : SelectElement 
@@ -567,6 +658,7 @@ class ProjectWorkbench {
 	private function copyIncomingValues(incomingMessage) {
 		this.setWorkbenchIdFromMessage(incomingMessage.workbenchId);
 		this.setScriptSummaryFromMessage(incomingMessage.scriptSummary);
+		this.setScriptDataFromMessage(incomingMessage.scriptData);
 		this.setScriptTypeFromMessage(incomingMessage.scriptType);
 		this.setNumberOfCoresFromMessage(incomingMessage.numberOfCores);
 		processScriptData(incomingMessage.scriptType, incomingMessage.scriptData);
@@ -579,19 +671,7 @@ class ProjectWorkbench {
 
 	}
 	private function processScriptData(scriptType : String, scriptData: String){
-		trace("Processing script data " + scriptData);
-		if(scriptType == "ThreeJS") {
-			try {
-				handleThreeJS(scriptData);
-			}catch(err : Dynamic){
-				trace("Error handling threejs " +  err);	
-			}
-			
-		}else if (scriptType == "ThreeJS_JSON"){
-			handleThreeJSJSON(scriptData);
-		}else {
-			trace("Invalid script type " + scriptType);
-		}
+		trace("Processing script type " + scriptType);
 	}
 	private function handleThreeJS(scriptData : String){
 		trace("processing three js");
@@ -679,4 +759,16 @@ class ProjectWorkbench {
 		//between objects to see if we really need
 		//to save.
 	} */
+	
+	/** 
+	 * Get a dynamic reference to a typed object so you can call it as a function in js) 
+	 * Not great, but you can't call a class like a function in JS...
+	 * Saves having to create a separate var that_is:Dynamic;
+	 * The var 'name' gets inlined in the compiled output when you use this...
+	 */
+	public static inline function getDynamic(name:String):Dynamic {
+		return MBooks_im.getDynamic(name);
+	}
+
+
 }

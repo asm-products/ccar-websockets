@@ -64,13 +64,21 @@ data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined | Gue
     deriving(Show, Typeable, Data, Generic, Eq)
 
 
+data CheckPassword = CheckPassword {pwNickName :: T.Text, pwPassword :: T.Text, 
+                passwordValid :: Maybe Bool, 
+                numberOfAttemmpts :: Integer}
+                    deriving(Show, Eq, Typeable, Data, Generic)
+instance ToJSON CheckPassword 
+instance FromJSON CheckPassword
+
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
 
 data UserOperations = UserOperations{operation :: Us.CRUD, person :: Maybe Person} 
                 deriving (Show, Eq)
-data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD, terms :: Maybe TermsAndConditions} 
-                deriving(Show, Eq)
+data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD
+                                        , terms :: Maybe TermsAndConditions} 
+                                                deriving(Show, Eq)
 
 -- There an absence of symmetry in this object: the result set can never be populated
 -- as part of the request. Another clever thought.
@@ -285,6 +293,18 @@ mkYesod "App" [parseRoutes|
 |]
 
 
+checkPassword :: CheckPassword -> IO (DestinationType, CheckPassword) 
+checkPassword b@(CheckPassword personNickName password _ attempts) = do
+    chk <- checkLoginExists(personNickName) 
+    case chk of 
+        Nothing -> return $ (GroupCommunication.Reply, b {passwordValid = (Just False)})
+        Just (Entity aid a) -> do
+            return $ (Reply, b {passwordValid = validatePassword (personPassword a) b})
+
+validatePassword :: T.Text -> CheckPassword -> Maybe Bool 
+validatePassword dbPassword input = Just $ dbPassword == (pwPassword input)
+
+
 insertCCAR :: CCAR -> IO (Key CCAR) 
 insertCCAR c = dbOps $ do 
             cid <- DB.insert c
@@ -326,8 +346,8 @@ processCommand (Just (CommandLogin aLogin)) = do
                loginStatus = Just UserNotFound})
         Just (Entity aid a)  -> do 
                 _ <- updateLogin a 
-                return $ (Broadcast, CommandLogin $ 
-                    Login {login = Just a, loginStatus = Just UserExists})
+                return $ (Reply, CommandLogin $ 
+                    Login {login = Just $ a {personPassword = "****"}, loginStatus = Just UserExists})
 
 
 processCommand (Just (CommandError error)) = 
@@ -727,7 +747,10 @@ processClientLost app connection nickNameV iText = do
                                         atomically $ deleteConnection app connection nickNameV
                                         return "Close request" )
                     return ("Threads exited" :: T.Text)
-    
+
+{- Stay inside the loop till the user answers with the correct passsword -}
+processUserPassword connection app nickNameV = undefined
+
 {-- Client hits a refresh or loses connection --}
 processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
