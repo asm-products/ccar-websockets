@@ -12,7 +12,7 @@ computeShapiroTest<- function(indicatorURL, index) {
 	v <- fromJSON(indicatorData)
 	if(length(v) > 1) {
 		d <- sapply(v, function(y) y[[2]])
-		return(c("index" = index, "profile"=shapiro.test(as.numeric((d[-1])))))
+		return(c("index" = index, shapiro.test(as.numeric((d[-1])))))
 		#return(shapiro.test(d))
 	}else {
 		return((sprintf("Ignoring %s",  indicatorURL)))

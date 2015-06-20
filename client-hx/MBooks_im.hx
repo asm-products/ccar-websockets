@@ -831,7 +831,6 @@ class MBooks_im {
 	var ccar : model.CCAR;
 	static function main() {
 		singleton = new MBooks_im();
-		singleton.pie();
 		singleton.company = new Company();
 		singleton.project = new Project(singleton.company);
 		singleton.connect();

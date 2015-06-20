@@ -83,6 +83,7 @@ typedef PrjWorkbench = {
 
 };
 
+
 typedef Point = {
 		var x : Int;
 		var y : Float;
@@ -330,12 +331,7 @@ class ProjectWorkbench {
 		element.selected = true;
 	}
 	private function getScriptTypeFromUI() : String {
-		var result = (cast getScriptTypeElement()).selected;
-		if(result == null){
-			return "UnsupportedScriptType";
-		}else {
-			return result;
-		}
+		return selectedScriptType;
 	}
 	private function setScriptTypeFromMessage(aScriptType : String){
 		var element : OptionElement
@@ -468,11 +464,18 @@ class ProjectWorkbench {
 		var values : Array < Point > = new Array< Point > ();
 		var index : Int = 0;
 		for(i in inputData) {
-			trace("Inside loop " + inputData);
-			if(i.pValue != null){
-				var t : Point = { "x": index, "y" : 10000 * i.pValue};
+			trace("Inside loop " + i);
+			try {
+			var pValue : Float = Reflect.field(i, "p.value");
+			if(pValue != null){
+				var p2 = 10000 * pValue;
+				trace("Setting p.value " + p2);
+				var t : Point = { "x": index, "y" : p2};
 				values[index] = t ;
 				index = index + 1;
+			}			
+			}catch(err : Dynamic) {
+				trace("Ignoring " + err);
 			}
 		}
 		// A formatter for counts.
@@ -525,7 +528,8 @@ class ProjectWorkbench {
 		svg.append("g")
 			.attr("class", "x axis")
 			.attr("transform", "translate(0," + height + ")")
-			.call(xAxis);		}
+			.call(xAxis);		
+		}
 	private function processSupportedScripts(supportedScripts : QuerySupportedScript)  : Void{
 		trace("Process supported scripts  " + haxe.Json.stringify(supportedScripts));
 		var supportedScriptListElement : SelectElement 
