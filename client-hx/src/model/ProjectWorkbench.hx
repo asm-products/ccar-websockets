@@ -334,9 +334,11 @@ class ProjectWorkbench {
 		return selectedScriptType;
 	}
 	private function setScriptTypeFromMessage(aScriptType : String){
+		trace("Setting script type");
 		var element : OptionElement
 			 = cast Browser.document.getElementById(aScriptType);
 		element.selected = true;
+		selectedScriptType = aScriptType;
 	}
 	private function getScriptSummaryElement() : InputElement {
 		return (cast Browser.document.getElementById(SCRIPT_SUMMARY));
