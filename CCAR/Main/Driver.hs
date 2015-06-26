@@ -347,7 +347,7 @@ processCommand (Just (CommandLogin aLogin)) = do
         Just (Entity aid a)  -> do 
                 _ <- updateLogin a 
                 return $ (Reply, CommandLogin $ 
-                    Login {login = Just $ a {personPassword = "****"}, loginStatus = Just UserExists})
+                    Login {login = Just a, loginStatus = Just UserExists})
 
 
 processCommand (Just (CommandError error)) = 
