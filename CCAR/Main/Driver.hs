@@ -421,8 +421,8 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
 
 processCommand (Just a) = return (GroupCommunication.Reply, a)
 
-processCommandValue :: App -> WSConn.Connection -> T.Text -> Value -> IO (DestinationType, T.Text)
-processCommandValue app aConn nickName (Object a)   = do  
+processCommandValue :: App -> T.Text -> Value -> IO (DestinationType, T.Text)
+processCommandValue app nickName (Object a)   = do  
     case cType of 
         Nothing -> return $ (GroupCommunication.Reply, ser $ 
                         CommandError $ genericErrorCommand "Unable to process command")
@@ -453,7 +453,7 @@ processCommandValue app aConn nickName (Object a)   = do
                                 mapM_ (\bconn -> WSConn.sendClose (connection bconn)
                                         ("Bye"
                                             :: T.Text) `catch` (
-                                            \c@(ConnectionClosed) -> atomically $ deleteConnection app (connection bconn) a1                    
+                                            \c@(ConnectionClosed) -> atomically $ deleteConnection app a1                    
                                             )) bConns  -- To handle multiple connections to a client.
                                 return (GroupCommunication.Broadcast, ser u)
                             Error s ->  return (GroupCommunication.Reply 
@@ -544,10 +544,10 @@ processIncomingMessage app conn aNickName aCommand = do
                     
         Just (Object a) -> do 
                 putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                (processCommandValue app conn aNickName (Object a)) `catch`
+                (processCommandValue app aNickName (Object a)) `catch`
                     (\e -> do
                             putStrLn $  ("Exception "  ++ show (e :: PersistException)) 
-                            atomically $ deleteConnection app conn aNickName
+                            atomically $ deleteConnection app aNickName
                             return (GroupCommunication.Broadcast, 
                                     serialize $ UserJoined.userLeft aNickName)
                             )
@@ -555,8 +555,8 @@ processIncomingMessage app conn aNickName aCommand = do
                     
 
 
-deleteConnection :: App -> WSConn.Connection -> T.Text -> STM  () 
-deleteConnection app conn nn = do 
+deleteConnection :: App -> T.Text -> STM  () 
+deleteConnection app nn = do 
             cMap <- readTVar $ nickNameMap app                
             _ <-    writeTVar (nickNameMap app) (IMap.delete nn cMap)
             return ()
@@ -605,7 +605,7 @@ authenticate aConn aText app@(App a c) =
                         L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
                                 $ genericErrorCommand ("Invalid command during login"))
             Just (Object a) -> do
-                (d, c) <- processCommandValue app aConn aText (Object a) 
+                (d, c) <- processCommandValue app aText (Object a) 
                 c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
                 case c1 of 
                     Just (Object a ) -> do  
@@ -714,7 +714,7 @@ ccarApp = do
                             (processClientLost app connection nickNameV command)
                              `catch` 
                                     (\ a@(CloseRequest e1 e2) -> do  
-                                        atomically $ deleteConnection app connection nickNameV
+                                        atomically $ deleteConnection app nickNameV
                                         return "Close request" )
                             a <- liftBaseWith (\run -> run $ liftIO $ do
                                             a <- (A.async (writerThread app connection 
@@ -744,7 +744,7 @@ processClientLost app connection nickNameV iText = do
                     WSConn.sendTextData connection nickNameFound
                     (processClientLeft connection app nickNameV) `catch`
                                     (\ a@(CloseRequest e1 e2) -> do  
-                                        atomically $ deleteConnection app connection nickNameV
+                                        atomically $ deleteConnection app nickNameV
                                         return "Close request" )
                     return ("Threads exited" :: T.Text)
 
@@ -793,7 +793,7 @@ handleDisconnects app connection nickN (CloseRequest a b) = do
             putStrLn $ T.unpack $  
                 ("Bye nickName " :: T.Text) `mappend` nickN
             atomically $ do 
-                deleteConnection app connection nickN
+                deleteConnection app nickN
                 restOfUs <- getAllClients app nickN
                 case restOfUs of 
                     x  : _ -> do  
