@@ -34,7 +34,7 @@ import Data.Typeable
 import CCAR.Main.DBUtils
 import CCAR.Main.EnumeratedTypes as Et
 import CCAR.Command.ErrorCommand
-
+import CCAR.Main.Util as Util
 
 {- 
 	The client needs to handle
@@ -101,7 +101,7 @@ getMessageHistory limit = do
     messages <- mapM (\(Entity y x) -> do 
                             m <- return $ createBroadcastMessage x
                             case m of
-                                Just m1 -> return $ serialize m1
+                                Just m1 -> return $ Util.serialize m1
                                 Nothing -> return "") allM
     return messages
 
@@ -147,6 +147,3 @@ instance ToJSON SendMessage where
 instance FromJSON SendMessage where 
     parseJSON (Object v ) = parseSendMessage v 
     parseJSON _           = Appl.empty
-
-serialize :: (ToJSON a) => a -> T.Text 
-serialize a = L.toStrict $ E.decodeUtf8 $ En.encode a 
