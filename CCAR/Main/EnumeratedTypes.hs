@@ -23,8 +23,9 @@ data SupportedScript = RScript | Stata | Collada | SVG | ThreeJS | ThreeJS_JSON 
 data SurveyResponse = A | B | C | D | E | F
 			deriving(Show, Read, Eq)
 
-data MarketCategory = Consumer | Electronics | Envvironmental | Wholesale 
+{-data MarketCategory = Consumer | Electronics | Envvironmental | Wholesale 
 			deriving (Show, Read, Eq, Data, Generic, Typeable )
+-}
 data PortfolioSymbolType = Equity | Options | Futures | Currencies | Bonds 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 data MessageDestinationType = Reply | Broadcast 
@@ -40,7 +41,7 @@ data SurveyPublicationState  = SURVEY_DRAFT | SURVEY_REVIEWED | SURVEY_APPROVED
 data RoleType = Guest | ReturningUser | Admin | Support 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
-data ContactType = Twitter | LinkedIn | Facebook | Phone | Email | Cell | Work | Home 
+data ContactType = Twitter | LinkedIn | Facebook | Phone | Email | Cell | Work | Home | Pinterest
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
 data DocumentFileFormat = Pdf | MicrosoftWord | OpenOffice 
@@ -59,9 +60,9 @@ data PermissionType = Read | Write
 data TimeUnit = Millis | Seconds | Minutes
 			deriving (Show, Read, Eq, Data, Generic, Typeable) 
 
+
 derivePersistField "SupportedScript"
 derivePersistField "SurveyResponse"
-derivePersistField "MarketCategory"
 derivePersistField "PortfolioSymbolType"
 derivePersistField "MessageDestinationType"
 derivePersistField "MessageCharacteristics"

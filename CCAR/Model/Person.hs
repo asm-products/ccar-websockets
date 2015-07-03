@@ -93,9 +93,8 @@ fixPreferences (Just (Entity k p1)) = dbOps $ do
 
 
 
--- How to handle this
+-- How to handle this -- really need to handle this.
 fixPreferences Nothing = undefined
-
 
 getMessageCount :: T.Text -> IO Int 
 getMessageCount aNickName = dbOps $ do 

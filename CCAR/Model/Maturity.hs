@@ -55,12 +55,15 @@ absoluteM InvalidMaturity = InvalidMaturity
 
 -- These are positive numbers
 negateM :: Mat -> Mat
-negateM a = undefined
+negateM a = a 
 
--- What does sign mean for a maturity:
--- maturity is unsigned?
-signum :: Mat -> Mat
-signum a = undefined
+{-- Signing a maturity is a no op. --}
+signumM :: Mat -> Mat
+signumM a = a 
+
+{-- Default maturity is in months --}
+fromIntegerM :: Integer -> Mat 
+fromIntegerM a = MatM $ fromIntegral a 
 
 instance Num Mat where
     (+) = plus    
@@ -68,6 +71,8 @@ instance Num Mat where
     (*) = mult
     abs = absoluteM
     negate = negateM
+    signum = signumM
+    fromInteger = fromIntegerM
 
 instance Bounded Mat where
     maxBound = MatY 30

@@ -492,7 +492,6 @@ processCommandValue app nickName (Object a)   = do
                 String "ManageCompany" -> Company.manageCompany nickName (Object a)
                 String "SelectAllCompanies" -> Company.queryAllCompanies nickName (Object a)
                 String "ManageProject" -> Project.manageProject nickName (Object a)
-                String "ManageSurvey" -> Survey.processManageSurvey (Object a) 
                 String "SelectActiveProjects" -> Project.queryActiveProjects nickName (Object a)
                 String "QuerySupportedScripts" -> ProjectWorkbench.querySupportedScripts nickName (Object a)
                 String "QueryActiveWorkbenches" -> ProjectWorkbench.queryActiveWorkbenches (Object a)
@@ -504,6 +503,7 @@ processCommandValue app nickName (Object a)   = do
                             return(GroupCommunication.Reply, 
                                 ser $ ("Execute workbench received" :: T.Text))
                 --ProjectWorkbench.executeWorkbench(Object a)
+                String "ManageSurvey" -> Survey.manageSurvey nickName (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

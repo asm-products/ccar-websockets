@@ -141,13 +141,13 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             roleFor PersonId 
             roleType RoleType 
             deriving Show Eq
-        Country 
+        Country json
             name Text 
             iso_3 Text
             iso_2 Text
             deriving Show Eq
             UniqueISO3 iso_3
-        Language 
+        Language json 
             lcCode Text
             name Text 
             font Text 
@@ -159,11 +159,16 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         -- typical entries: 
         -- NY 12345
         -- NJ 22334 something like so.
-        IdentificationZone 
-            zoneName Text
-            zoneType Text
+        IdentificationZone  json
+            zoneName Text  
+            zoneType Text 
             country CountryId 
             deriving Eq Show
+        Zone json 
+            identification IdentificationZoneId 
+            zone Text 
+            UniqueZone identification zone
+            deriving Eq Show 
         -- Location information needs a geo spatial extension, to be accurate.
         -- How do we define uniqueness of double attributes?
         GeoLocation json
@@ -252,44 +257,97 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             totalVotes Double
             totalCost Double
             maxVotesPerVoter Double
+            updatedBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
             surveyPublicationState SurveyPublicationState
             expiration UTCTime -- No responses can be accepted after the expiration Date. 
             UniqueSurvey createdBy surveyTitle 
             deriving Show Eq 
 
-        SurveyQuestion
+        SurveyQuestion json
             surveyId SurveyId 
+            surveyQuestionUUID Text
             question Text 
             questionResearch Text -- All the relevant survey, disclaimers etc.
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updatedBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
+            UniqueSurveyQuestion surveyQuestionUUID
             deriving Show Eq 
-        Response
+        Response json
             responseFor SurveyQuestionId  
+            responseUUID Text
             response Text 
             responseComments Text
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updateBy PersonId 
+            updatedBy UTCTime default=CURRENT_TIMESTAMP
+            UniqueResponse responseUUID
             deriving Show Eq 
-        Marketplace 
+        SurveyResponses json             
+            response ResponseId
+            respondedBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            UniqueSurveyResponse response respondedBy 
+            deriving Show Eq 
+        Marketplace json 
             description Text 
-            creator PersonId 
             coverCharge Double -- As a means to establish trust 
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updateBy PersonId 
+            updateOn UTCTime default=CURRENT_TIMESTAMP
             category MarketCategory 
             deriving Show Eq 
-        Product 
+        MarketCategory json
+            name
+            deriving Show Eq
+        Product json 
             description Text 
-            creator PersonId 
-            cost Double 
+            uniqueProductId Text -- UUID
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updateBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
+            baselinePrice Double -- This is used to compute price per region 
             unitOfMeasure Text 
-            defaultImageUrl Text 
+            defaultImage Text  -- base64 encoded string
+            UniqueProduct uniqueProductId 
             deriving Show Eq 
-        ProductImage
+
+        ProductImage json
             productId ProductId 
-            imageUrl Text 
+            image Text -- base64 encoded string. 
             deriving Show Eq 
-        ProductDiscount 
+        ProductDiscount json 
             productId ProductId 
             discountAmount Double -- number between 0 - 100 
             startDate UTCTime 
             endDate UTCTime 
             deriving Show Eq 
+        ProductDistributor json 
+            productId ProductId  
+            distributorId DistributorId 
+            deriving Show Eq 
+
+        Distributor json 
+            name Text 
+            address Text 
+            zoneId Zone  
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updatedBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
+            deriving Show Eq
+
+        DistributorContact json 
+            distributor DistributorId 
+            contactType ContactType 
+            contactDetails Text -- Emailid, url etc.
+
+
         PassphraseManager json 
             passphrase Text 
             passphraseKey Text 
