@@ -28,6 +28,11 @@ data SurveyResponse = A | B | C | D | E | F
 -}
 data PortfolioSymbolType = Equity | Options | Futures | Currencies | Bonds 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+data PortfolioSymbolSide = Buy | Sell | SellShort 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+
 data MessageDestinationType = Reply | Broadcast 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 
@@ -75,3 +80,4 @@ derivePersistField "ProjectReportType"
 derivePersistField "PublishState"
 derivePersistField "PermissionType"
 derivePersistField "TimeUnit"
+derivePersistField "PortfolioSymbolSide"

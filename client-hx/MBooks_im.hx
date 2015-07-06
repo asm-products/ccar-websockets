@@ -29,6 +29,7 @@ import model.CommandType;
 import model.UserOperation;
 import model.Project;
 import model.CCAR;
+import model.Portfolio;
 import util.Util;
 import util.Config;
 import js.Browser;
@@ -43,6 +44,7 @@ import js.d3.scale.Scale;
 import js.d3.selection.Selection;
 import js.d3.selection.Selection;
 import js.d3.layout.Layout;
+import view.Portfolio;
 
 
 import massive.munit.TestRunner;

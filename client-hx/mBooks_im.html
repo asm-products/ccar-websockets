@@ -84,6 +84,7 @@
 	<li><a href="#workbench-project">Manage projects</a></li>
 	<li><a href="#workbench-ccar">Manage CCAR</a></li>
     <li><a href="#workbench-security"> Security notes </a> </li>
+    <li><a href="#workbench-portfolio"> Portfolio analysis </a> </li>
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content col_12">
@@ -164,6 +165,34 @@
 				</div>
 			</form>
 		</div>
+	</div>
+	<div id="workbench-portfolio" class="tab-content col_12">
+		<p align="center">
+			Add symbols to a portfolio. Each portfolio lists
+			a set of symbols, direction and size. 
+			Allow users to perform symbol analysis from list of available
+			analysis snippets available to the user.
+		</p>
+		<form class="vertical" id="portfolio">
+			<div class="col_6">
+				<label for="symbolID"> Symbol </label>
+				<input id="symbolID" type="text" placeholder="sbr"/>
+				<label for="sideID"> Side </label>
+				<input id="sideID" type="text" placeholder="buy"/>
+				<label for="quantityID"> Quantity </label>
+				<input id="quantityID" type="text" placeholder="100"/>
+				<label for="saveSymbol"> Save </label>
+				<button id="saveSymbol"> Save </button>
+				<label for="deleteSymbol"> Delete </label>
+				<button id="deleteSymbol"> Delete </button>
+				<label id="updateSymbol"> Update </label>
+				<button id="updateSymbol">Update </button>
+			</div>
+		</form>
+			<div class="col_12">
+					<p> Portfolio results </p>
+					<p> Symbol analysis </p>
+			</div>
 	</div>
 
 	<div id="workbench-project" class="tab-content col_12">
@@ -265,7 +294,6 @@
 				</p>
 			</div>
 	</div>
-
 
 <div class="haxe:trace"></div>
 <script src="js/d3/d3.min.js" charset="utf-8"></script>

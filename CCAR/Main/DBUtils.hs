@@ -39,6 +39,8 @@ instance ToJSON DocumentFileFormat
 instance FromJSON DocumentFileFormat
 instance ToJSON SupportedScript
 instance FromJSON SupportedScript
+instance ToJSON PortfolioSymbolSide
+instance FromJSON PortfolioSymbolSide
 
 type NickName = Text
 type Base64Text = Text -- Base64 encoded text representing the image.
@@ -355,6 +357,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         Portfolio json
             symbol Text
             quantity Double
+            side PortfolioSymbolSide
             symbolType PortfolioSymbolType 
             deriving Show Eq
         MarketDataSubscription json
