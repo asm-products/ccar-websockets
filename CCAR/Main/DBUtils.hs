@@ -22,7 +22,12 @@ import Control.Monad.Logger
 
 instance ToJSON SurveyPublicationState
 instance FromJSON SurveyPublicationState
-
+instance ToJSON MessageDestinationType
+instance FromJSON MessageDestinationType
+instance ToJSON Gender 
+instance FromJSON Gender
+instance ToJSON MessageCharacteristics
+instance FromJSON MessageCharacteristics
 instance ToJSON RoleType
 instance FromJSON RoleType 
 instance ToJSON ContactType
@@ -183,14 +188,14 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             preferencesFor PersonId 
             maxHistoryCount Int default = 400 -- Maximum number of messages in history
             deriving Eq Show 
-        Profile -- A survey can be assigned to a set of profiles.
+        Profile json -- A survey can be assigned to a set of profiles.
             createdFor SurveyId 
             gender Gender  
             age Int 
             identificationZone IdentificationZoneId
             deriving Show Eq 
             UniqueSP createdFor gender age -- A given gender and age should be sufficient to start with.
-        TermsAndConditions
+        TermsAndConditions json 
             title Text
             description Text
             acceptDate UTCTime
@@ -202,9 +207,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deleted Bool default=False
             CCARUniqueName scenarioName 
             deriving Show Eq
-        MessageP -- Persistent version of messages. This table is only for general messages and private messages.
-                 -- MessageDestinationType is mainly, private message or broadcast.
-                 -- Group messages will be handled as part of group messages.
+        MessageP json 
+                -- Persistent version of messages. This table is only for general messages and private messages.
+                -- MessageDestinationType is mainly, private message or broadcast.
+                -- Group messages will be handled as part of group messages.
             from NickName 
             to NickName 
             message Text
@@ -213,23 +219,23 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             sentTime UTCTime default=CURRENT_TIMESTAMP
             UniqueMessage from to sentTime 
             deriving Show Eq
-        Workbench
+        Workbench json
             name Text
             scriptType SupportedScript
             script Text 
             lastModified UTCTime default=CURRENT_TIMESTAMP
             ownerId PersonId 
             deriving Show Eq
-        WorkbenchGroup
+        WorkbenchGroup json
             workbenchId WorkbenchId 
             personId PersonId -- List of users who share a workbench with reod only comments
             deriving Show Eq 
-        WorkbenchComments 
+        WorkbenchComments json 
             workbenchId 
             comment Text 
             commenter PersonId 
             deriving Show Eq
-        Wallet 
+        Wallet json 
             walletHolder PersonId 
             name Text 
             passphrase Text 
@@ -237,7 +243,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastModified UTCTime default=CURRENT_TIMESTAMP
             UniqueWallet walletHolder name 
             deriving Show Eq 
-        Gift 
+        Gift json
             from NickName 
             to NickName
             message Text 
@@ -246,7 +252,8 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             rejectDate UTCTime -- if the receiver doesnt want the gift. 
             amount Double  -- not the best type. But all amounts are in SWBench.
             deriving Show Eq 
-        Reputation 
+        Reputation json
+            person PersonId 
             amount Double
             ownerId PersonId 
             deriving Show Eq
@@ -348,13 +355,25 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             distributor DistributorId 
             contactType ContactType 
             contactDetails Text -- Emailid, url etc.
-
+            deriving Show Eq
 
         PassphraseManager json 
             passphrase Text 
             passphraseKey Text 
             deriving Show Eq
+
         Portfolio json
+            companyUserId CompanyUserId 
+            uuid Text 
+            summary Text -- A description about the portfolio
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updatedBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
+            UniquePortfolio uuid             
+            deriving Show Eq
+        PortfolioSymbol json
+            portfolio PortfolioId
             symbol Text
             quantity Double
             side PortfolioSymbolSide

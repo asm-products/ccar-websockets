@@ -104,11 +104,11 @@ class Project {
 	public function getSelectActiveProjectsStream() : Deferred<Dynamic> {
 		return projectStream;
 	}
+
 	private function getSaveProject() : ButtonElement {
 		var buttonElement : ButtonElement 
 			= cast Browser.document.getElementById(SAVE_PROJECT);
 		return buttonElement;
-
 	}
 
 	private function saveProject(ev : Event) {

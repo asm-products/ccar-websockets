@@ -161,8 +161,6 @@ instance ToJSON UserOperations where
 instance ToJSON UserTermsOperations where
     toJSON = genUserTermsOperations
 
-instance ToJSON TermsAndConditions where
-    toJSON = genTermsAndConditions
 
 instance ToJSON CCARUpload where
     toJSON = genCCARUpload 
@@ -247,9 +245,6 @@ instance FromJSON Login where
     parseJSON _          = Appl.empty
 
 
-instance FromJSON TermsAndConditions where
-    parseJSON (Object v) = parseTermsAndConditions v
-    parseJSON _          = Appl.empty
 
 instance FromJSON CCAR where 
     parseJSON (Object v) = parseCCAR v

@@ -33,6 +33,11 @@ typedef PortfolioPayload = {
 	var struct : Array<PortfolioStruct>;
 }
 
+typedef ActivePortfolio = {
+	var crudType : String;
+	var struct : PortfolioStruct;
+}
+
 class Portfolio {
 	public var symbol (null, default) : String;
 	public var side (null, default) : String;

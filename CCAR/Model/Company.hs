@@ -7,6 +7,8 @@ module CCAR.Model.Company
 	, process
 	, queryAllCompanies
 	, ManageCompany
+	, CompanyT
+	, 
 	) where 
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
@@ -155,6 +157,14 @@ insertCompanyPerson aNickName aCompanyId chatMinder = do
 	return ()
 
 
+queryCompanyUser n c = do
+	x <- dbOps $ do
+		personId <- getBy $ PersonUniqueNickName n 
+		cId <- getBy $ CompanyUniqueID c 
+		x <- case (personId, cId) of 
+			(Just (Entity p1 pV), Just (Entity c1 cV)) -> getBy $ UniqueCompanyUser c1 p1
+		return x
+	return x
 assignSupportForCompany :: NickName -> CompanyID -> Bool -> IO ()
 assignSupportForCompany aNickName aCompanyId support = do 
 	x <- dbOps $ do 
