@@ -174,7 +174,19 @@
 			analysis snippets available to the user.
 		</p>
 		<form class="vertical" id="portfolio">
-			<div class="col_6">
+			<div class="col_4">
+				<label for="portfolioList"> Company </label>
+				<select id="portfolioList">
+					<option value="0">-- Choose </option>
+				</select>
+
+				<label for="portfolioSummary"> Summary</label>
+				<textarea id="portfolioSummary"> </textarea>
+
+			</div>
+		</form>
+		<form class="vertical" id="symbol">
+			<div class="col_8">
 				<label for="symbolID"> Symbol </label>
 				<input id="symbolID" type="text" placeholder="sbr"/>
 				<label for="sideID"> Side </label>

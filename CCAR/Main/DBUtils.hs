@@ -355,6 +355,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             distributor DistributorId 
             contactType ContactType 
             contactDetails Text -- Emailid, url etc.
+            createdBy PersonId 
+            createdOn UTCTime default = CURRENT_TIMESTAMP
+            updatedBy PersonId 
+            updatedOn UTCTime default = CURRENT_TIMESTAMP
             deriving Show Eq
 
         PassphraseManager json 

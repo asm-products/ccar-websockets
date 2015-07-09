@@ -93,6 +93,7 @@ dto c pid p@(ProjectWorkbench  _ w s ssummary sdata cores sdPath jobStartDate jo
 
 
 
+
 process :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 process r@(ProjectWorkbenchT cType wId uniqueProjedtId 
 				scriptType scriptSummary scriptData
@@ -107,11 +108,6 @@ process r@(ProjectWorkbenchT cType wId uniqueProjedtId
 					WrkBench_Update -> updateWorkbench r 
 					Delete			-> deleteWorkbench r
 
-
-
-
-
-			
 
 deleteWorkbench :: ProjectWorkbenchT -> IO (Either T.Text ProjectWorkbench)
 deleteWorkbench w@(ProjectWorkbenchT cType wId uniqueProjedtId 
@@ -160,6 +156,7 @@ readWorkbench wT@(ProjectWorkbenchT cType wId uniqueProjedtId
 	case workbench of 
 		Just (Entity kWork w) -> return $ Right  w 
 		Nothing -> return $ Left $ "Reading workbench " `mappend` wId 
+
 
 
 

@@ -1,0 +1,191 @@
+"Sending login status {
+	commandType : Login, 
+	login : {
+		firstName : , 
+		lastName : , 
+		nickName : test, 
+		password : , 
+		lastLoginTime : Tue Jun 16 2015 19:40:20 GMT-0400 (EDT), 
+		deleted : false
+	}, 
+	nickName : test, 
+	loginStatus : Undefined
+}" mbooks_im.js:343
+"Sent {
+	commandType : Login, 
+	login : {
+		firstName : , 
+		lastName : , 
+		nickName : test, 
+		password : , 
+		lastLoginTime : Tue Jun 16 2015 19:40:20 GMT-0400 (EDT), 
+		deleted : false
+	}, 
+	nickName : test, 
+	loginStatus : Undefined
+}" mbooks_im.js:435
+"Received stream {"commandType":"Login","loginStatus":"UserExists","login":{"lastLoginTime":"2015-06-16T23:40:26.647Z","lastName":"test","locale":null,"password":"test","firstName":"test","nickName":"test"}}" mbooks_im.js:517
+"Printing incoming message {"commandType":"Login","loginStatus":"UserExists","login":{"lastLoginTime":"2015-06-16T23:40:26.647Z","lastName":"test","locale":null,"password":"test","firstName":"test","nickName":"test"}}" mbooks_im.js:519
+"Command type Login" mbooks_im.js:641
+"Processing login object {
+	commandType : Login, 
+	login : {
+		lastLoginTime : 2015-06-16T23:40:26.647Z, 
+		lastName : test, 
+		locale : null, 
+		password : test, 
+		firstName : test, 
+		nickName : test
+	}, 
+	nickName : test, 
+	loginStatus : UserExists
+}" mbooks_im.js:491
+"Processing lR status UserExists" mbooks_im.js:492
+"Processing lStatus UserExists" mbooks_im.js:503
+"Password: test:" mbooks_im.js:297
+"Password works!" mbooks_im.js:310
+"Sent {
+	userName : test, 
+	commandType : UserLoggedIn
+}" mbooks_im.js:435
+"Received stream {"userName":"test","commandType":"UserLoggedIn"}" mbooks_im.js:517
+"Printing incoming message {"userName":"test","commandType":"UserLoggedIn"}" mbooks_im.js:519
+"Command type UserLoggedIn" mbooks_im.js:641
+"Processing select all companies [object Object]" mbooks_im.js:110
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"","sentTime":"2015-03-31T03:05:10.166Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"","sentTime":"2015-03-31T03:05:10.166Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test@test.org","from":"test@test.org","commandType":"SendMessage","privateMessage":"This is the first message","sentTime":"2015-03-29T17:03:29.740Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test@test.org","from":"test@test.org","commandType":"SendMessage","privateMessage":"This is the first message","sentTime":"2015-03-29T17:03:29.740Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Sent {
+	nickName : test, 
+	commandType : SelectAllCompanies
+}" mbooks_im.js:435
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test@test.org","from":"test@test.org","commandType":"SendMessage","privateMessage":"This is the second message","sentTime":"2015-03-29T23:18:39.762Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test@test.org","from":"test@test.org","commandType":"SendMessage","privateMessage":"This is the second message","sentTime":"2015-03-29T23:18:39.762Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"more testing","sentTime":"2015-03-31T04:28:28.589Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"more testing","sentTime":"2015-03-31T04:28:28.589Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"","from":"","commandType":"SendMessage","privateMessage":"Hello","sentTime":"2015-04-01T03:53:49.520Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"","from":"","commandType":"SendMessage","privateMessage":"Hello","sentTime":"2015-04-01T03:53:49.520Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"some more tets","sentTime":"2015-04-01T04:08:37.627Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"some more tets","sentTime":"2015-04-01T04:08:37.627Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"anothe rtest","sentTime":"2015-04-01T04:08:40.899Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"anothe rtest","sentTime":"2015-04-01T04:08:40.899Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-04-14T23:24:35.869Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-04-14T23:24:35.869Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"spellcheck would be nice.","sentTime":"2015-04-01T04:08:45.377Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"spellcheck would be nice.","sentTime":"2015-04-01T04:08:45.377Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"dinkar","from":"dinkar","commandType":"SendMessage","privateMessage":"hi from me","sentTime":"2015-04-01T13:14:57.926Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"dinkar","from":"dinkar","commandType":"SendMessage","privateMessage":"hi from me","sentTime":"2015-04-01T13:14:57.926Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"i am in again","sentTime":"2015-04-01T13:15:22.885Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"i am in again","sentTime":"2015-04-01T13:15:22.885Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-04-14T23:24:43.462Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-04-14T23:24:43.462Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"dinkar","from":"dinkar","commandType":"SendMessage","privateMessage":"duplicates","sentTime":"2015-04-01T13:15:43.149Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"dinkar","from":"dinkar","commandType":"SendMessage","privateMessage":"duplicates","sentTime":"2015-04-01T13:15:43.149Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"jeff","from":"jeff","commandType":"SendMessage","privateMessage":"Hell","sentTime":"2015-04-02T11:24:25.463Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"jeff","from":"jeff","commandType":"SendMessage","privateMessage":"Hell","sentTime":"2015-04-02T11:24:25.463Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"abc","from":"abc","commandType":"SendMessage","privateMessage":"Hi","sentTime":"2015-04-01T13:08:56.560Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"abc","from":"abc","commandType":"SendMessage","privateMessage":"Hi","sentTime":"2015-04-01T13:08:56.560Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-04-22T22:44:16.722Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-04-22T22:44:16.722Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hello again","sentTime":"2015-04-23T23:31:18.373Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hello again","sentTime":"2015-04-23T23:31:18.373Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"test","sentTime":"2015-05-03T19:09:57.861Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"test","sentTime":"2015-05-03T19:09:57.861Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hello ","sentTime":"2015-05-03T19:11:13.441Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hello ","sentTime":"2015-05-03T19:11:13.441Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hello","sentTime":"2015-05-15T23:26:45.107Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hello","sentTime":"2015-05-15T23:26:45.107Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-05-29T23:11:29.865Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-05-29T23:11:29.865Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-06-02T22:42:31.531Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi","sentTime":"2015-06-02T22:42:31.531Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"Hi there","sentTime":"2015-06-06T17:15:30.286Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"Hi there","sentTime":"2015-06-06T17:15:30.286Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"dinkar","from":"dinkar","commandType":"SendMessage","privateMessage":"Hello room","sentTime":"2015-06-12T00:23:23.547Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"dinkar","from":"dinkar","commandType":"SendMessage","privateMessage":"Hello room","sentTime":"2015-06-12T00:23:23.547Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"Hi there","sentTime":"2015-06-12T00:23:41.614Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"Hi there","sentTime":"2015-06-12T00:23:41.614Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"ets","from":"ets","commandType":"SendMessage","privateMessage":"aouuou","sentTime":"2015-04-04T00:03:57.037Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"ets","from":"ets","commandType":"SendMessage","privateMessage":"aouuou","sentTime":"2015-04-04T00:03:57.037Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"abcd","from":"abcd","commandType":"SendMessage","privateMessage":"hello","sentTime":"2015-04-07T23:28:04.516Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"abcd","from":"abcd","commandType":"SendMessage","privateMessage":"hello","sentTime":"2015-04-07T23:28:04.516Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi again","sentTime":"2015-04-22T11:45:19.988Z"}" mbooks_im.js:517
+"Printing incoming message {"destination":{"tag":"Broadcast","contents":[]},"to":"test","from":"test","commandType":"SendMessage","privateMessage":"hi again","sentTime":"2015-04-22T11:45:19.988Z"}" mbooks_im.js:519
+"Command type SendMessage" mbooks_im.js:641
+"Received stream {"commandType":"SelectAllCompanies","company":[{"companyID":"abcdefg","companyImage":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAQ4CAIAAABnsVYUAAAAA3NCSVQICAjb4U/gAAAAGXRFWHRTb2Z0d2FyZQBnbm9tZS1zY3JlZW5zaG907wO/PgAAIABJREFUeJzs3XV8FEf7APBnZu38Li4Qgltwp1ChlELdW6T2UreXtkBxCkVa6kKFCkXaUqxGqQEV+uLF3QIkxJNzXZn5/XFJiFzCBQmU33w/fPjcTXZnZuee20uenZtFwx+8CxiGYRiGYRiGYRiGYRjm38nj9ecXlEiiYLEYbVZzLVs6XR632xeSleSkOLPJUG89ZJj/z/hgUL7QfWAYhmEYhmEYhmEYhmGYM5F9Mp8W5TVVnQHgizjDCXN8akq82WSsspnH68vNKzZ7ihM0vx7UzEJbfkJKWsPkC9Lnitxu78mcAllR67SXKPINGyRZzKbz1CuGOYd4SumF7gPDMAzDMAzDMAzDMAzD1JnPH0zLO9ivVfOu148gmrpj1fKdB/bazRwxVp3dbPE6GrsOd2yd0WnAHZjjt/606I+DB70xVqNBd0F6Xi4xKXX8uLGJCQl12qugsPCzz+cH/J7z1CuGOYe4dhktL3QfGIZhGIZhGIZhGIZhmEsfpdTl9okiX6cf1cKfdez69OQbhz5rs7sNOuOxrANFPq/PHJfnDhQW23Nzi4qKHF6fPxSSzQI2q4GU+MROzTvH+OUWlw1Q8g7tzS+SYmLP0cGdoaeffDwhPr6ue5mMxtatWm7ctCn6XfbuP6ppxGTU17Wt/7ecLq+qqKIoXOiOXFx27j6UX1CSlBgX/S48IRdwBjTnC4UUORRn4DVOunDdYC4ihPIen1eV5SSLqPK6Kk8vdO8YhmEYhmEYhmEYhjlD"[…] mbooks_im.js:517
+"Printing incoming message {"commandType":"SelectAllCompanies","company":[{"companyID":"abcdefg","companyImage":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAQ4CAIAAABnsVYUAAAAA3NCSVQICAjb4U/gAAAAGXRFWHRTb2Z0d2FyZQBnbm9tZS1zY3JlZW5zaG907wO/PgAAIABJREFUeJzs3XV8FEf7APBnZu38Li4Qgltwp1ChlELdW6T2UreXtkBxCkVa6kKFCkXaUqxGqQEV+uLF3QIkxJNzXZn5/XFJiFzCBQmU33w/fPjcTXZnZuee20uenZtFwx+8CxiGYRiGYRiGYRiGYRjm38nj9ecXlEiiYLEYbVZzLVs6XR632xeSleSkOLPJUG89ZJj/z/hgUL7QfWAYhmEYhmEYhmEYhmGYM5F9Mp8W5TVVnQHgizjDCXN8akq82WSsspnH68vNKzZ7ihM0vx7UzEJbfkJKWsPkC9Lnitxu78mcAllR67SXKPINGyRZzKbz1CuGOYd4SumF7gPDMAzDMAzDMAzDMAzD1JnPH0zLO9ivVfOu148gmrpj1fKdB/bazRwxVp3dbPE6GrsOd2yd0WnAHZjjt/606I+DB70xVqNBd0F6Xi4xKXX8uLGJCQl12qugsPCzz+cH/J7z1CuGOYe4dhktL3QfGIZhGIZhGIZhGIZhmEsfpdTl9okiX6cf1cKfdez69OQbhz5rs7sNOuOxrANFPq/PHJfnDhQW23Nzi4qKHF6fPxSSzQI2q4GU+MROzTvH+OUWlw1Q8g7tzS+SYmLP0cGdoaeffDwhPr6ue5mMxtatWm7ctCn6XfbuP6ppxGTU17Wt/7ecLq+qqKIoXOiOXFx27j6UX1CSlBgX/S48IRdwBjTnC4UUORRn4DVOunDdYC4ihPIen1eV5SSLqPK6Kk8vdO8YhmEYhm"[…] mbooks_im.js:519
+"Command type SelectAllCompanies" mbooks_im.js:641
+"Updating company list event stream" mbooks_im.js:538
+"Processing company list {
+	commandType : SelectAllCompanies, 
+	company : [{
+			companyID : abcdefg, 
+			companyImage : data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAQ4CAIAAABnsVYUAAAAA3NCSVQICAjb4U/gAAAAGXRFWHRTb2Z0d2FyZQBnbm9tZS1zY3JlZW5zaG907wO/PgAAIABJREFUeJzs3XV8FEf7APBnZu38Li4Qgltwp1ChlELdW6T2UreXtkBxCkVa6kKFCkXaUqxGqQEV+uLF3QIkxJNzXZn5/XFJiFzCBQmU33w/fPjcTXZnZuee20uenZtFwx+8CxiGYRiGYRiGYRiGYRjm38nj9ecXlEiiYLEYbVZzLVs6XR632xeSleSkOLPJUG89ZJj/z/hgUL7QfWAYhmEYhmEYhmEYhmGYM5F9Mp8W5TVVnQHgizjDCXN8akq82WSsspnH68vNKzZ7ihM0vx7UzEJbfkJKWsPkC9Lnitxu78mcAllR67SXKPINGyRZzKbz1CuGOYd4SumF7gPDMAzDMAzDMAzDMAzD1JnPH0zLO9ivVfOu148gmrpj1fKdB/bazRwxVp3dbPE6GrsOd2yd0WnAHZjjt/606I+DB70xVqNBd0F6Xi4xKXX8uLGJCQl12qugsPCzz+cH/J7z1CuGOYe4dhktL3QfGIZhGIZhGIZhGIZhmEsfpdTl9okiX6cf1cKfdez69OQbhz5rs7sNOuOxrANFPq/PHJfnDhQW23Nzi4qKHF6fPxSSzQI2q4GU+MROzTvH+OUWlw1Q8g7tzS+SYmLP0cGdoaeffDwhPr6ue5mMxtatWm7ctCn6XfbuP6ppxGTU17Wt/7ecLq+qqKIoXOiOXFx27j6UX1CSlBgX/S48IRdwBjTnC4UUORRn4DVOunDdYC4ihPIen1eV5SSLqPK6Kk8vdO8"[…] mbooks_im.js:2571
+"Company abcdefg -> abcd" mbooks_im.js:2581
+"Company abc -> abc" mbooks_im.js:2581
+"Company abcd -> abcd" mbooks_im.js:2581
+"Company hijkl -> test" mbooks_im.js:2581
+"Company mahati -> Mahati" mbooks_im.js:2581
+"Company mythili -> mythili" mbooks_im.js:2581
+"Company qc1234 -> qc1234" mbooks_im.js:2581
+"Company newbrun -> newbrun" mbooks_im.js:2581
+"Company ijkhi -> This is a test" mbooks_im.js:2581
+"Company abcdef -> abcdef" mbooks_im.js:2581
+"Company abcde -> abcdef" mbooks_im.js:2581
+"Completed processing companies" mbooks_im.js:2592
+"Sending keep alive {
+	nickName : test, 
+	commandType : KeepAlive, 
+	keepAlive : Ping
+}" mbooks_im.js:440
+"Sent {
+	nickName : test, 
+	commandType : KeepAlive, 
+	keepAlive : Ping
+}" mbooks_im.js:435
+"Received stream {"KeepAlive":"Ping","commandType":"KeepAlive"}" mbooks_im.js:517
+"Printing incoming message {"KeepAlive":"Ping","commandType":"KeepAlive"}" mbooks_im.js:519
+"Command type KeepAlive" mbooks_im.js:641
+"Processing keep alive" mbooks_im.js:628
+"Sending keep alive {
+	nickName : test, 
+	commandType : KeepAlive, 
+	keepAlive : Ping
+}" mbooks_im.js:440
+"Sent {
+	nickName : test, 
+	commandType : KeepAlive, 
+	keepAlive : Ping
+}" mbooks_im.js:435
+"Received stream {"KeepAlive":"Ping","commandType":"KeepAlive"}" mbooks_im.js:517
+"Printing incoming message {"KeepAlive":"Ping","commandType":"KeepAlive"}" mbooks_im.js:519
+"Command type KeepAlive" mbooks_im.js:641
+"Processing keep alive" mbooks_im.js:628
