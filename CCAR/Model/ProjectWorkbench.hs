@@ -287,6 +287,10 @@ selectActiveWorkbenches aProjectId = dbOps $ do
 			Just (Entity k v) -> selectList [ProjectWorkbenchProject ==. k] [LimitTo 50] 
 			-- Nothing -> ??
 
+
+{--Review comments: should these queries that dont depend on the database be in a separate module. Maintaining
+   it as part of the module help reduce namespace issues.
+--}
 querySupportedScripts :: T.Text -> Value -> IO(GC.DestinationType, T.Text)
 querySupportedScripts n (Object a) = 
 			return(GC.Reply, 

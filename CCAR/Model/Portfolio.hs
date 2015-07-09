@@ -51,4 +51,39 @@ data CRUD = Create | Read | P_Update | Delete
 instance ToJSON CRUD 
 instance FromJSON CRUD 
 
+data PortfolioCommands = PortfolioSymbolTypesQuery | PortfolioSymbolSidesQuery
+		deriving (Show, Read, Data, Typeable, Generic)
+
+data PortfolioSymbolTypeQuery = PortfolioSymbolTypeQuery {
+		nickName :: T.Text
+		, commandType :: T.Text
+		, symbolTypes :: [EnTypes.PortfolioSymbolType]
+} deriving(Show, Read, Data, Typeable, Generic)
+
+{-- 
+ Name mangling: https://mail.haskell.org/pipermail/haskell-cafe/2010-December/087862.html
+--}
+data PortfolioSymbolSideQuery = PortfolioSymbolSideQuery {
+	pssNickName :: T.Text
+	, pssCommandType :: T.Text
+	, symbolSides :: [EnTypes.PortfolioSymbolSide]
+}
+
+
+instance ToJSON PortfolioCommands 
+instance FromJSON PortfolioCommands
+
+queryPortfolioSymbolTypes :: T.Text -> Value -> IO(GC.DestinationType, T.Text)
+queryPortfolioSymbolTypes n (Object a) = 
+			return(GC.Reply, 
+					Util.serialize $ PortfolioSymbolTypeQuery n 
+					(show PortfolioSymbolTypesQuery)
+					EnTypes.getPortfolioSymbolTypes)
+queryPortfolioSymbolSides :: T.Text -> Value -> IO (GC.DestinationType, T.Text)
+queryPortfolioSymbolSides n (Object a) = 
+		return (GC.Reply, 
+				Util.serialize $ 
+					PortfolioSymbolSideQuery n 
+						(show PortfolioSymbolSidesQuery)
+						EnTypes.getPorfolioSymbolSides)
 
