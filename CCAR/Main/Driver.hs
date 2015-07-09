@@ -56,6 +56,7 @@ import CCAR.Model.Person
 import CCAR.Model.Company as Company 
 import CCAR.Model.Project as Project
 import CCAR.Model.ProjectWorkbench as ProjectWorkbench
+import CCAR.Model.Portfolio as Portfolio
 
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
@@ -490,6 +491,8 @@ processCommandValue app nickName (Object a)   = do
                 String "SelectActiveProjects" -> Project.queryActiveProjects nickName (Object a)
                 String "QuerySupportedScripts" -> ProjectWorkbench.querySupportedScripts nickName (Object a)
                 String "QueryActiveWorkbenches" -> ProjectWorkbench.queryActiveWorkbenches (Object a)
+                String "PortfolioSymbolTypesQuery" -> Portfolio.queryPortfolioSymbolTypes nickName (Object a)
+                String "PortfolioSymbolSidesQuery" ->Portfolio.queryPortfolioSymbolSides nickName (Object a)
                 String "ManageWorkbench" -> ProjectWorkbench.manageWorkbench (Object a)
                 String "ExecuteWorkbench" -> do                            
                             atomically $ do 

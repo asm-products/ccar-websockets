@@ -1,4 +1,7 @@
-module CCAR.Model.Portfolio where 
+module CCAR.Model.Portfolio (
+	queryPortfolioSymbolTypes
+	, queryPortfolioSymbolSides
+	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
 import Data.Aeson as J
@@ -67,23 +70,27 @@ data PortfolioSymbolSideQuery = PortfolioSymbolSideQuery {
 	pssNickName :: T.Text
 	, pssCommandType :: T.Text
 	, symbolSides :: [EnTypes.PortfolioSymbolSide]
-}
+} deriving(Show, Read, Data, Typeable, Generic)
 
 
 instance ToJSON PortfolioCommands 
 instance FromJSON PortfolioCommands
+instance ToJSON PortfolioSymbolTypeQuery
+instance FromJSON PortfolioSymbolTypeQuery 
+instance ToJSON PortfolioSymbolSideQuery 
+instance FromJSON PortfolioSymbolSideQuery
 
 queryPortfolioSymbolTypes :: T.Text -> Value -> IO(GC.DestinationType, T.Text)
 queryPortfolioSymbolTypes n (Object a) = 
 			return(GC.Reply, 
 					Util.serialize $ PortfolioSymbolTypeQuery n 
-					(show PortfolioSymbolTypesQuery)
+					(T.pack $ show PortfolioSymbolTypesQuery)
 					EnTypes.getPortfolioSymbolTypes)
 queryPortfolioSymbolSides :: T.Text -> Value -> IO (GC.DestinationType, T.Text)
 queryPortfolioSymbolSides n (Object a) = 
 		return (GC.Reply, 
 				Util.serialize $ 
 					PortfolioSymbolSideQuery n 
-						(show PortfolioSymbolSidesQuery)
-						EnTypes.getPorfolioSymbolSides)
+						(T.pack $ show PortfolioSymbolSidesQuery)
+						EnTypes.getPortfolioSymbolSides)
 
