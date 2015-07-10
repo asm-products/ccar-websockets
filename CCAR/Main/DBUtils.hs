@@ -13,12 +13,13 @@ import Data.Text
 import Data.Data
 import CCAR.Main.EnumeratedTypes 
 import System.Environment(getEnv)
-import Data.ByteString as DBS hiding (putStrLn)
-import Data.ByteString.Char8 as C8 hiding(putStrLn) 
+import Data.ByteString as DBS 
+import Data.ByteString.Char8 as C8
 import Data.Aeson
 import GHC.Generics
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
+import System.Log.Logger as Logger
 
 instance ToJSON SurveyPublicationState
 instance FromJSON SurveyPublicationState
@@ -55,6 +56,7 @@ getPoolSize = return 10
 
 getConnectionString :: IO ByteString 
 getConnectionString = do
+        infoM "CCAR.Main.DBUtils" "Initializing connection string"
         host <- getEnv("PGHOST")
         dbName <- getEnv("PGDATABASE")
         user <- getEnv("PGUSER")

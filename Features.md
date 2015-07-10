@@ -1,7 +1,7 @@
 Information system
 ===============
 ### Objective
-Manage information and needs for a small business.
+Manage information for a small business.
 
 ### Architecture
 Haxe based websocket client interacting with a yesod websockets server.
@@ -15,8 +15,11 @@ Haxe based websocket client interacting with a yesod websockets server.
 	* nickName is the only field that is displayed to the user
 	* Validate the password - Should search for the user in company user directory.
 	* Success: broadcast the rest of the community 
-	* Server should send users online list to populate
-	* Send conversation history
+	* Server sends the current displayable state to the client.
+		* Send conversation history
+		* Country lists
+		* Drop down lists of enumerated types
+
 	* Begin processing server events
 
 

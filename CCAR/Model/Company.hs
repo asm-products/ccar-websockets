@@ -33,6 +33,8 @@ import Data.Data
 import Data.Typeable 
 import Data.Time
 import CCAR.Main.Util 
+import System.Log.Logger as Logger
+
 data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
 
@@ -81,11 +83,14 @@ manageCommandDTO a c Nothing =
 	ManageCompany a c $
 			CompanyT "" "" "" ""
 
+iModuleName :: String
+iModuleName = "CCAR.Model.Company"
 
 insertCompany :: NickName -> CompanyT -> IO (Maybe Company)
 insertCompany aNickName aCompany = do 
 	currentTime <- getCurrentTime 
-	putStrLn "Inside insert company"
+	Logger.debugM iModuleName $ 
+					"Inserting " `mappend` (show aCompany)
 	dbOps $ do 
 		person <- getBy $ PersonUniqueNickName aNickName
 		case person of 
@@ -108,6 +113,8 @@ deleteCompany :: CompanyT -> IO (Maybe Company)
 deleteCompany aCompanyId = dbOps $ 
 	do 
 		company <- getBy $ CompanyUniqueID (companyID aCompanyId)
+		liftIO $ Logger.debugM iModuleName $ 
+				"Deleting " `mappend` (show company)
 		case company of 
 			Just (Entity k v) -> 
 				do 
@@ -115,7 +122,9 @@ deleteCompany aCompanyId = dbOps $
 					return $ Just v
 
 selectAllCompanies :: IO [Entity Company]
-selectAllCompanies = dbOps $ selectList [] [LimitTo resultsPerPage]
+selectAllCompanies = dbOps $ do 
+	liftIO $ Logger.debugM iModuleName "Selecting all companies"
+	selectList [] [LimitTo resultsPerPage]
 					where resultsPerPage = 100
 
 updateCompany :: NickName -> CompanyT -> IO (Maybe Company)
@@ -123,6 +132,8 @@ updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
 		person <- getBy $ PersonUniqueNickName aNickName 
+		liftIO $ Logger.debugM iModuleName $ 
+						"Updating company " `mappend` (show person)
 		case person of 
 			Just (Entity p _ ) -> do 
 				company <- getBy $  CompanyUniqueID (companyID aCompany)

@@ -1,6 +1,17 @@
 {--License: license.txt --}
 module CCAR.Model.Person 
-
+    (updateLogin
+    , checkLoginExists 
+    , queryAllPersons 
+    , getAllNickNames 
+    , insertPerson
+    , updatePerson
+    , deletePerson
+    , queryPerson 
+    , fixPreferences 
+    , getMessageCount 
+    , createGuestLogin
+    , CRUD(..))
 where
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -29,6 +40,7 @@ import Data.Data
 import Data.Typeable 
 import System.IO
 import Data.Time
+import System.Log.Logger as Logger
 
 data CRUD = Create  | Update PersonId | Query PersonId | Delete PersonId deriving(Show, Eq, Generic)
 
@@ -56,10 +68,12 @@ getAllNickNames = do
     mapM (\(Entity k p) -> return $ personNickName p) persons
 
 
-
+iModuleName :: String 
+iModuleName = "CCAR.Model.Person"
 insertPerson :: Person -> IO ((Key Person)) 
 insertPerson p = do 
-        putStrLn $ show $ "Inside insert person " ++ (show p)
+        Logger.debugM iModuleName $ 
+                show $ "Inside insert person " ++ (show p)
         dbOps $ do 
                         pid <- DB.insert p
                         preferences <- DB.insert $ Preferences {preferencesPreferencesFor = pid
@@ -99,7 +113,8 @@ fixPreferences Nothing = undefined
 getMessageCount :: T.Text -> IO Int 
 getMessageCount aNickName = dbOps $ do 
             person <- DB.getBy $ PersonUniqueNickName aNickName
-            liftIO $ putStrLn $ "Person " ++ (show person)
+            liftIO $ Logger.debugM iModuleName  $ 
+                    "Message Count " ++ (show person)
             case person of 
                 Just (Entity personId _) -> do
                     prefs <- DB.selectFirst [PreferencesPreferencesFor ==. personId][]

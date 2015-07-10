@@ -58,6 +58,17 @@ import CCAR.Model.Project as Project
 import CCAR.Model.ProjectWorkbench as ProjectWorkbench
 import CCAR.Model.Portfolio as Portfolio
 
+-- logging
+import System.Log.Formatter as LogFormatter
+import System.Log.Handler(setFormatter)
+import System.Log.Handler.Simple as SimpleLogger
+import System.Log.Handler.Syslog as SyslogLogger 
+import System.Log.Logger as Logger
+import System.Log as Log
+
+
+iModuleName :: String 
+iModuleName = "CCAR.Main.Driver"
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
 
@@ -265,7 +276,7 @@ iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
 
 pJSON :: (FromJSON a) => T.Text -> IO (Either String (Maybe a))
 pJSON  aText = do
-    --putStrLn $  "pJSON " ++ (T.unpack aText)
+    Logger.infoM  iModuleName ( T.unpack aText)
     return $ iParseJSON aText
 
 decoder :: Command -> T.Text 
@@ -335,7 +346,7 @@ processCommand (Just (CommandLogin aLogin)) = do
     p <- case (login aLogin) of
             Just a -> return a 
     chk <- checkLoginExists (personNickName p)
-    putStrLn $ show $ "Login exists " ++ (show chk)
+    Logger.infoM iModuleName $ show $ "Login exists " ++ (show chk)
     case chk of 
         Nothing -> return $ (GroupCommunication.Reply, 
                 CommandLogin $ Login {login = Just p, 
@@ -357,13 +368,13 @@ processCommand (Just (CommandKeepAlive a)) =
         return $ (GroupCommunication.Reply, CommandKeepAlive a)
 
 processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
-    putStrLn $ show $ "Processing processCommand " ++ (show uo)
+    infoM iModuleName $ show $ "Processing processCommand " ++ (show uo)
     person <- case aPerson of
                 Just a -> return a        
     case uo of
         Us.Create  -> do
                 personId <- insertPerson person
-                putStrLn $ show $ "Person inserted " ++ (show personId)
+                Logger.infoM iModuleName $ show $ "Person inserted " ++ (show personId)
                 return $ (GroupCommunication.Reply, CommandUO $ UserOperations Us.Create (Just person))
         Us.Update personId -> do
                 updatePerson personId person
@@ -382,11 +393,11 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
 
 -- | Query operations are replies and db operations are broadcast. | --
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
-    putStrLn $ show $ "Processing command ccar upload " ++ (show ccar)
+    Logger.infoM iModuleName $ show $ "Processing command ccar upload " ++ (show ccar)
     case operation of 
         CC.Create -> do 
                 ccarId <- insertCCAR ccar
-                putStrLn $ show $ "CCAR created " ++ (show ccar)
+                Logger.infoM iModuleName $ show $ "CCAR created " ++ (show ccar)
                 return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation 
                                 (Just ccar) [])
         CC.Update  -> do
@@ -533,18 +544,17 @@ getNickName aCommand =
 
 processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
 processIncomingMessage app conn aNickName aCommand = do 
-    --putStrLn $  "Processing incoming message " ++ (show aCommand)
     case aCommand of 
         Nothing -> do
-                putStrLn $ "Processing error..."
+                Logger.infoM iModuleName $ "Processing error..."
                 result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
                 return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
                     
         Just (Object a) -> do 
-                putStrLn $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
+                Logger.infoM iModuleName $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
                 (processCommandValue app aNickName (Object a)) `catch`
                     (\e -> do
-                            putStrLn $  ("Exception "  ++ show (e :: PersistException)) 
+                            Logger.errorM iModuleName $  ("Exception "  ++ show (e :: PersistException)) 
                             atomically $ deleteConnection app aNickName
                             return (GroupCommunication.Broadcast, 
                                     serialize $ UserJoined.userLeft aNickName)
@@ -690,13 +700,12 @@ ccarApp :: WebSocketsT Handler ()
 ccarApp = do
         connection <- ask
         app <- getYesod
-        liftIO $ putStrLn "Before receiving data..."
+        liftIO $ Logger.debugM iModuleName "Before receiving data..."
         command <- liftIO $ WSConn.receiveData connection
-        --liftIO $ putStrLn $ show (command :: T.Text)
         (result, nickNameV) <- liftIO $ getNickName $ incomingDictionary (command :: T.Text)
         clientState <- atomically $ getClientState nickNameV app
-        liftIO $ putStrLn "Before showing client state"
-        liftIO $ putStrLn $ show clientState 
+        liftIO $  Logger.debugM iModuleName "Before showing client state"
+        liftIO $ Logger.debugM iModuleName $ show clientState 
         case clientState of 
             [] -> do 
                 (destination, text) <- liftIO $ authenticate connection command app  
@@ -738,7 +747,7 @@ processClientLost app connection nickNameV iText = do
                                 connection 
                                 nickNameV
                                 $ incomingDictionary iText
-                    liftIO $ putStrLn $ "Sending " ++ ( show nickNameFound)
+                    liftIO $ Logger.errorM iModuleName $ "Sending " ++ ( show nickNameFound)
                     WSConn.sendTextData connection nickNameFound
                     (processClientLeft connection app nickNameV) `catch`
                                     (\ a@(CloseRequest e1 e2) -> do  
@@ -753,11 +762,11 @@ processUserPassword connection app nickNameV = undefined
 processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
             (dest, text) <- liftIO $ processUserLoggedIn connection command app 
-            putStrLn $ "User logged in " ++ (show text)
+            Logger.debugM iModuleName $ "User logged in " ++ (show text)
             messageLimit <- liftIO $ getMessageCount nickNameV
-            putStrLn $ "Using message limit " ++ (show messageLimit)
+            Logger.debugM iModuleName  $ "Using message limit " ++ (show messageLimit)
             messageHistory <- liftIO $ GroupCommunication.getMessageHistory messageLimit
-            putStrLn $ "After messageHistory " ++ (show nickNameV)
+            Logger.debugM iModuleName $ "After messageHistory " ++ (show nickNameV)
             atomically $ do 
                             clientStates <- case dest of 
                                 Broadcast -> getAllClients app nickNameV
@@ -788,7 +797,7 @@ processClientLeft connection app nickNameV = do
 
 handleDisconnects :: App -> WSConn.Connection -> T.Text -> ConnectionException -> IO ()
 handleDisconnects app connection nickN (CloseRequest a b) = do 
-            putStrLn $ T.unpack $  
+            Logger.errorM iModuleName $ T.unpack $  
                 ("Bye nickName " :: T.Text) `mappend` nickN
             atomically $ do 
                 deleteConnection app nickN
@@ -804,10 +813,10 @@ readerThread :: App -> T.Text -> Bool -> IO ()
 readerThread app nickN terminate = do
     if (terminate == True) 
         then do 
-            putStrLn "Reader thread exiting" 
+            Logger.infoM iModuleName "Reader thread exiting" 
             return () 
     else do 
-        putStrLn "Waiting for messages..."
+        Logger.infoM iModuleName "Waiting for messages..."
         (conn , textData) <- atomically $ do
                 clientStates <- getClientState nickN app 
                 case clientStates  of 
@@ -822,15 +831,16 @@ readerThread app nickN terminate = do
                                                     connection nickN h)
                                 readerThread app nickN terminate
             Nothing -> readerThread app nickN True  
-        --liftIO $ putStrLn $ "Wrote " `mappend` (show textData) `mappend` (show conn)
+        liftIO $ Logger.debugM iModuleName 
+                        $ "Wrote " `mappend` (show textData) `mappend` (show conn)
         
 jobReaderThread :: App -> T.Text -> Bool -> IO ()
 jobReaderThread app nickN terminate = 
     if(terminate == True) then do 
-        putStrLn "Job reader thread exiting."
+        Logger.infoM iModuleName "Job reader thread exiting."
         return ()
     else do
-        putStrLn "Waiting for jobs..."
+        Logger.infoM iModuleName "Waiting for jobs..."
         (conn , value) <- atomically $ do
                 clientStates <- getClientState nickN app 
                 case clientStates  of 
@@ -838,7 +848,7 @@ jobReaderThread app nickN terminate =
                         textData <- readTChan (jobReadChan clientState)
                         return (Just $ connection clientState, textData)
                     [] -> return (Nothing, "Client state doesnt exist")
-        putStrLn("Reading a job " ++ (show value))
+        Logger.infoM iModuleName ("Reading a job " ++ (show value))
         case conn of 
             Just connection -> do
                         (replyType, text) <- 
@@ -846,13 +856,17 @@ jobReaderThread app nickN terminate =
                                 `catch` (\ x@(SomeException e) -> return (Reply, "Exception in job " :: T.Text))
                         _ <- WSConn.sendTextData (connection) text `catch` 
                                 (\h@(CloseRequest e f)-> do
-                                            putStrLn "Shutting down job reader thread." 
+                                            Logger.errorM iModuleName $ 
+                                                    "Shutting down job reader thread. " 
+                                                    `mappend` (show e) 
+                                                    `mappend` " for " 
+                                                    `mappend` (show f)
                                             handleDisconnects app 
                                                     connection nickN h)
                         jobReaderThread app nickN terminate
-                        putStrLn "Finished processing job " 
+                        Logger.infoM iModuleName "Finished processing job " 
             Nothing -> jobReaderThread app nickN True  
-        putStrLn "Finished processing job" 
+        Logger.infoM iModuleName "Finished processing job" 
 
 
 {-- The main processing loop for incoming commands.--}
@@ -860,7 +874,7 @@ writerThread :: App -> WSConn.Connection -> T.Text -> Bool -> IO ()
 writerThread app connection nickName terminate = do
     if (terminate == True) 
         then do 
-            putStrLn "Writer thread exiting."
+            Logger.infoM iModuleName "Writer thread exiting."
             return () 
         else do 
             msg <- WSConn.receiveData connection `catch` 
@@ -869,12 +883,14 @@ writerThread app connection nickName terminate = do
                         writerThread app connection nickName True
                         return "Close request received")
             (result, nickName) <- liftIO $ getNickName $ incomingDictionary (msg :: T.Text)
-            --putStrLn $ show $ msg  `mappend` nickName
+            Logger.debugM iModuleName 
+                            $ show $ msg  `mappend` nickName
             case result of 
                 Nothing -> do 
                         liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just _ -> do 
-                    liftIO $ putStrLn $ "Writer thread :-> Message nickName " `mappend` (show nickName)
+                    liftIO $ Logger.infoM iModuleName 
+                                $ "Writer thread :-> Message nickName " `mappend` (show nickName)
                     (dest, x) <- liftIO $ processIncomingMessage app connection nickName$ incomingDictionary msg
                     atomically $ do 
                                     clientStates <- case dest of 
@@ -894,7 +910,8 @@ getPortNumberR = do
 getHomeR :: Handler Html
 getHomeR = do
     request <- waiRequest
-    liftIO $ putStrLn $ "Request " ++ (show request)
+    liftIO $ Logger.infoM iModuleName 
+                $ "Request " ++ (show request)
     webSockets ccarApp
     defaultLayout $ do
         [whamlet|
@@ -946,7 +963,13 @@ getHomeR = do
     
 driver :: IO ()
 driver = do
-    hSetBuffering stdout NoBuffering
+    h <- SimpleLogger.fileHandler "debug.log" Log.DEBUG
+    lh <- return $ setFormatter h (simpleLogFormatter "[$time : $loggername : $prio : $tid] $msg")
+    s <- SimpleLogger.streamHandler stderr Log.ERROR
+    _ <- Logger.updateGlobalLogger "CCAR" $ Logger.setLevel 
+                                        Log.DEBUG . setHandlers[s, h, lh]
+    
+    Logger.debugM "CCAR" "Starting yesod.."                                    
     connStr <- getConnectionString
     poolSize <- getPoolSize
     runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->

@@ -94,3 +94,47 @@ queryPortfolioSymbolSides n (Object a) =
 						(T.pack $ show PortfolioSymbolSidesQuery)
 						EnTypes.getPortfolioSymbolSides)
 
+type INickName = T.Text
+data PortfolioT = PortfolioT {
+	crudType :: CRUD
+	, portfolioId :: T.Text
+	, companyId :: T.Text
+	, userId :: INickName
+	, summary :: T.Text 
+	, createdBy :: T.Text 
+	, updatedBy :: INickName
+}
+{--
+        Portfolio json
+            companyUserId CompanyUserId 
+            uuid Text 
+            summary Text -- A description about the portfolio
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updatedBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
+            UniquePortfolio uuid             
+            deriving Show Eq
+        PortfolioSymbol json
+            portfolio PortfolioId
+            symbol Text
+            quantity Double
+            side PortfolioSymbolSide
+            symbolType PortfolioSymbolType 
+            deriving Show Eq
+        MarketDataSubscription json
+            ownerId PersonId
+            sourceName Text 
+            realtimeInterval Double  
+            deriving Show Eq 
+
+--}
+
+process :: PortfolioT -> IO (Either T.Text Portfolio)
+process = undefined
+
+insertPortfolio :: PortfolioT -> IO (Either T.Text Portfolio)
+insertPortfolio = undefined
+
+updatePortfolio :: PortfolioT -> IO (Either T.Text Portfolio)
+updatePortfolio = undefined 
