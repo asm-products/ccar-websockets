@@ -15,9 +15,12 @@
 ##### Manage companies and their slideshows.
 ##### Manage projects for the company.
 ##### Manage project workbench, slideshows for a project.
+##### Execute scripts 
 ##### Handle runtime exceptions in yesod.
+##### Manage user porfolios (equity, options etc) - portfolio analyses
+##### Manage symbol lists - symbol analyses
 
-#### Features for version 3
+#### Features for version X
 
 ##### Create one time wallets for a user with a configurable initial amount.
 ##### Manage surveys (publish them)
@@ -25,6 +28,5 @@
 ##### Manage colored coins
 
 
-
-
-
+#### Suffix T is being used as Transient objects, this could create some confusion. -- Need to fix this.
+For example PortfolioT is not a Portfolio Monad Transformer. It is a dto<->dao pattern borrowed from hibernate.

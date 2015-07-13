@@ -73,6 +73,7 @@ data PortfolioSymbolSideQuery = PortfolioSymbolSideQuery {
 } deriving(Show, Read, Data, Typeable, Generic)
 
 
+
 instance ToJSON PortfolioCommands 
 instance FromJSON PortfolioCommands
 instance ToJSON PortfolioSymbolTypeQuery
@@ -95,15 +96,33 @@ queryPortfolioSymbolSides n (Object a) =
 						EnTypes.getPortfolioSymbolSides)
 
 type INickName = T.Text
+
+
 data PortfolioT = PortfolioT {
 	crudType :: CRUD
-	, portfolioId :: T.Text
-	, companyId :: T.Text
+	, portfolioId :: UUID
+	, companyId :: UUID
 	, userId :: INickName
 	, summary :: T.Text 
-	, createdBy :: T.Text 
+	, createdBy :: INickName
 	, updatedBy :: INickName
 }
+
+
+
+dtoToDAo :: PortfolioT -> Portfolio 
+dtoToDAo = undefined
+daoToDto :: Portfolio -> PortfolioT 
+daoToDto = undefined
+
+process :: PortfolioT -> IO (Either T.Text (Key Portfolio))
+process pT = case (crudType pT) of 
+	Create -> insertPortfolio pT 
+	Read -> readPortfolio pT -- single record
+	P_Update -> updatePortfolio pT 
+	Delete -> deletePortfolio pT 		
+
+
 {--
         Portfolio json
             companyUserId CompanyUserId 
@@ -115,26 +134,51 @@ data PortfolioT = PortfolioT {
             updatedOn UTCTime default=CURRENT_TIMESTAMP
             UniquePortfolio uuid             
             deriving Show Eq
-        PortfolioSymbol json
-            portfolio PortfolioId
-            symbol Text
-            quantity Double
-            side PortfolioSymbolSide
-            symbolType PortfolioSymbolType 
-            deriving Show Eq
-        MarketDataSubscription json
-            ownerId PersonId
-            sourceName Text 
-            realtimeInterval Double  
-            deriving Show Eq 
-
 --}
 
-process :: PortfolioT -> IO (Either T.Text Portfolio)
-process = undefined
+insertPortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio) )
+insertPortfolio p@(PortfolioT cType 
+				_ 
+				companyId 
+				userId 
+				summary 
+				createdBy 
+				_)= do 
+	uuid <- nextUUID 
+	case uuid of 
+		Just u -> do 
+			currentTime <- getCurrentTime
+			dbOps $ do 
+				c <- getBy $ CompanyUniqueID $ 
+										uuidAsString companyId 
+				nPerson <- getBy $ PersonUniqueNickName userId 
+				crBy <- getBy $ PersonUniqueNickName createdBy
+				case (c, nPerson, crBy) of 
+					(Just (Entity cKey _)
+						, Just (Entity nKey _)
+						, Just (Entity crKey _) )-> do
+						cuser <- getBy $ UniqueCompanyUser cKey nKey
+						case cuser of 
+							Just (Entity cuKey cuValue) -> do 
+								porId <- insert $ Portfolio cuKey 
+											(uuidAsString u)
+											summary 
+											crKey
+											currentTime
+											nKey 
+											currentTime
+								return $ Right porId
+	 
 
-insertPortfolio :: PortfolioT -> IO (Either T.Text Portfolio)
-insertPortfolio = undefined
+uuidAsString uuid = T.pack $ UUID.toString uuid
 
-updatePortfolio :: PortfolioT -> IO (Either T.Text Portfolio)
+
+updatePortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio))
 updatePortfolio = undefined 
+
+readPortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio))
+readPortfolio = undefined
+
+deletePortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio))
+deletePortfolio = undefined
+

@@ -37,8 +37,8 @@ import qualified CCAR.Model.Person as Us
 import qualified CCAR.Model.CCAR as CC 
 import qualified CCAR.Model.UserTermsAndConditions as Ust 
 import qualified CCAR.Model.Survey as Survey 
-import Data.ByteString as DBS hiding (putStrLn)
-import Data.ByteString.Char8 as C8 hiding(putStrLn) 
+import Data.ByteString as DBS 
+import Data.ByteString.Char8 as C8 
 import System.Environment
 
 import CCAR.Main.Util

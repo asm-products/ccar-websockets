@@ -48,6 +48,7 @@ import Database.Persist.Postgresql as Postgresql
 -- For haskell shell
 import HSH
 import System.IO(openFile, writeFile, IOMode(..))
+import System.Log.Logger as Logger
 
 data CRUD = Create | Read | WrkBench_Update | Delete 
 	deriving(Show, Read, Eq, Data, Generic, Typeable)
@@ -89,8 +90,6 @@ dto :: CRUD -> T.Text -> ProjectWorkbench -> ProjectWorkbenchT
 dto c pid p@(ProjectWorkbench  _ w s ssummary sdata cores sdPath jobStartDate jobEndDate) = 
 	ProjectWorkbenchT 
 		c w pid s ssummary (sdata) cores sdPath (jobStartDate) (jobEndDate) "ManageWorkbench"
-
-
 
 
 
@@ -351,14 +350,18 @@ data ExecuteWorkbench = ExecuteWorkbench {
 	executeWorkbenchId :: T.Text
 	, executeWorkbenchCommandType :: T.Text
 	, scriptResult :: T.Text
-
 }deriving (Show, Read, Eq, Data, Generic, Typeable)
 
 instance ToJSON ExecuteWorkbench 
 instance FromJSON ExecuteWorkbench 
 
 type ScriptContent = T.Text
-type WorkbenchIdText = T.Text 
+type WorkbenchIdText = T.Text
+iModuleName :: String 
+iModuleName = "CCAR.Model.ProjectWorkbench"
+
+
+
 getScriptDetails :: WorkbenchIdText -> IO (EnTypes.SupportedScript, ScriptContent, Int)
 getScriptDetails anId = dbOps $ do
 				workbench <- getBy $ UniqueWorkbench anId
@@ -381,9 +384,11 @@ executeScript EnTypes.UnsupportedScriptType scriptId scriptData nCores =
 					T.pack 
 						(show EnTypes.UnsupportedScriptType)
 
+
 executeScript EnTypes.RScript scriptUUID scriptData nCores = do 
 			timeStamp <- Data.Time.getCurrentTime
-			putStrLn $ "Reading script file " ++ (scriptFileName timeStamp)
+			Logger.infoM iModuleName 
+						$ "Reading script file " ++ (scriptFileName timeStamp)
 			handle1 <- openFile (scriptFileName timeStamp) WriteMode 
 			hPutStr handle1 (T.unpack scriptData) -- We need to use a better library here.
 			hClose handle1 
@@ -396,7 +401,9 @@ executeScript EnTypes.RScript scriptUUID scriptData nCores = do
 						`mappend` " "
 						`mappend` "Rscript " 
 						`mappend` (T.pack (scriptFileName timeStamp))			
-			putStrLn "Completed processing the job"
+			Logger.infoM iModuleName $ 
+					"Completed processing the job " `mappend`  
+							(scriptFileName timeStamp)
 			case result of
 				Right str -> 
 					return $ ExecuteWorkbench unknownId 
@@ -410,9 +417,7 @@ executeScript EnTypes.RScript scriptUUID scriptData nCores = do
 				scriptFileName timeStamp= 
 					("." ++ "/" ++ "workbench_data" 
 						++  "/" ++ (T.unpack scriptUUID) 
-{-						++ "_" 
-						++ (show (timeStamp :: UTCTime))
--}						++ ".r")
+						++ ".r")
 
 
 
@@ -426,7 +431,6 @@ executeWorkbench aValue@(Object a) = case (fromJSON aValue) of
 							result {executeWorkbenchId = wId 
 									, executeWorkbenchCommandType = cType} :: 
 										Either T.Text ExecuteWorkbench))
-
 	Error errorMsg -> return (GC.Reply
 			, serialize $
 					genericErrorCommand $ "Error processing executeWorkbench " ++ errorMsg)				

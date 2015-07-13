@@ -380,10 +380,15 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Eq
         PortfolioSymbol json
             portfolio PortfolioId
+            uuid Text
             symbol Text
             quantity Double
             side PortfolioSymbolSide
             symbolType PortfolioSymbolType 
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP
+            updatedBy PersonId
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
             deriving Show Eq
         MarketDataSubscription json
             ownerId PersonId
