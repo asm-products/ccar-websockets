@@ -316,8 +316,7 @@ manageWorkbench :: Value -> IO (GC.DestinationType, T.Text)
 manageWorkbench aValue@(Object a) = do 
 	case (fromJSON aValue) of 
 		Success r -> do 
-				res
-					 <- process r 
+				res <- process r 
 				case res of
 					Right wbR@(ProjectWorkbench project workbenchId 
 							scriptType scriptSummary scriptData
@@ -335,7 +334,6 @@ manageWorkbench aValue@(Object a) = do
 								})  -- If things work, return the original value?
 					Left f -> return (GC.Reply, serialize $ genericErrorCommand $ 
 								"Error processing manageWorkbench " ++ (T.unpack f))
-
 		Error errorMsg -> return (GC.Reply, 
 					serialize $ genericErrorCommand $ 
 						"Error in manageworkbench " ++ errorMsg)
