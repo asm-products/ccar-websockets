@@ -8,7 +8,7 @@ module CCAR.Model.Company
 	, queryAllCompanies
 	, ManageCompany
 	, CompanyT
-	, 
+	, assignUserToCompany
 	) where 
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
@@ -37,6 +37,15 @@ import System.Log.Logger as Logger
 
 data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
+
+
+data AssignUser = AssignUser {
+	auCommandType :: T.Text 
+	, auCompanyID :: T.Text 
+	, auUserName :: T.Text 
+	, isChatMinder :: Bool 
+	, isSupport :: Bool 
+} deriving (Show, Eq, Read, Data, Generic, Typeable)
 
 data CompanyT = CompanyT {
 		companyName :: T.Text
@@ -156,6 +165,8 @@ queryCompany aNickName aCompany = do
 		Nothing -> return Nothing
 	return y 
 
+
+
 insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO ()
 insertCompanyPerson aNickName aCompanyId chatMinder = do
 	currentTime <- getCurrentTime
@@ -251,6 +262,14 @@ queryAllCompanies aNickName (Object a) = do
 				    		"Query all companies failed " ++ s)
 
 
+assignUserToCompany aNickName aValue = do 
+	case (fromJSON aValue) of 
+		Success (AssignUser cType cID user chatMinder support) -> do 
+			x <- insertCompanyPerson cID user chatMinder 
+			return (GC.Reply, serialize x)
+		Error errorMsg -> return (GC.Reply, 
+					serialize $ genericErrorCommand $ 
+						"Error assignUserToCompany " ++ errorMsg)
 
 gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType
                     , "company" .= company
@@ -292,9 +311,33 @@ genCompany (CompanyT a b c d) = object [
 			, "generalMailbox" .= d 
 	]
 
+
+
 instance FromJSON CompanyT where 
     parseJSON (Object v) = parseCompany v
     parseJSON _          = Appl.empty
+
+
+
+instance ToJSON AssignUser where 
+	toJSON (AssignUser cType cID userName isChatMinder isSupport) = 
+			object [
+				"commandType" .= cType
+				, "companyID" .= cID
+				, "userName " .= userName 
+				, "isChatMinder" .= isChatMinder
+				, "isSupport" .= isSupport
+			]
+
+instance FromJSON AssignUser where 
+	parseJSON (Object v) = AssignUser <$> 
+					v .: "commandType"  <*>
+					v .: "companyID" <*> 
+					v .: "userName" <*>
+					v .: "isChatMinder" <*>
+					v .: "isSupport"
+	parseJSON _ 		= Appl.empty
+
 
 
 

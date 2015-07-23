@@ -513,6 +513,8 @@ processCommandValue app nickName (Object a)   = do
                                 ser $ ("Execute workbench received" :: T.Text))
                 --ProjectWorkbench.executeWorkbench(Object a)
                 String "ManageSurvey" -> Survey.manageSurvey nickName (Object a)
+                -- Assign a user to a company.
+                String "AssignCompany" -> Company.assignUserToCompany nickName (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

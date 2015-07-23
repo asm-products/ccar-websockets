@@ -4,10 +4,7 @@ module CCAR.Model.Portfolio (
 	, process
 	, PortfolioT(..)
 	, Portfolio(..)
-	, testCreatePortfolioT
-	, testCreatePortfolioTJSON
-	, testParseCreatePortfolioTJSON
-	, uuidFromString
+	, testInsertPortfolio
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -336,23 +333,38 @@ deletePortfolio p@(PortfolioT cType
 
 
 -- Test scripts
-testCreatePortfolioT :: IO PortfolioT 
-testCreatePortfolioT = do 
+testInsertPortfolio = do 
+	-- Create a person
 	uuid <- nextUUID 
+	currentTime <- getCurrentTime
 	case uuid of 
-		Just u -> return $ PortfolioT Create (T.pack $ uuidAsString u) "test_company" "test" "Test script" "test" "test"
+		Just u -> do 
+			person <- dbOps $ insert $ Person "portfolioTest" "portfolioTest" 
+								(T.pack $ uuidAsString u) "portfolioTest" (Just "en-us") currentTime
+			companyUUID <- nextUUID 
+			case companyUUID of 
+				Just cU -> do 
+						currentTime <- getCurrentTime
+						company <- dbOps $ insert $ Company "PortfolioTester" (T.pack $ uuidAsString cU) 
+														"tester@portfoliotester.com" 
+														"No image" 
+														person 
+														currentTime 
+														currentTime
 
-testCreatePortfolioTJSON :: IO T.Text 
-testCreatePortfolioTJSON = do 
-		x <- testCreatePortfolioT
-		return $ serialize x
-
-
-testParseCreatePortfolioTJSON = do
-	x <- testCreatePortfolioTJSON
-	putStrLn $ show x
-	return $ J.eitherDecode $ E.encodeUtf8 $ L.fromStrict x
-
+						--Create a company user
+						companyUser <- dbOps $ insert $ CompanyUser company person chatMinder support locale
+						portfolio <- insertPortfolio $ PortfolioT Create "insert_me" 
+								(T.pack $ uuidAsString cU) 
+								(T.pack $ uuidAsString u) "Test portfolio" 
+								(T.pack $ uuidAsString u) 
+								(T.pack $ uuidAsString u) 
+						return portfolio
+						
+	where
+		chatMinder = True
+		support = True
+		locale = Just ("en-us")
 
 instance ToJSON CRUD 
 instance FromJSON CRUD 
