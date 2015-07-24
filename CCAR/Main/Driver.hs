@@ -515,6 +515,7 @@ processCommandValue app nickName (Object a)   = do
                 String "ManageSurvey" -> Survey.manageSurvey nickName (Object a)
                 -- Assign a user to a company.
                 String "AssignCompany" -> Company.assignUserToCompany nickName (Object a)
+                String "ManagePortfolio" -> Portfolio.manage nickName (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

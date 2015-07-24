@@ -1,6 +1,7 @@
 module CCAR.Model.Portfolio (
 	queryPortfolioSymbolTypes
 	, queryPortfolioSymbolSides
+	, manage
 	, process
 	, PortfolioT(..)
 	, Portfolio(..)
@@ -153,6 +154,7 @@ instance ToJSON PortfolioT where
 			, "summary" .= s 
 			, "createdBy" .= cr 
 			, "updatedBy" .= up
+			, "commandType" .= ("ManagePortfolio" :: T.Text)
 		]
 
 instance FromJSON PortfolioT where
@@ -167,7 +169,7 @@ instance FromJSON PortfolioT where
 	parseJSON _ 	= Appl.empty  
 
 sanityCheck :: Key Portfolio -> PortfolioT -> Either T.Text Bool
-sanityCheck = undefined
+sanityCheck a b = Right True
 
 dtoToDao :: PortfolioT -> IO (Either T.Text Portfolio)
 dtoToDao pT@(PortfolioT cType 
@@ -210,8 +212,8 @@ daoToDto crType pid = do
 			Nothing -> return $ Left $ T.pack $ 
 								"Unable to query db " `mappend` (show pid) 
 
-manage :: Value -> IO (GC.DestinationType, T.Text)
-manage aValue@(Object a) = 
+manage :: NickName -> Value -> IO (GC.DestinationType, T.Text)
+manage aNickName aValue@(Object a) = 
 	case (fromJSON aValue) of
 		Success r -> do 
 			res <- process r  
@@ -333,6 +335,10 @@ deletePortfolio p@(PortfolioT cType
 
 
 -- Test scripts
+-- To run: source config/dev.env 
+-- cabal repl 
+-- :l Portfolio.hs
+-- >testInsertPortfolio -- it should work most of the times.
 testInsertPortfolio = do 
 	-- Create a person
 	uuid <- nextUUID 
@@ -355,12 +361,14 @@ testInsertPortfolio = do
 						--Create a company user
 						companyUser <- dbOps $ insert $ CompanyUser company person chatMinder support locale
 						portfolio <- insertPortfolio $ PortfolioT Create "insert_me" 
-								(T.pack $ uuidAsString cU) 
-								(T.pack $ uuidAsString u) "Test portfolio" 
-								(T.pack $ uuidAsString u) 
-								(T.pack $ uuidAsString u) 
+								(uuidAsText cU) 
+								userIdAsText "Test portfolio" 
+								userIdAsText
+								userIdAsText
 						return portfolio
-						
+						where 
+								uuidAsText = T.pack . uuidAsString 
+								userIdAsText = uuidAsText u
 	where
 		chatMinder = True
 		support = True

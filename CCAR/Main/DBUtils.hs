@@ -47,7 +47,8 @@ instance ToJSON SupportedScript
 instance FromJSON SupportedScript
 instance ToJSON PortfolioSymbolSide
 instance FromJSON PortfolioSymbolSide
-
+instance ToJSON PortfolioAnalysisResultType
+instance FromJSON PortfolioAnalysisResultType
 type NickName = Text
 type Base64Text = Text -- Base64 encoded text representing the image.
 
@@ -390,6 +391,27 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             updatedBy PersonId
             updatedOn UTCTime default=CURRENT_TIMESTAMP
             deriving Show Eq
+        PortfolioAnalysis json 
+            portfolioId PortfolioId 
+            uuid Text 
+            resultType PortfolioAnalysisResultType
+            result Text -- Would be the svg output in the form of  text
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP 
+            updatedBy PersonId 
+            updatedOn UTCTime default=CURRENT_TIMESTAMP
+            deriving Show Eq 
+        PortfolioSymbolAnalysis json 
+            symbol PortfolioSymbolId 
+            uuid Text 
+            resultType PortfolioAnalysisResultType 
+            result Text 
+            createdBy PersonId 
+            createdOn UTCTime default=CURRENT_TIMESTAMP 
+            updatedBy PersonId 
+            updatedOn UTCTime default = CURRENT_TIMESTAMP
+            deriving Show Eq
+
         MarketDataSubscription json
             ownerId PersonId
             sourceName Text 

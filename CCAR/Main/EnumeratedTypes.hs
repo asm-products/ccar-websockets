@@ -43,6 +43,9 @@ data PortfolioSymbolSide = Buy | Sell | SellShort
 getPortfolioSymbolSides :: [PortfolioSymbolSide]
 getPortfolioSymbolSides = [minBound..maxBound]
 
+data PortfolioAnalysisResultType = SVGResult | PNGResult
+		deriving (Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
+
 data MessageDestinationType = Reply | Broadcast 
 			deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
 getMessageDestinationTypes :: [MessageDestinationType]
@@ -95,6 +98,8 @@ getPermissonTypes :: [PermissionType]
 getPermissonTypes = [minBound..maxBound]
 data TimeUnit = Millis | Seconds | Minutes
 			deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable)
+
+
 getTimeUnits :: [TimeUnit]
 getTimeUnits = [minBound..maxBound]
 
@@ -113,3 +118,4 @@ derivePersistField "PublishState"
 derivePersistField "PermissionType"
 derivePersistField "TimeUnit"
 derivePersistField "PortfolioSymbolSide"
+derivePersistField "PortfolioAnalysisResultType"
