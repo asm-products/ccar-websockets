@@ -835,7 +835,7 @@ readerThread app nickN terminate = do
                                 readerThread app nickN terminate
             Nothing -> readerThread app nickN True  
         liftIO $ Logger.debugM iModuleName 
-                        $ "Wrote " `mappend` (show textData) `mappend` (show conn)
+                        $ "Wrote " `mappend` "Wrote something..." `mappend` (show conn)
         
 jobReaderThread :: App -> T.Text -> Bool -> IO ()
 jobReaderThread app nickN terminate = 

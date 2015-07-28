@@ -167,26 +167,31 @@ queryCompany aNickName aCompany = do
 
 
 
-insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO ()
+insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO (Either T.Text (Key CompanyUser))
 insertCompanyPerson aNickName aCompanyId chatMinder = do
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
 		personId <- getBy $ PersonUniqueNickName aNickName
 		cid <- getBy $ CompanyUniqueID aCompanyId 
+
 		liftIO $ Logger.debugM iModuleName $ "Company " ++ (show cid)
 		liftIO $ Logger.debugM iModuleName $ "Person " ++ (show personId)
 		case (personId, cid)  of 
 			(Just (Entity k1 p1) , Just (Entity k2 p2)) -> do 
-					insert $ CompanyUser k2 k1 chatMinder False (Just "en_US")
-					return()
+					cuid <- getBy $ UniqueCompanyUser k2 k1
+					case cuid of 
+						Nothing -> do 
+								v <- insert $ CompanyUser k2 k1 chatMinder False (Just "en_US")
+								return $ Right v
+						Just _ -> return $ Left "Entity exists. Not inserting"
 			(_, _ ) ->do 
 				liftIO $ Logger.errorM iModuleName $ 
 						"Error inserting company user " 
 						`mappend` (T.unpack aNickName) 
 						`mappend` " " 
 						`mappend` (T.unpack aCompanyId) 
-				return ()
-	return ()
+				return $ Left "Insert/update failed"
+	return x
 
 
 queryCompanyUser n c = do
