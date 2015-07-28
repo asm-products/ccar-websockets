@@ -31,4 +31,5 @@ enum CommandType {
 	QueryActiveWorkbenches;
 	ManageWorkbench;
 	ExecuteWorkbench;
+	AssignCompany;
 }

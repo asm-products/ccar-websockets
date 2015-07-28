@@ -48,11 +48,15 @@ class Company {
 	private static var COMPANY_ID = "companyID";
 	private static var COMPANY_MAILBOX = "generalMailbox";
 	private static var COMPANY_FORM_ID = "companyForm";
+	private static var ASSIGN_COMPANY = "assignCompany"; //Assign a company to a user.
 
 	private var newCompany : Bool;
 	private var selectListEventStream : Deferred<Dynamic>;
 	
-
+	private function getAssignCompany() : ButtonElement {
+		var buttonElement : ButtonElement = cast Browser.document.getElementById(ASSIGN_COMPANY);
+		return buttonElement;
+	}
 	private function getCompanySignup () : ButtonElement {
 		var buttonElement : ButtonElement = cast Browser.document.getElementById(SAVE_COMPANY);
 		return buttonElement;
@@ -93,6 +97,24 @@ class Company {
 		Util.showDivField(COMPANY_FORM_ID);
 	}
 
+
+	private function assignCompanyToUser(ev : Dynamic){
+		trace("Assigning company to a user:" + ev);
+		try {
+				var payload : Dynamic = {
+					commandType : "AssignCompany"
+					, companyID : ev 
+					, userName : MBooks_im.getSingleton().getNickName()
+					, isChatMinder : false
+					, isSupport : false
+					, nickName : MBooks_im.getSingleton().getNickName()
+				};
+				MBooks_im.getSingleton().doSendJSON(payload);
+		}catch (err : Dynamic) {
+			trace("Error assigning company " + ev);
+		}
+
+	}
 	//Save images in base64 encoded strings
 	private function saveButtonPressed(ev : Event) {
 		trace("Save button pressed");
@@ -280,7 +302,12 @@ class Company {
 		stream.then(saveButtonPressed);
 		selectListEventStream = new Deferred<Dynamic>();
 		MBooks_im.getSingleton().getUserLoggedInStream().then(selectAllCompanies);
+		MBooks_im.getSingleton().selectedCompanyStream.then(assignCompanyToUser);
+		MBooks_im.getSingleton().assignCompanyStream.then(assignCompanyResponse);
+	}
 
+	private function assignCompanyResponse(res : Dynamic){
+		trace("Processing assign company response " + res);
 	}
 
 

@@ -1,4 +1,5 @@
 module CCAR.Model.PortfolioSymbol (
+	manage
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -47,6 +48,59 @@ import System.IO(openFile, writeFile, IOMode(..))
 import System.Log.Logger as Logger
 
 
---Helper functions 
 
 iModuleName = "CCAR.Model.PortfolioSymbol"
+
+data CRUD = Create | Read | UpdatePrime | Delete 
+			deriving (Show, Read, Eq, Data, Generic, Typeable)
+			
+
+data PortfolioSymbolT = PortfolioSymbolT {
+	commandType :: T.Text 
+	, portfolioID :: T.Text -- unique uuid for the portfolio
+	, symbol :: T.Text 
+	, quantity :: Double 
+	, side :: PortfolioSymbolSide 
+	, symbolType :: PortfolioSymbolType 
+	, createdBy :: T.Text 
+	, updatedBy :: T.Text 
+} deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+data PortfolioSymbolQueryT = PortfolioSymbolQueryT {
+	qCommandType :: T.Text 
+	, qPortfolioID :: T.Text
+	, resultSet :: [PortfolioSymbolT]
+} deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+queryPortfolioSymbol :: PortfolioSymbolQueryT -> IO (Either T.Text PortfolioSymbolQueryT) 
+queryPortfolioSymbol = undefined 
+
+dtoToDao :: PortfolioSymbolT -> IO PortfolioSymbol 
+dtoToDao = undefined
+
+daoToDto :: PortfolioSymbol -> IO (Either T.Text PortfolioSymbol) 
+daoToDto = undfined 
+
+
+
+
+-- create, read , update and delete operations
+manage :: NickName -> Value -> IO (GC.DestinationType, T.Text)
+manage = undefined
+
+process :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol))
+process = undefined 
+
+insertPortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol))
+insertPortfolioSymbol = undefined
+
+
+updatePortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol))
+updatePortfolioSymbol = undefined
+
+deletePortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol))
+deletePortfolioSymbol = undefined
+
+
+
+

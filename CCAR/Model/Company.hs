@@ -173,9 +173,19 @@ insertCompanyPerson aNickName aCompanyId chatMinder = do
 	x <- dbOps $ do 
 		personId <- getBy $ PersonUniqueNickName aNickName
 		cid <- getBy $ CompanyUniqueID aCompanyId 
+		liftIO $ Logger.debugM iModuleName $ "Company " ++ (show cid)
+		liftIO $ Logger.debugM iModuleName $ "Person " ++ (show personId)
 		case (personId, cid)  of 
 			(Just (Entity k1 p1) , Just (Entity k2 p2)) -> do 
 					insert $ CompanyUser k2 k1 chatMinder False (Just "en_US")
+					return()
+			(_, _ ) ->do 
+				liftIO $ Logger.errorM iModuleName $ 
+						"Error inserting company user " 
+						`mappend` (T.unpack aNickName) 
+						`mappend` " " 
+						`mappend` (T.unpack aCompanyId) 
+				return ()
 	return ()
 
 
@@ -265,7 +275,7 @@ queryAllCompanies aNickName (Object a) = do
 assignUserToCompany aNickName aValue = do 
 	case (fromJSON aValue) of 
 		Success (AssignUser cType cID user chatMinder support) -> do 
-			x <- insertCompanyPerson cID user chatMinder 
+			x <- insertCompanyPerson user cID chatMinder 
 			return (GC.Reply, serialize x)
 		Error errorMsg -> return (GC.Reply, 
 					serialize $ genericErrorCommand $ 

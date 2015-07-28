@@ -93,6 +93,9 @@ class MBooks_im {
 			initializeElementStream(getMessageInput(), "keyup");
 		mStream.then(sendMessage);
 		userLoggedIn = new Deferred<Dynamic>();
+		selectedCompanyStream = new Deferred<Dynamic>();
+		assignCompanyStream = new Deferred<Dynamic> ();
+
 	}
 
 
@@ -311,6 +314,9 @@ class MBooks_im {
 			}
 			case UserLeft : {
 				processUserLeft(incomingMessage);
+			}
+			case AssignCompany :{
+				assignCompanyStream.resolve(incomingMessage);
 			}
 			case KeepAlive : {
 				trace("Processing keep alive");
@@ -831,6 +837,8 @@ class MBooks_im {
 	var company : Company;
 	var project : model.Project;
 	var ccar : model.CCAR;
+	public var selectedCompanyStream (default, null) : Deferred<Dynamic>;
+	public var assignCompanyStream (default, null) : Deferred<Dynamic>;
 	static function main() {
 		singleton = new MBooks_im();
 		singleton.company = new Company();

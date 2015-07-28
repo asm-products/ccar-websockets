@@ -260,6 +260,8 @@ class Project {
 		trace("Reading company information for " + selectedId);
 		company.read(selectedId);
 		getProjectList(selectedId);	
+		//Globally sets the company that was selected.
+		MBooks_im.getSingleton().selectedCompanyStream.resolve(selectedId);		
 	}
 
 

@@ -390,6 +390,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             createdOn UTCTime default=CURRENT_TIMESTAMP
             updatedBy PersonId
             updatedOn UTCTime default=CURRENT_TIMESTAMP
+            UniquePortfolioSymbol portfolio symbol symbolType side 
             deriving Show Eq
         PortfolioAnalysis json 
             portfolioId PortfolioId 
