@@ -316,6 +316,7 @@ class MBooks_im {
 				processUserLeft(incomingMessage);
 			}
 			case AssignCompany :{
+				trace("Processing assigning company");
 				assignCompanyStream.resolve(incomingMessage);
 			}
 			case KeepAlive : {

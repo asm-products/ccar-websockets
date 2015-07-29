@@ -183,7 +183,9 @@ insertCompanyPerson aNickName aCompanyId chatMinder = do
 						Nothing -> do 
 								v <- insert $ CompanyUser k2 k1 chatMinder False (Just "en_US")
 								return $ Right v
-						Just _ -> return $ Left "Entity exists. Not inserting"
+						Just _ -> do 
+							liftIO $ Logger.infoM iModuleName $  "Entity exists. Not inserting"
+							return $ Left "Entity exists. Not inserting"
 			(_, _ ) ->do 
 				liftIO $ Logger.errorM iModuleName $ 
 						"Error inserting company user " 
@@ -279,9 +281,12 @@ queryAllCompanies aNickName (Object a) = do
 
 assignUserToCompany aNickName aValue = do 
 	case (fromJSON aValue) of 
-		Success (AssignUser cType cID user chatMinder support) -> do 
+		Success a@(AssignUser cType cID user chatMinder support) -> do 
 			x <- insertCompanyPerson user cID chatMinder 
-			return (GC.Reply, serialize x)
+			case x of 
+				Right y -> return (GC.Reply, serialize a)
+				Left z -> return (GC.Reply, serialize $ 
+										a{auCompanyID = z, auUserName = z})
 		Error errorMsg -> return (GC.Reply, 
 					serialize $ genericErrorCommand $ 
 						"Error assignUserToCompany " ++ errorMsg)
