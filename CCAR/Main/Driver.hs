@@ -67,8 +67,12 @@ import System.Log.Logger as Logger
 import System.Log as Log
 
 
+
+
 iModuleName :: String 
 iModuleName = "CCAR.Main.Driver"
+
+
 --connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
 connStr = getConnectionString
 
@@ -835,7 +839,7 @@ readerThread app nickN terminate = do
                                 readerThread app nickN terminate
             Nothing -> readerThread app nickN True  
         liftIO $ Logger.debugM iModuleName 
-                        $ "Wrote " `mappend` "Wrote something..." `mappend` (show conn)
+                        $ "Wrote " `mappend` (show $ T.take 40 textData) `mappend` (show conn)
         
 jobReaderThread :: App -> T.Text -> Bool -> IO ()
 jobReaderThread app nickN terminate = 

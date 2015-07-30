@@ -6,7 +6,7 @@ import GHC.Generics
 import Data.Aeson as J
 
 
-data CRUD = Create  | Update  | 
-	Query | Delete  deriving(Show, Eq, Generic)
+data CRUD = Create  | UT_Update  | Read | Query | Delete  deriving(Show, Eq, Generic)
+
 instance ToJSON CRUD
 instance FromJSON CRUD

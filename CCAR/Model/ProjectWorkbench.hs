@@ -3,6 +3,7 @@ module CCAR.Model.ProjectWorkbench(
 	, queryActiveWorkbenches
 	, manageWorkbench
 	, executeWorkbench
+	, testExecuteScript
 )where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -369,6 +370,11 @@ getScriptDetails anId = dbOps $ do
 						return $ (sT', sD, n')
 
 
+
+
+testExecuteScript = do 
+	x <- executeScript EnTypes.RScript "test_uuid" "#This is a comment" 1 
+	return x
 type Core = Int
 executeScript :: EnTypes.SupportedScript -> 
 							T.Text -> 
@@ -387,10 +393,9 @@ executeScript EnTypes.RScript scriptUUID scriptData nCores = do
 			timeStamp <- Data.Time.getCurrentTime
 			Logger.infoM iModuleName 
 						$ "Reading script file " ++ (scriptFileName timeStamp)
-			handle1 <- openFile (scriptFileName timeStamp) WriteMode 
-			hPutStr handle1 (T.unpack scriptData) -- We need to use a better library here.
-			hClose handle1 
-			
+			bR <- bracket(openFile (scriptFileName timeStamp) WriteMode) hClose $ \h -> do 
+				hPutStr h (T.unpack scriptData) -- We need to use a better library here.
+			Logger.infoM iModuleName $ "Bracket returned " `mappend` (show bR)
 			result <- tryEC $ 
 					run $ 
 						T.unpack $  
