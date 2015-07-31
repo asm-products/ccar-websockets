@@ -53,7 +53,7 @@ type NickName = Text
 type Base64Text = Text -- Base64 encoded text representing the image.
 
 getPoolSize :: IO Int 
-getPoolSize = return 10
+getPoolSize = getEnv "POOL_SIZE"  >>= (return . read)
 
 getConnectionString :: IO ByteString 
 getConnectionString = do

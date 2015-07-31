@@ -579,17 +579,7 @@ deleteConnection app nn = do
 addConnection :: App -> WSConn.Connection ->  T.Text -> STM ()
 addConnection app aConn nn = do 
                 nMap <- readTVar $ nickNameMap app 
-                w <- newTChan
-                r <- dupTChan w 
-                jw <- newTChan 
-                jwr <- dupTChan jw
-                clientState <- return ClientState{nickName = nn 
-                        , connection = aConn
-                        , readChan = r 
-                        , writeChan = w
-                        , jobWriteChan = jw 
-                        , jobReadChan = jwr
-                }
+                clientState <- GroupCommunication.createClientState nn aConn
                 _ <- writeTVar (nickNameMap app) (IMap.insert nn clientState nMap)
                 return ()
 
@@ -831,16 +821,19 @@ readerThread app nickN terminate = do
                         textData <- readTChan (readChan clientState)                        
                         return (Just $ connection clientState, textData)
                     [] -> return (Nothing, "")
-        case conn of 
-            Just connection -> do 
+        x <- case conn of 
+                Just connection -> do 
                                 _ <- WSConn.sendTextData (connection) textData `catch` 
-                                        (\h@(CloseRequest e f)-> handleDisconnects app 
-                                                    connection nickN h)
+                                        (\h@(CloseRequest e f)-> do 
+                                                    handleDisconnects app 
+                                                        connection nickN h
+                                                    readerThread app nickN True)
+                                liftIO $ Logger.debugM iModuleName 
+                                            $ "Wrote " `mappend` 
+                                            (show $ T.take 150 textData) `mappend` (show conn)
                                 readerThread app nickN terminate
-            Nothing -> readerThread app nickN True  
-        liftIO $ Logger.debugM iModuleName 
-                        $ "Wrote " `mappend` (show $ T.take 40 textData) `mappend` (show conn)
-        
+                Nothing -> readerThread app nickN True  
+        return x
 jobReaderThread :: App -> T.Text -> Bool -> IO ()
 jobReaderThread app nickN terminate = 
     if(terminate == True) then do 
@@ -970,7 +963,9 @@ getHomeR = do
     
 driver :: IO ()
 driver = do
-    h <- SimpleLogger.fileHandler "debug.log" Log.DEBUG
+    sH <- openFile "debug.log" WriteMode
+    hSetBuffering sH $ BlockBuffering $ Just 4096
+    h <- SimpleLogger.streamHandler sH Log.DEBUG
     lh <- return $ setFormatter h (simpleLogFormatter "[$time : $loggername : $prio : $tid] $msg")
     s <- SimpleLogger.streamHandler stderr Log.ERROR
     _ <- Logger.updateGlobalLogger "CCAR" $ Logger.setLevel 

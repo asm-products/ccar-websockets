@@ -3,6 +3,7 @@
 
 module CCAR.Main.GroupCommunication 
 	(ClientState(..)
+    , createClientState
 	, ClientIdentifierMap(..)
 	, processSendMessage
     , getMessageHistory
@@ -14,6 +15,7 @@ import Control.Concurrent
 import Control.Concurrent.STM.Lifted
 import Control.Concurrent.Async
 import qualified  Data.Map as IMap
+import Data.Monoid ((<>), mappend)
 import Control.Exception
 import Control.Monad
 import Control.Monad.Logger(runStderrLoggingT)
@@ -58,7 +60,23 @@ data ClientState = ClientState {
 			, writeChan :: TChan T.Text
             , jobReadChan :: TChan Value 
             , jobWriteChan :: TChan Value
+            , workingDirectory :: FilePath
 	}
+
+createClientState nn aConn = do 
+        w <- newTChan
+        r <- dupTChan w 
+        jw <- newTChan 
+        jwr <- dupTChan jw
+        return ClientState{nickName = nn 
+                        , connection = aConn
+                        , readChan = r 
+                        , writeChan = w
+                        , jobWriteChan = jw 
+                        , jobReadChan = jwr
+                        , workingDirectory = ("." `mappend` (T.unpack nn))
+        }
+
 instance Show ClientState where 
     show cs = (show $ nickName cs) ++  " Connected"
 type ClientIdentifierMap = TVar (IMap.Map ClientIdentifier ClientState)

@@ -22,6 +22,7 @@ import Control.Monad.Logger(runStderrLoggingT)
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
 import Data.Text.Lazy as L 
+import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 import Database.Persist.Postgresql as DB
 import Data.Aeson.Encode as En
 import Data.Text.Lazy.Encoding as E
@@ -38,7 +39,8 @@ import Data.Data
 import Data.Monoid (mappend)
 import Data.Typeable 
 import System.IO
-import Data.Time
+import System.Locale as Locale
+import Data.Time 
 import Data.UUID.V1
 import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnTypes 
@@ -372,16 +374,16 @@ getScriptDetails anId = dbOps $ do
 
 
 
-testExecuteScript = do 
-	x <- executeScript EnTypes.RScript "test_uuid" "#This is a comment" 1 
-	return x
+
+formatTimestamp = formatTime Locale.defaultTimeLocale "%D_%T"
+
 type Core = Int
-executeScript :: EnTypes.SupportedScript -> 
+executeScript :: T.Text -> EnTypes.SupportedScript -> 
 							T.Text -> 
 							T.Text -> 
 							Core -> 
 							IO ExecuteWorkbench
-executeScript EnTypes.UnsupportedScriptType scriptId scriptData nCores = 
+executeScript nn EnTypes.UnsupportedScriptType scriptId scriptData nCores = 
 	return $ ExecuteWorkbench unknownId 
 			"ExecuteWorkbench" $ 
 				" Unsupported type " `mappend`
@@ -389,51 +391,72 @@ executeScript EnTypes.UnsupportedScriptType scriptId scriptData nCores =
 						(show EnTypes.UnsupportedScriptType)
 
 
-executeScript EnTypes.RScript scriptUUID scriptData nCores = do 
+executeScript nickName EnTypes.RScript scriptUUID scriptData nCores = do 
 			timeStamp <- Data.Time.getCurrentTime
-			Logger.infoM iModuleName 
+			Logger.debugM iModuleName 
 						$ "Reading script file " ++ (scriptFileName timeStamp)
 			bR <- bracket(openFile (scriptFileName timeStamp) WriteMode) hClose $ \h -> do 
-				hPutStr h (T.unpack scriptData) -- We need to use a better library here.
-			Logger.infoM iModuleName $ "Bracket returned " `mappend` (show bR)
-			result <- tryEC $ 
-					run $ 
-						T.unpack $  
-						"mpiexec -np "   
-						`mappend` (T.pack $ show nCores)
-						`mappend` " "
-						`mappend` "Rscript " 
-						`mappend` (T.pack (scriptFileName timeStamp))			
-			Logger.infoM iModuleName $ 
-					"Completed processing the job " `mappend`  
-							(scriptFileName timeStamp)
-			case result of
-				Right str -> 
-					return $ ExecuteWorkbench unknownId 
-								"ExecuteWorkbench" $ 
-									T.pack str
+				hPutStr h (T.unpack scriptData) 
+
+			Logger.debugM iModuleName $ "Bracket returned " `mappend` (show bR)
+			createDir <- tryEC $
+						run $  ("mkdir -p " ++ "./" ++ (T.unpack nickName)):: IO (Either ExitCode String)
+			case createDir of 
+				Right str -> do 
+					result <- tryEC $ 
+								run $ 
+								T.unpack $  
+								"mpiexec -np "   
+								`mappend` (T.pack $ show nCores)
+								`mappend` " "
+								`mappend` "Rscript " 
+								`mappend` (T.pack (scriptFileName timeStamp))			
+					Logger.infoM iModuleName $ 
+							"Completed processing the job " `mappend`  
+									(scriptFileName timeStamp)
+					case result of
+						Right str -> 
+							return $ ExecuteWorkbench scriptUUID
+										"ExecuteWorkbench" $ 
+											T.pack str
+						Left code -> 
+							return $ ExecuteWorkbench unknownId 
+										"ExecuteWorkbench" $ 
+											T.pack $ show code
+
 				Left code -> 
 					return $ ExecuteWorkbench unknownId 
 								"ExecuteWorkbench" $ 
 									T.pack $ show code
+
 			where 
 				scriptFileName timeStamp= 
-					("." ++ "/" ++ "workbench_data" 
-						++  "/" ++ (T.unpack scriptUUID) 
+					("." ++ "/" ++ (T.unpack nickName)
+						++  "/" ++ (T.unpack scriptUUID) ++ (formatTimestamp timeStamp) 
 						++ ".r")
 
 
-
+executeWorkbench :: Value -> IO (GC.DestinationType, T.Text)
 executeWorkbench aValue@(Object a) = case (fromJSON aValue) of 
 	Success r@(ExecuteWorkbench wId cType _ ) -> do 
 		(sType, sContent, cores) <- getScriptDetails wId 
-		result <- executeScript sType wId sContent cores 
-		return  (GC.Reply, 
-				serialize $ 
-						(Right $ 
-							result {executeWorkbenchId = wId 
-									, executeWorkbenchCommandType = cType} :: 
-										Either T.Text ExecuteWorkbench))
+		case nickName of 
+			Just (String nn) -> do 
+				result <- executeScript nn sType wId sContent cores 
+				return  (GC.Reply, 
+						serialize $ 
+								(Right $ 
+									result {executeWorkbenchId = wId 
+											, executeWorkbenchCommandType = cType} :: 
+												Either T.Text ExecuteWorkbench))
 	Error errorMsg -> return (GC.Reply
 			, serialize $
 					genericErrorCommand $ "Error processing executeWorkbench " ++ errorMsg)				
+	where 
+		nickName = LH.lookup "nickName" a 
+
+
+{-- Tests --}
+testExecuteScript = do 
+	x <- executeScript "test_nick_name" EnTypes.RScript "test_uuid" "#This is a comment" 1 
+	return x
