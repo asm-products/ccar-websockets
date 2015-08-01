@@ -298,10 +298,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             updatedBy UTCTime default=CURRENT_TIMESTAMP
             UniqueResponse responseUUID
             deriving Show Eq 
-        SurveyResponses json             
+        SurveyResponses json  -- conflicts with an enumerated type
             response ResponseId
             respondedBy PersonId 
             createdOn UTCTime default=CURRENT_TIMESTAMP
+            approvedBy PersonId Maybe -- Only approved survey responses will be counted.
             UniqueSurveyResponse response respondedBy 
             deriving Show Eq 
         Marketplace json 

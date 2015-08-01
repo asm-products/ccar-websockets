@@ -431,8 +431,8 @@ executeScript nickName EnTypes.RScript scriptUUID scriptData nCores = do
 
 			where 
 				scriptFileName timeStamp= 
-					("." ++ "/" ++ (T.unpack nickName)
-						++  "/" ++ (T.unpack scriptUUID) ++ (formatTimestamp timeStamp) 
+					("." ++ "/" ++ ("workbench_data")
+						++  "/" ++ (T.unpack scriptUUID)
 						++ ".r")
 
 

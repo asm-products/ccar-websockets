@@ -168,6 +168,7 @@ instance FromJSON PortfolioT where
 				a .: "updatedBy" 
 	parseJSON _ 	= Appl.empty  
 
+{-- Make sure that the dto and the dao refer to the same thing. To be implemented. --}
 sanityCheck :: Key Portfolio -> PortfolioT -> Either T.Text Bool
 sanityCheck a b = Right True
 
@@ -279,8 +280,6 @@ insertPortfolio p@(PortfolioT cType
 											nKey 
 											currentTime
 								return $ Right porId
-	 
-
 
 
 updatePortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio))
