@@ -1,5 +1,7 @@
 module CCAR.Model.PortfolioSymbol (
 	manage
+	, readPortfolioSymbol
+	, testInsert
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -191,23 +193,33 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 								updator
 								requestor			
 						)
-						 = dbOps $ do 
-				portfolio <- getBy $ UniquePortfolio portfolioId 
-				currentTime <- liftIO $ getCurrentTime
-				case portfolio of 
-					Just (Entity pID pValue) -> do 
-						cr <- getBy $ PersonUniqueNickName creator
-						up <- getBy $ PersonUniqueNickName updator 
-						req <- getBy $ PersonUniqueNickName requestor 
-						case (cr, up, req) of 
-							(Just (Entity crID crValue), Just (Entity upID upValue), Just (Entity reqID reqValue)) -> do 
-									n <- insert $ PortfolioSymbol pID symbol quantity side symbolType crID currentTime upID currentTime
-									return $ Right (n, (creator, updator, portfolioId))
-							_ -> do 
-								liftIO $ Logger.errorM iModuleName $ 
-											"Error processing manage portfolio symbol " `mappend` (show a)
-								return $ Left $ T.pack $ "Insert failed " `mappend` (T.unpack portfolioId)
-					Nothing -> return $ Left $ T.pack $ "Portfolio not found " `mappend` (T.unpack portfolioId)
+						 = do 
+				portfolioSymbol <- liftIO $ readPortfolioSymbol a 
+				case portfolioSymbol of 
+					Right _ -> do 
+						liftIO $ Logger.errorM iModuleName 
+								$ "Portfolio symbol exists. Updating the record, because we have the record:"
+									`mappend` (show a)
+						updatePortfolioSymbol a 
+					Left _ -> dbOps $ do 
+						portfolio <- getBy $ UniquePortfolio portfolioId 
+						currentTime <- liftIO $ getCurrentTime
+						case portfolio of 
+							Just (Entity pID pValue) -> do 
+								cr <- getBy $ PersonUniqueNickName creator
+								up <- getBy $ PersonUniqueNickName updator 
+								req <- getBy $ PersonUniqueNickName requestor 
+								case (cr, up, req) of 
+									(Just (Entity crID crValue), Just (Entity upID upValue), Just (Entity reqID reqValue)) -> do 
+											n <- insert $ PortfolioSymbol pID symbol quantity side symbolType crID currentTime upID currentTime
+											return $ Right (n, (creator, updator, portfolioId))
+									_ -> do 
+										liftIO $ Logger.errorM iModuleName $ 
+													"Error processing manage portfolio symbol " `mappend` (show a)
+										return  $ Left $ T.pack $ "Insert failed " `mappend` (T.unpack portfolioId)
+							Nothing -> return $ Left $ T.pack $ "Portfolio not found " `mappend` 
+																(T.unpack portfolioId)
+
 
 updatePortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
 updatePortfolioSymbol a@(PortfolioSymbolT crType commandType 
@@ -219,19 +231,16 @@ updatePortfolioSymbol a@(PortfolioSymbolT crType commandType
 								creator
 								updator
 								requestor) = dbOps $ do 
-		portfolio <- getBy $ UniquePortfolio portfolioId 
+		portfolioSymbol <- liftIO $ readPortfolioSymbol a 
 		currentTime <- liftIO $ getCurrentTime
-		case portfolio of 
-			Just (Entity pID pValue) -> do 
-				portfolioSymbol <- getBy $ UniquePortfolioSymbol pID symbol symbolType side 
-				case portfolioSymbol of 
-					Just (Entity psID pValue) -> do 
-						liftIO $ Logger.debugM iModuleName $ 
-								"Updating portfolio symbol " `mappend` (T.unpack portfolioId)
-										`mappend` " " `mappend` (show a)
-						x <- update psID [PortfolioSymbolQuantity =. quantity
+		case portfolioSymbol of 
+			Right (psID, _) -> do 
+							x <- update psID [PortfolioSymbolQuantity =. quantity
 										   , PortfolioSymbolUpdatedOn =. currentTime]
-						return $ Right (psID, (creator, updator, portfolioId))
+							return $ Right (psID, (creator, updator, portfolioId))
+			Left x -> do 
+				liftIO $ Logger.errorM iModuleName $ "Error updating portfolio symbol " `mappend` (show a) 
+				return portfolioSymbol
 
 deletePortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
 deletePortfolioSymbol a@(PortfolioSymbolT crType commandType 
@@ -243,24 +252,62 @@ deletePortfolioSymbol a@(PortfolioSymbolT crType commandType
 								creator
 								updator
 								requestor) = dbOps $ do
+	portfolioSymbol <- liftIO $ readPortfolioSymbol a 
+	case portfolioSymbol of 
+		Right (psID, _) -> do 
+			liftIO $ Logger.debugM iModuleName $ "Deleting portfolio symbol " `mappend` (show a) 
+			delete psID 
+			return portfolioSymbol 
+		Left x -> do 
+			liftIO $ Logger.errorM iModuleName $ "Error deleting portfolio symbol " `mappend` (show a)
+			return portfolioSymbol
+
+
+readPortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
+readPortfolioSymbol a@(PortfolioSymbolT crType commandType 
+								portfolioId 
+								symbol 
+								quantity
+								side 
+								symbolType 
+								creator
+								updator
+								requestor) = dbOps $ do 
 	portfolio <- getBy $ UniquePortfolio portfolioId
 	case portfolio of 
 		Just (Entity pID pValue) -> do 
 			portfolioSymbol <- getBy $ UniquePortfolioSymbol pID symbol symbolType side 
 			case portfolioSymbol of 
 				Just (Entity psID pValue) -> do 
-					liftIO $ Logger.debugM iModuleName $ "Deleting portfolio symbol " `mappend` (show a)
-					delete psID 
+					liftIO $ Logger.debugM iModuleName $ "Reading portfolio symbol " `mappend` (show a)
 					return $ Right (psID, (creator, updator, portfolioId))
 				Nothing -> do 
 					liftIO $ Logger.errorM iModuleName $ "Portfolio symbol not found " `mappend` (show a) 
 					return $ Left $ T.pack $ "Error deleting " `mappend` (show a)
 
+uuidAsString = UUID.toString 
 
 
-readPortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
-readPortfolioSymbol = undefined
-
+testInsert :: Key Portfolio -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text))) 
+testInsert portfolioID = dbOps $ do
+	u <- liftIO $ nextUUID
+	currentTime <- liftIO $ getCurrentTime
+	portfolio <- get portfolioID 
+	case (portfolio, u) of 
+		(Just por, Just uuid) ->  do 
+			person <- insert $ Person "symbolTest" "symbolTest" 
+						(T.pack $ uuidAsString uuid) "symbolTest" (Just "en-us") currentTime
+			liftIO $ insertPortfolioSymbol $ PortfolioSymbolT Create 
+							managePortfolioSymbolCommand
+							(portfolioUuid por)
+							"SBR"
+							314.14
+							EnTypes.Buy
+							EnTypes.Equity
+							(T.pack $ uuidAsString uuid)
+							(T.pack $ uuidAsString uuid)
+							(T.pack $ uuidAsString uuid)
+		_ -> return $ Left $ "testInsert failed"										
 
 instance ToJSON CRUD 
 instance FromJSON CRUD
