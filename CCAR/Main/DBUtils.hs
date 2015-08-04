@@ -382,7 +382,6 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Eq
         PortfolioSymbol json
             portfolio PortfolioId
-            uuid Text
             symbol Text
             quantity Double
             side PortfolioSymbolSide
