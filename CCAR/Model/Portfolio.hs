@@ -5,7 +5,9 @@ module CCAR.Model.Portfolio (
 	, process
 	, PortfolioT(..)
 	, Portfolio(..)
+	, manageSearch
 	, testInsertPortfolio
+	, testQueryPortfolios
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -37,7 +39,7 @@ import GHC.Generics
 import GHC.IO.Exception
 
 import Data.Data
-import Data.Monoid (mappend)
+import Data.Monoid (mappend, (<>) )
 import Data.Typeable 
 import System.IO
 import Data.Time
@@ -57,6 +59,8 @@ import System.Log.Logger as Logger
 --Helper functions 
 
 iModuleName = "CCAR.Model.Portfolio"
+queryPortfolio = "QueryPortfolio"
+
 uuidAsString = UUID.toString 
 uuidFromString aString = do
 	case (x aString) of 
@@ -121,7 +125,9 @@ data PortfolioT = PortfolioT {
 } deriving(Show, Read, Eq, Data, Generic, Typeable)
 
 data PortfolioQuery = PortfolioQuery {
-	qCompanyId :: CompanyID 
+	pqCommandType :: T.Text
+	, pqNickName :: T.Text
+	, qCompanyId :: CompanyID 
 	, qUserId :: INickName
 	, resultSet :: [Either T.Text PortfolioT]
 } deriving (Show, Read, Eq, Data, Generic, Typeable)
@@ -141,8 +147,24 @@ queryPortfolios query = do
 						return $ Right $ query {resultSet = portfolioTs}
 					Nothing -> return $ Left $ "Query portfolios failed"
 
-instance ToJSON PortfolioQuery
-instance FromJSON PortfolioQuery
+
+instance ToJSON PortfolioQuery where 
+	toJSON pq@(PortfolioQuery cType nickName qCid userId r) = 
+		object [
+			"commandType" .= cType 
+			, "nickName" .= nickName 
+			, "companyId" .= qCid 
+			, "useerId"  .= userId 
+			, "resultSet" .= r
+		]
+instance FromJSON PortfolioQuery where 
+	parseJSON (Object a)  = PortfolioQuery <$> 
+						a .: "commandType" <*> 
+						a .: "nickName" <*> 
+						a .: "companyId" <*> 
+						a .: "userId" <*> 
+						a .: "resultSet"
+	parseJSON _ 		 = Appl.empty
 
 instance ToJSON PortfolioT where
 	toJSON p1@(PortfolioT c p c1 u s cr up) =
@@ -212,6 +234,20 @@ daoToDto crType pid = do
 
 			Nothing -> return $ Left $ T.pack $ 
 								"Unable to query db " `mappend` (show pid) 
+
+
+manageSearch :: NickName -> Value -> IO (GC.DestinationType, T.Text) 
+manageSearch aNickName aValue@(Object a) = 
+	case (fromJSON aValue) of 
+		Success r -> do 
+				res <- queryPortfolios r 
+				case res of 
+					Right x -> return (GC.Reply, serialize x) 
+					Left y -> return (GC.Reply, serialize $ genericErrorCommandText $ 
+												"Manage query failed "  <> y)
+		Error s ->  return (GC.Reply,
+                     serialize $ genericErrorCommand $ "parse login  failed "++ s)
+
 
 manage :: NickName -> Value -> IO (GC.DestinationType, T.Text)
 manage aNickName aValue@(Object a) = 
@@ -349,29 +385,51 @@ testInsertPortfolio = do
 			companyUUID <- nextUUID 
 			case companyUUID of 
 				Just cU -> do 
-						currentTime <- getCurrentTime
-						company <- dbOps $ insert $ Company "PortfolioTester" (T.pack $ uuidAsString cU) 
-														"tester@portfoliotester.com" 
-														"No image" 
-														person 
-														currentTime 
-														currentTime
+					currentTime <- getCurrentTime
+					company <- dbOps $ insert $ Company "PortfolioTester" (T.pack $ uuidAsString cU) 
+													"tester@portfoliotester.com" 
+													"No image" 
+													person 
+													currentTime 
+													currentTime
 
-						--Create a company user
-						companyUser <- dbOps $ insert $ CompanyUser company person chatMinder support locale
-						portfolio <- insertPortfolio $ PortfolioT Create "insert_me" 
-								(uuidAsText cU) 
-								userIdAsText "Test portfolio" 
-								userIdAsText
-								userIdAsText
-						return portfolio
-						where 
-								uuidAsText = T.pack . uuidAsString 
-								userIdAsText = uuidAsText u
+					--Create a company user
+					companyUser <- dbOps $ insert $ CompanyUser company person chatMinder support locale
+					portfolio <- insertPortfolio $ PortfolioT Create "insert_me" 
+							(uuidAsText cU) 
+							userIdAsText "Test portfolio" 
+							userIdAsText
+							userIdAsText
+					return portfolio
+					where 
+							uuidAsText = T.pack . uuidAsString 
+							userIdAsText = uuidAsText u
 	where
 		chatMinder = True
 		support = True
 		locale = Just ("en-us")
+
+
+testQueryPortfolios = do 
+	portfolio <- testInsertPortfolio
+	case portfolio of 
+		Right pID -> do 
+			pEntity <- dbOps $ get pID 
+			case pEntity of 
+				Just pEV -> do
+					user <- dbOps $ get (portfolioCreatedBy pEV)
+					companyUser <- dbOps $ get (portfolioCompanyUserId pEV)
+					case (user, companyUser) of 
+						(Just u, Just cu) -> do
+								com <- dbOps $ get (companyUserCompanyId cu)
+								case com of 
+									Just com1 -> do    
+										queryPortfolios $ PortfolioQuery queryPortfolio 
+												(personNickName u) 
+												(companyCompanyID com1)
+												(personNickName u) 
+												[]
+
 
 instance ToJSON CRUD 
 instance FromJSON CRUD 

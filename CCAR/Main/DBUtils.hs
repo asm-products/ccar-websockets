@@ -394,7 +394,8 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             deriving Show Eq
         PortfolioAnalysis json 
             portfolioId PortfolioId 
-            uuid Text 
+            uuid Text
+            analysisScript ProjectWorkbenchId 
             resultType PortfolioAnalysisResultType
             result Text -- Would be the svg output in the form of  text
             createdBy PersonId 
@@ -405,6 +406,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         PortfolioSymbolAnalysis json 
             symbol PortfolioSymbolId 
             uuid Text 
+            analysisScript ProjectWorkbenchId 
             resultType PortfolioAnalysisResultType 
             result Text 
             createdBy PersonId 

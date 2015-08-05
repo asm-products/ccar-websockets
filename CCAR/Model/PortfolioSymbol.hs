@@ -295,18 +295,22 @@ testInsert portfolioID = dbOps $ do
 	portfolio <- get portfolioID 
 	case (portfolio, u) of 
 		(Just por, Just uuid) ->  do 
-			person <- insert $ Person "symbolTest" "symbolTest" 
-						(T.pack $ uuidAsString uuid) "symbolTest" (Just "en-us") currentTime
-			liftIO $ insertPortfolioSymbol $ PortfolioSymbolT Create 
-							managePortfolioSymbolCommand
-							(portfolioUuid por)
-							"SBR"
-							314.14
-							EnTypes.Buy
-							EnTypes.Equity
-							(T.pack $ uuidAsString uuid)
-							(T.pack $ uuidAsString uuid)
-							(T.pack $ uuidAsString uuid)
+			companyUserE <- get $ portfolioCompanyUserId por 
+			case companyUserE of 
+				Just cuE -> do 
+						user <- get $ companyUserUserId cuE
+						case user of 
+							Just userFound -> 
+								liftIO $ insertPortfolioSymbol $ PortfolioSymbolT Create 
+												managePortfolioSymbolCommand
+												(portfolioUuid por)
+												"SBR"
+												314.14
+												EnTypes.Buy
+												EnTypes.Equity
+												(personNickName userFound)
+												(personNickName userFound)
+												(personNickName userFound)
 		_ -> return $ Left $ "testInsert failed"										
 
 instance ToJSON CRUD 

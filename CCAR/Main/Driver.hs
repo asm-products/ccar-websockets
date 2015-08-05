@@ -57,7 +57,7 @@ import CCAR.Model.Company as Company
 import CCAR.Model.Project as Project
 import CCAR.Model.ProjectWorkbench as ProjectWorkbench
 import CCAR.Model.Portfolio as Portfolio
-
+import CCAR.Model.PortfolioSymbol as PortfolioSymbol
 -- logging
 import System.Log.Formatter as LogFormatter
 import System.Log.Handler(setFormatter)
@@ -520,6 +520,7 @@ processCommandValue app nickName (Object a)   = do
                 -- Assign a user to a company.
                 String "AssignCompany" -> Company.assignUserToCompany nickName (Object a)
                 String "ManagePortfolio" -> Portfolio.manage nickName (Object a)
+                String "ManagePortfolioSymbol" -> PortfolioSymbol.manage nickName (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply
