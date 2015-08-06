@@ -5,4 +5,3 @@ Create Equity Shock for AAPL bps 12;
 Create Currency Shock for major USD minor GBP bps 23;
 Create Rates Shock for USD [(1Y -> bps 23),(2Y -> bps 46)];
 Create Rates Vega Shock for USD Expiry = 1M [(1M -> bps 23),(3M -> bps 33)];
-

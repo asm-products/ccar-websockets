@@ -844,6 +844,7 @@ class MBooks_im {
 		singleton = new MBooks_im();
 		singleton.company = new Company();
 		singleton.project = new Project(singleton.company);
+		singleton.ccar = new CCAR("", "", "");		
 		singleton.connect();
 	}
 
