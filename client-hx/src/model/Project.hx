@@ -37,6 +37,7 @@ import promhx.Promise;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
 import promhx.base.EventLoop;
+import view.Company;
 
 
 class Project {
@@ -69,7 +70,7 @@ class Project {
 	private var endDate : Date;
 	private var uploadedBy : String;
 	private var uploadTime : Date;
-	private var company : Company;
+	private var company : view.Company;
 	private var projectStream : Deferred<Dynamic>;
 	public var activeProjectWorkbench(default, null) : ProjectWorkbench;
 

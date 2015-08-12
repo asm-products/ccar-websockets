@@ -22,77 +22,55 @@ import promhx.Deferred;
 import promhx.base.EventLoop;
 
 
-typedef PortfolioStruct = {
-	var symbol: String;
-	var side : String;
-	var quantity : Float;		
-};
-
-typedef PortfolioPayload = {
+typedef PortfolioT = {
 	var crudType : String;
-	var struct : Array<PortfolioStruct>;
+	var commandType : String;
+	var portfolioId : String;
+	var companyId : String;
+	var userId : String;
+	var summary : String;
+	var createdBy : String;
+	var updatedBy : String;
+	var nickName : String;
 }
 
-typedef ActivePortfolio = {
-	var crudType : String;
-	var struct : PortfolioStruct;
+typedef PortfolioQuery = {
+	var commandType : String;
+	var nickName : String;
+	var companyId : String;
+	var userId : String;
+	var resultSet : Array<Dynamic>;
 }
+
 
 class Portfolio {
-	public var symbol (null, default) : String;
-	public var side (null, default) : String;
-	public var quantity (null, default) : Float;
-	public var readerStream (null, default) : Deferred<PortfolioStruct>;
-	public var writerStream (null, default) : Deferred<PortfolioPayload>;
+	public var portfolioT (null, default) : PortfolioT;
+	public var readerStream (null, default) : Deferred<PortfolioT>;
+	public var writerStream (null, default) : Deferred<PortfolioT>;
 
-
-	public function new(sym : String, sid : String, q : Float) {
-		symbol = sym;
-		side = sid;
-		quantity = q;
-		readerStream = new Deferred<PortfolioStruct>();
-		readerStream.then(readPayload);
-		writerStream = new Deferred<PortfolioPayload>();
-		writerStream.then(writePayload);
+	public function new(crudType : String, portfolioId: String
+			, companyId : String
+			, userId : String 
+			, summary : String 
+			, createdBy : String 
+			, updatedBy : String) {
+			portfolioT = {
+				crudType : crudType
+				, commandType : "ManagePortfolio"
+				, portfolioId : portfolioId
+				, companyId : companyId
+				, userId : userId 
+				, summary : summary
+				, createdBy : createdBy 
+				, updatedBy : updatedBy
+				, nickName : MBooks_im.getSingleton().getNickName()
+			}
 
 	}
 	//Manage portfolio.
-	public function save(portfolio : PortfolioStruct) {
+	public function save(portfolio : PortfolioT) {
 		trace("Saving portfolio");
 	}
-	//Read values from the stream.
-	public function readPayload(payload : PortfolioStruct) {
-		trace("Overwriting values with payload");
-		this.symbol = payload.symbol;
-		this.side = payload.side;
-		this.quantity = payload.quantity;
 
-	}
-	private function writePayload(payload : PortfolioPayload){
-		trace("Writing " + payload);
-		MBooks_im.getSingleton().doSendJSON(payload);
-	}
-	public function insert(p : Array<PortfolioStruct>) {
-		var payload = {
-			  crudType : "Insert"
-			, struct : p
-		};
-		writePayload(payload);
-	}
-
-	public function update(p : Array<PortfolioStruct>){
-		var payload  = {
-			crudType : "Update"
-			, struct : p 
-		};
-		writePayload(payload);
-	}
-	public function delete(p : Array<PortfolioStruct>){
-		var payload = {
-			crudType : "Delete"
-			, struct : p
-		}
-		writePayload(payload);
-	}
 
 }

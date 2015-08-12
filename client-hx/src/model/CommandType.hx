@@ -4,9 +4,6 @@ enum CommandType {
 	Login;
 	SendMessage;
 	ManageUser;
-	QueryUser;
-	DeleteUser;
-	UpdateUser;
 	CreateUserTerms;
 	UpdateUserTerms;
 	QueryUserTerms;
@@ -32,4 +29,8 @@ enum CommandType {
 	ManageWorkbench;
 	ExecuteWorkbench;
 	AssignCompany;
+	PortfolioSymbolTypesQuery;
+	PortfolioSymbolSideQuery;
+	QueryPortfolios;
+	ManagePortfolio;
 }

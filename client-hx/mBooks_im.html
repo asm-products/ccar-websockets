@@ -198,16 +198,23 @@
 		</p>
 		<form class="vertical" id="portfolio">
 			<div class="col_4">
-				<label for="portfolioList"> Company </label>
+				<label for="portfolioList"> Portfolios </label>
 				<select id="portfolioList">
 					<option value="0">-- Choose </option>
 				</select>
 
 				<label for="portfolioSummary"> Summary</label>
 				<textarea id="portfolioSummary"> </textarea>
+				<label for="savePortfolio"> Save Portfolio</label>
+				<button id="savePortfolio"> Save </button>
+				<label for="updatePortfolio"> Update portfolio </label>
+				<button id="updatePortfolio"> Update </button>
+				<label for="deletePortfolio"> Delete Portfolio</label>
+				<button id="deletePortfolio"> Delete </button>
 
 			</div>
 		</form>
+
 		<form class="vertical" id="symbol">
 			<div class="col_8">
 				<label for="symbolID"> Symbol </label>
@@ -298,7 +305,6 @@
 				<label for = "scriptSummmary"> Script summary </label>
 				<textarea id="scriptSummary" rows="5" placeholder="Summary">
 				</textarea>
-
 				<label for = "scriptData"> Script Data (contents) </label>
 				<textarea id="scriptData" rows = "30"></textarea>
 				<textarea id="scriptResult"> Results </textarea>				
@@ -330,6 +336,16 @@
 			</div>
 	</div>
 
+
+<div class="grid flex" class="callout clearfix">
+	<div class="col_12" style="margin-top:10px;">
+		<h4 class="center"><p><i class="fa fa-fire"></i>
+		</p id="support_title">Error Messages</h4>
+	</div>
+	<label for="applicationError"> Error messages </label>
+	<textarea id="applicationError" rows="30">
+	</textarea>
+</div>
 <div class="haxe:trace"></div>
 <script src="js/d3/d3.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="mbooks_im.js"></script>

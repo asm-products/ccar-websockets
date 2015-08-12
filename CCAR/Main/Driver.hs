@@ -499,7 +499,9 @@ processCommandValue app nickName (Object a)   = do
                                     GroupCommunication.Reply
                                     , ser $ CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
                                 )
-                String "SendMessage" -> processSendMessage (Object a)
+                String "SendMessage" -> do 
+                        (dType, value) <- processSendMessage (Object a)
+                        return (dType, ser value)
                 String "ManageCompany" -> Company.manageCompany nickName (Object a)
                 String "SelectAllCompanies" -> Company.queryAllCompanies nickName (Object a)
                 String "ManageProject" -> Project.manageProject nickName (Object a)
@@ -519,6 +521,7 @@ processCommandValue app nickName (Object a)   = do
                 String "ManageSurvey" -> Survey.manageSurvey nickName (Object a)
                 -- Assign a user to a company.
                 String "AssignCompany" -> Company.assignUserToCompany nickName (Object a)
+                String "QueryPortfolios" -> Portfolio.manageSearch nickName (Object a)
                 String "ManagePortfolio" -> Portfolio.manage nickName (Object a)
                 String "ManagePortfolioSymbol" -> PortfolioSymbol.manage nickName (Object a)
                 _ -> 

@@ -260,7 +260,7 @@ manage aNickName aValue@(Object a) =
 					case res1 of 
 						Right pT -> 
 							case (sanityCheck k pT) of 						
-								Right _ -> return (GC.Reply, serialize res)
+								Right _ -> return (GC.Reply, serialize res1)
 								Left _ -> do 
 									liftIO $ Logger.errorM iModuleName $ 
 										("Input uuids and db uuids dont match "  :: String)

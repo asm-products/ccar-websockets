@@ -20,6 +20,7 @@ import promhx.Stream;
 import promhx.Deferred;
 import promhx.base.EventLoop;
 import model.Portfolio;
+import model.Company;
 import js.Lib.*;
 import util.*;
 
@@ -31,14 +32,11 @@ class Portfolio {
 	private static var SYMBOL_INPUT_FIELD : String = "portfolioSymbol";
 	private static var SIDE_INPUT_FIELD : String = "portfolioSide";
 	private static var QUANTITY_INPUT_FIELD : String = "portfolioQuantity";
-	private static var COMPANY_LIST_FIELD : String = "portfolioCompanyList";
 	private static var PORTFOLIO_LIST_FIELD  : String = "portfolioList";
+	private static var PORTFOLIO_SUMMARY : String = "portfolioSummary";
 	public var model (default, null): model.Portfolio;
 
-	//The stream of all portfolio payloads from the server.
-	//Server events update the portfolio list presented to the user.
-	public var portfolioListStream(default, null) : Deferred<PortfolioPayload>;
-	public var activePortfolio (default, null) : Deferred<ActivePortfolio>;
+	public var activePortfolioStream (default, null) : Deferred<PortfolioT>;
 	//Symbol, side and quantity when entered (key press or select) should 
 	//trigger a save event. 
 	//Save event should trigger a save event.
@@ -63,19 +61,73 @@ class Portfolio {
 				, "click"
 			);
 		deleteP.then(deletePortfolio);
-		portfolioListStream.then(processPortfolioList);
-		activePortfolio.then(processActivePortfolio);
-
+		MBooks_im.getSingleton().portfolioListStream.then(processPortfolioList);
+		activePortfolioStream.then(processActivePortfolio);		
+		MBooks_im.getSingleton().activeCompanyStream.then(processActiveCompany);
+		MBooks_im.getSingleton().portfolioStream.then(processManagePortfolio);
+		this.getPortfoliosForUser();
 	}
 
+	public function new() {
+		activePortfolioStream = new Deferred<PortfolioT>();
+		setupEvents();
+	}
+
+	private function processActiveCompany(selected: model.Company){
+		trace("Company selected for portfolio processing " + selected);
+		this.activeCompany = selected;
+		getPortfoliosForUser();
+	}
 	private function deletePortfolio(ev : Event){
 		trace("Delete portfolio " + ev);
 	}
 	private function savePortfolio(ev : Event) {
-		trace("Save portfolio " + ev);
+		if(activePortfolio == null) {
+			insertPortfolioI();
+		}else {
+			updatePortfolioI();
+		}
 	}
 	private function updatePortfolio(ev : Event) {
 		trace("Update portfolio " + ev);
+		if(activePortfolio == null){
+			trace("Selected portfolio null. Not updating");
+		}else {
+			updatePortfolioI();
+		}
+	}
+
+
+
+	private function insertPortfolioI() {
+		var portfolioT : PortfolioT = {
+			crudType : "Create"
+			, commandType : "ManagePortfolio"
+			, portfolioId : "-1"
+			, companyId : activeCompany.companyId
+			, userId : MBooks_im.getSingleton().getNickName()
+			, summary : getPortfolioSummary()
+			, createdBy : MBooks_im.getSingleton().getNickName()
+			, updatedBy : MBooks_im.getSingleton().getNickName()
+			, nickName : MBooks_im.getSingleton().getNickName()
+		};
+		MBooks_im.getSingleton().doSendJSON(portfolioT);
+	}
+	private function updatePortfolioI(){
+		var portfolioT = activePortfolio;
+		activePortfolio.summary = getPortfolioSummary();
+		MBooks_im.getSingleton().doSendJSON(portfolioT);		
+	}
+	private function deletePortfolioI() {
+		//TBD
+	}
+	private function getPortfolioSummary() {
+		return getPortfolioSummaryElement().value;
+	}
+	private function getPortfolioSummaryElement() : TextAreaElement {
+		var sumButton = 
+			cast Browser.document.getElementById(PORTFOLIO_SUMMARY);
+		return sumButton;
 	}
 	private function getSavePortfolioButton() : ButtonElement {
 		var saveButton : ButtonElement = 
@@ -98,15 +150,77 @@ class Portfolio {
 		return deleteButton;
 	}
 
-	private function getCompanyList() : SelectElement {
-		return (cast Browser.document.getElementById(COMPANY_LIST_FIELD));
-	}
-	private function processPortfolioList(incomingPayload : PortfolioPayload) {
-		trace("Processing portfolio list");
-	}
-	private function processActivePortfolio(activePortfolio : ActivePortfolio) {
-		trace("Processing active portfolio");
+	private function processPortfolioList(incomingPayload : PortfolioQuery) {
+		trace("Processing portfolio list " + incomingPayload);
+		var results = incomingPayload.resultSet;
+		for(p in results) {
+			if(p.Right != null){
+				updatePortfolioList(p.Right);
+			}else {
+				MBooks_im.getSingleton().applicationErrorStream.resolve(incomingPayload);
+			}
+		} 
 	}
 
+	private function processActivePortfolio(aPortfolio : PortfolioT) {
+		//trace("Processing active portfolio " + aPortfolio);
+		this.activePortfolio = aPortfolio;
+	}
+	private function processManagePortfolio(incomingMessage : Dynamic){
+		trace("Incoming message manage portfolio "  + incomingMessage);
+		if(incomingMessage.Right != null){
+			updatePortfolioList(incomingMessage.Right);
+		}else if(incomingMessage.Left != null) {
+			MBooks_im.getSingleton().applicationErrorStream.resolve(incomingMessage.Left);
+		}
+	}
+
+	//Return all the portfolios for the user registered for 
+	//the currently actively company
+	private function getPortfoliosForUser(){
+		if(activeCompany == null){
+			trace("No company selected");
+			return;
+		}
+		var portfolioQuery : PortfolioQuery = {
+			commandType : "QueryPortfolios"
+			, nickName : MBooks_im.getSingleton().getNickName()
+			, companyId : activeCompany.companyId
+			, userId : MBooks_im.getSingleton().getNickName()
+			, resultSet : []
+		};
+		trace("Sending " + portfolioQuery);
+		MBooks_im.getSingleton().doSendJSON(portfolioQuery);
+	}
+	private function updatePortfolioList(portfolioObject : PortfolioT){
+		var portfolioList = getPortfolioList();
+		var portfolioId = portfolioObject.portfolioId;
+		var optionElement : OptionElement 
+				= cast (cast Browser.document.getElementById(portfolioId));
+		if(optionElement == null){
+				optionElement = 
+				cast (Browser.document.createOptionElement());
+				optionElement.id = portfolioId;
+				optionElement.text = portfolioObject.summary;
+				var portfolioSelectedStream = 
+					MBooks_im.getSingleton().initializeElementStream(
+						cast optionElement,
+						"click"
+						);
+				portfolioSelectedStream.then(processPortfolioSelected);
+				portfolioList.appendChild(optionElement);
+		}else {
+			optionElement.text = portfolioObject.summary;
+		}
+	}
+	private function processPortfolioSelected(ev : Event){
+		trace ("Portfolio selected " + ev.target);
+		var selectionElement :OptionElement  = 
+			cast ev.target;
+		var selectionId = selectionElement.id;
+		trace ("Returning symbols for portfolio " + selectionId);
+	}
+	private var activeCompany : model.Company;
+	private var activePortfolio : PortfolioT;
 
 }

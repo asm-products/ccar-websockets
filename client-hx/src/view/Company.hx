@@ -1,3 +1,5 @@
+package view;
+
 import util.Util;
 import haxe.Json;
 import haxe.Utf8;
@@ -36,6 +38,7 @@ import promhx.PublicStream;
 import massive.munit.TestRunner;
 using promhx.haxe.EventTools;
 import promhx.Deferred;
+import model.Company;
 
 
 class Company {
@@ -236,20 +239,20 @@ class Company {
 		}else if (crudType == "Read") {
 			if(incomingMessage.company.companyID == "") {
 				newCompany = true;
-				getCompanyIDElement().value = getCompanyID();
-			}else {
-				copyIncomingValues(incomingMessage);
+			}else {				
 				newCompany = false;			
 			}
+		copyIncomingValues(incomingMessage);
+		MBooks_im.getSingleton().activeCompanyStream.resolve(createCompany(incomingMessage));
 		}else if (crudType == "C_Update") {
 			copyIncomingValues(incomingMessage);
 		}else if (crudType == "Delete"){
 			clearFields(incomingMessage);
 		}else {
 			throw ("Invalid crudtype " + crudType);
-		}
-
+		}	
 	}
+
 	private function copyIncomingValues(incomingMessage){
 		try {
 		getCompanyNameElement().value = incomingMessage.company.companyName;
@@ -264,6 +267,14 @@ class Company {
 
 	}
 
+	private function createCompany(incomingMessage : Dynamic) : model.Company {
+		var result : model.Company = new model.Company(incomingMessage.company.companyName
+				, incomingMessage.company.companyID
+				, incomingMessage.company.generalMailbox
+				, incomingMessage.company.image);
+		return result;
+	}
+
 	private function getCompanySplashImageString () : String {
 		try {
 		var imageSplash : ImageElement = 
@@ -272,8 +283,8 @@ class Company {
 		}catch(error: Dynamic) {
 			throw error;
 		}
-
 	}
+
 	private function clearFields(incomingMessage) {
 		getCompanyNameElement().value = "";
 		getCompanyIDElement().value = "";

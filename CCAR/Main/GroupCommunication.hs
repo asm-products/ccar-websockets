@@ -7,7 +7,9 @@ module CCAR.Main.GroupCommunication
 	, ClientIdentifierMap(..)
 	, processSendMessage
     , getMessageHistory
-	, DestinationType(..) )
+	, DestinationType(..) 
+    , testMessages
+    )
 where
 import Yesod.Core
 import Control.Monad.IO.Class(liftIO)
@@ -126,12 +128,12 @@ getMessageHistory limit = do
 
 process (cm@(SendMessage f t m d time)) = do
 
-    case d of 
+    (x,y) <- case d of 
         CCAR.Main.GroupCommunication.Broadcast -> do 
         	saveMessage cm 
-        	return (CCAR.Main.GroupCommunication.Broadcast, serialize cm)
-        _ -> return (CCAR.Main.GroupCommunication.Reply, serialize cm) 
-
+        	return (CCAR.Main.GroupCommunication.Broadcast,  cm)
+        _ -> return (CCAR.Main.GroupCommunication.Reply,  cm) 
+    return (x, toJSON y)
 
 
 
@@ -154,8 +156,13 @@ processSendMessage (Object a) =
         case (parse parseSendMessage a) of
             Success r ->  process r 
             Error s -> return (CCAR.Main.GroupCommunication.Reply, 
-            			serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
+            			toJSON $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
 
+
+testMessages = do 
+    currentTime <- getCurrentTime 
+    x <- return $ toJSON $ SendMessage "a" "b" "c" CCAR.Main.GroupCommunication.Reply currentTime
+    return x
 
 instance ToJSON DestinationType
 instance FromJSON DestinationType

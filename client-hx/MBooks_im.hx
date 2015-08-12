@@ -21,6 +21,7 @@ import js.html.OptionElement;
 import js.html.FileReader;
 import js.html.ImageElement;
 import model.Contact;
+import model.Company;
 import model.Login;
 import model.Person;
 import model.LoginStatus;
@@ -45,7 +46,7 @@ import js.d3.selection.Selection;
 import js.d3.selection.Selection;
 import js.d3.layout.Layout;
 import view.Portfolio;
-
+import view.Company;
 
 import massive.munit.TestRunner;
 using promhx.haxe.EventTools;
@@ -95,7 +96,13 @@ class MBooks_im {
 		userLoggedIn = new Deferred<Dynamic>();
 		selectedCompanyStream = new Deferred<Dynamic>();
 		assignCompanyStream = new Deferred<Dynamic> ();
-
+		activeCompanyStream = new Deferred<model.Company> ();
+		portfolioSymbolSidesStream = new Deferred<Dynamic>();
+		portfolioSymbolTypesStream = new Deferred<Dynamic>();
+		portfolioListStream = new Deferred<PortfolioQuery>();
+		portfolioStream = new Deferred<Dynamic> ();
+		applicationErrorStream = new Deferred<Dynamic>();
+		applicationErrorStream.then(updateErrorMessages);
 	}
 
 
@@ -264,15 +271,6 @@ class MBooks_im {
 			case ManageUser: {
 				processManageUser(incomingMessage);
 			}
-			case QueryUser : {
-				//processQueryUser(incomingMessage);
-			}
-			case DeleteUser: {
-				//processDeleteUser(incomingMessage);
-			}
-			case UpdateUser : {
-				//processUpdateUser(incomingMessage);
-			}
 			case CreateUserTerms :{
 				//processCreateUserTerms(incomingMessage);
 			}
@@ -297,9 +295,6 @@ class MBooks_im {
 			case DeleteUserPreferences : {
 				//processDeleteUserPreferences(incomingMessage);
 			}
-			case Undefined : {
-				//processUndefinedCommandType();
-			}
 			case SendMessage : {
 				processSendMessage(incomingMessage);
 			}
@@ -322,10 +317,35 @@ class MBooks_im {
 			case KeepAlive : {
 				trace("Processing keep alive");
 			}
+			case PortfolioSymbolTypesQuery : {
+				trace("Processing " + incomingMessage);
+				portfolioSymbolTypesStream.resolve(incomingMessage);
+			}
+			case PortfolioSymbolSideQuery : {
+				trace("Processing " + incomingMessage);
+				portfolioSymbolSidesStream.resolve(incomingMessage);
+			}
+			case QueryPortfolios : {
+				trace("Processing " + incomingMessage);
+				portfolioListStream.resolve(incomingMessage);
+			}
+			case ManagePortfolio : {
+				trace("Processing " + incomingMessage);
+				portfolioStream.resolve(incomingMessage);
+			}
+			case Undefined : {
+				processUndefinedCommandType(incomingMessage);
+
+			}
 
 		}
 	}
 
+
+	private function processUndefinedCommandType(incomingMessage : Dynamic)  : Void {
+		trace("Unhandled command type " + incomingMessage);
+	} 
+	
 	private function onMessage(ev: MessageEvent) : Void{
 		trace("Received stream " + ev.data);
 		var incomingMessage = haxe.Json.parse(ev.data);
@@ -711,11 +731,18 @@ class MBooks_im {
 		}
 	}
 
+	private function getApplicationErrorElement() {
+		return (cast (Browser.document.getElementById(APPLICATION_ERROR)));
+	}
+	private function updateErrorMessages(incomingError : Dynamic) {
+		getApplicationErrorElement().value = 
+				getApplicationErrorElement().value + ("" + incomingError);
+	}
 	private function getServerErrorElement() {
 		return (cast (Browser.document.getElementById(SERVER_ERROR)));
 	}
 	private static var SERVER_ERROR : String = "serverError";
-
+	private static var APPLICATION_ERROR : String = "applicationError";
 	private function setError(aMessage) {
 		getServerErrorElement().innerHTML = aMessage;
 	}
@@ -838,13 +865,31 @@ class MBooks_im {
 	var company : Company;
 	var project : model.Project;
 	var ccar : model.CCAR;
+	var portfolio : view.Portfolio;
+	/**
+	* A stream of events when a company drop down is selected.
+	*/
 	public var selectedCompanyStream (default, null) : Deferred<Dynamic>;
+	/**
+	* A stream indicating the actively selected company.
+	*/
+	public var activeCompanyStream(default, null) : Deferred<model.Company>;
 	public var assignCompanyStream (default, null) : Deferred<Dynamic>;
+	public var portfolioSymbolSidesStream(default, null) : Deferred<Dynamic>;
+	public var portfolioSymbolTypesStream(default, null) : Deferred<Dynamic>;
+	//PortfolioQuery messages
+	public var portfolioListStream(default, null) : Deferred<PortfolioQuery>;
+	//ManagePortfolio messages.
+	public var portfolioStream (default, null) : Deferred<Dynamic>;
+	//Global error stream
+	public var applicationErrorStream(default, null) : Deferred<Dynamic>;
 	static function main() {
 		singleton = new MBooks_im();
-		singleton.company = new Company();
+		singleton.company = new view.Company();
 		singleton.project = new Project(singleton.company);
-		singleton.ccar = new CCAR("", "", "");		
+		singleton.ccar = new CCAR("", "", "");
+		singleton.portfolio = new Portfolio();
+
 		singleton.connect();
 	}
 
