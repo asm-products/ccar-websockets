@@ -231,7 +231,6 @@ daoToDto crType pid = do
 											(personNickName createdByObj) 
 											(personNickName updby)
 							_-> return $ Left $ T.pack "Unable to create portfolio transfer object.ouch!"
-
 			Nothing -> return $ Left $ T.pack $ 
 								"Unable to query db " `mappend` (show pid) 
 
@@ -255,18 +254,26 @@ manage aNickName aValue@(Object a) =
 		Success r -> do 
 			res <- process r  
 			case res of
-				Right k -> do 
-					res1 <- daoToDto  (crudType r) k 
-					case res1 of 
-						Right pT -> 
-							case (sanityCheck k pT) of 						
-								Right _ -> return (GC.Reply, serialize res1)
-								Left _ -> do 
-									liftIO $ Logger.errorM iModuleName $ 
-										("Input uuids and db uuids dont match "  :: String)
-										`mappend` (show res)
-									return (GC.Reply, serialize $ genericErrorCommand $
-												"Input output uuids dont match ")
+				Right k -> do
+					-- Delete wont find the object being deleted.
+					case (crudType r) of 
+						Delete -> do 
+							reply <- return $ Right r 
+							return (GC.Reply, serialize (reply :: Either T.Text PortfolioT))
+						_ 		-> do  
+							res1 <- daoToDto  (crudType r) k 
+							case res1 of 
+								Right pT -> 
+									case (sanityCheck k pT) of 						
+										Right _ -> return (GC.Reply, serialize res1)
+										Left _ -> do 
+											liftIO $ Logger.errorM iModuleName $ 
+												("Input uuids and db uuids dont match "  :: String)
+												`mappend` (show res)
+											return (GC.Reply, serialize $ genericErrorCommand $
+														"Input output uuids dont match ")
+								Left f2 -> 
+									return (GC.Reply, serialize $ genericErrorCommandText f2)
 				Left f -> do 
 					liftIO $ Logger.errorM iModuleName $ 
 							"Error processing manage portfolio " `mappend` (show aValue)

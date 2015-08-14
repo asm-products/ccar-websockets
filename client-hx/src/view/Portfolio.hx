@@ -80,7 +80,9 @@ class Portfolio {
 	}
 	private function deletePortfolio(ev : Event){
 		trace("Delete portfolio " + ev);
+		deletePortfolioI();
 	}
+
 	private function savePortfolio(ev : Event) {
 		if(activePortfolio == null) {
 			insertPortfolioI();
@@ -99,6 +101,21 @@ class Portfolio {
 
 
 
+	private function readPortfolio(portfolioId) {
+		var portfolioT : PortfolioT = {
+			crudType : "Read"
+			, commandType : "ManagePortfolio"
+			, portfolioId : portfolioId
+			, companyId : activeCompany.companyId
+			, userId : MBooks_im.getSingleton().getNickName()
+			, summary : getPortfolioSummary()
+			, createdBy : MBooks_im.getSingleton().getNickName()
+			, updatedBy : MBooks_im.getSingleton().getNickName()
+			, nickName : MBooks_im.getSingleton().getNickName()
+		};
+		MBooks_im.getSingleton().doSendJSON(portfolioT);
+
+	}
 	private function insertPortfolioI() {
 		var portfolioT : PortfolioT = {
 			crudType : "Create"
@@ -114,12 +131,36 @@ class Portfolio {
 		MBooks_im.getSingleton().doSendJSON(portfolioT);
 	}
 	private function updatePortfolioI(){
-		var portfolioT = activePortfolio;
-		activePortfolio.summary = getPortfolioSummary();
+		var portfolioT : PortfolioT = {
+			crudType : "P_Update"
+			, commandType : "ManagePortfolio"
+			, portfolioId : activePortfolio.portfolioId
+			, companyId : activeCompany.companyId
+			, userId : MBooks_im.getSingleton().getNickName()
+			, summary : getPortfolioSummary()
+			, createdBy : MBooks_im.getSingleton().getNickName()
+			, updatedBy : MBooks_im.getSingleton().getNickName()
+			, nickName : MBooks_im.getSingleton().getNickName()
+		};
 		MBooks_im.getSingleton().doSendJSON(portfolioT);		
 	}
 	private function deletePortfolioI() {
-		//TBD
+		var portfolioT : PortfolioT = {
+			crudType : "Delete"
+			, commandType : "ManagePortfolio"
+			, portfolioId : activePortfolio.portfolioId
+			, companyId : activeCompany.companyId
+			, userId : MBooks_im.getSingleton().getNickName()
+			, summary : getPortfolioSummary()
+			, createdBy : MBooks_im.getSingleton().getNickName()
+			, updatedBy : MBooks_im.getSingleton().getNickName()
+			, nickName : MBooks_im.getSingleton().getNickName()
+		};
+		MBooks_im.getSingleton().doSendJSON(portfolioT);		
+	}
+
+	private function setPortfolioSummary(aSummary) {
+		getPortfolioSummaryElement().value = aSummary;
 	}
 	private function getPortfolioSummary() {
 		return getPortfolioSummaryElement().value;
@@ -170,9 +211,19 @@ class Portfolio {
 		trace("Incoming message manage portfolio "  + incomingMessage);
 		if(incomingMessage.Right != null){
 			updatePortfolioList(incomingMessage.Right);
+			copyIncomingValues(incomingMessage.Right);
+			activePortfolio = incomingMessage.Right;
+			if(incomingMessage.Right.crudType == "Delete"){
+				deletePortfolioEntry(incomingMessage.Right);
+			}
+
 		}else if(incomingMessage.Left != null) {
 			MBooks_im.getSingleton().applicationErrorStream.resolve(incomingMessage.Left);
 		}
+	}
+
+	private function copyIncomingValues(input: PortfolioT) {
+		setPortfolioSummary(input.summary);
 	}
 
 	//Return all the portfolios for the user registered for 
@@ -192,11 +243,26 @@ class Portfolio {
 		trace("Sending " + portfolioQuery);
 		MBooks_im.getSingleton().doSendJSON(portfolioQuery);
 	}
+
+	private function deletePortfolioEntry(deleteMe : PortfolioT) {
+		trace("Deleting portfolio " + deleteMe);
+		var optionElement : OptionElement 
+				= cast (Browser.document.getElementById(deleteMe.portfolioId));
+		if(optionElement != null){
+			getPortfolioList().removeChild(optionElement);
+			clearValues();
+		}else {
+			trace("Nothing to delete");
+		}
+	}
+	private function clearValues(){
+		setPortfolioSummary("");
+	}
 	private function updatePortfolioList(portfolioObject : PortfolioT){
 		var portfolioList = getPortfolioList();
 		var portfolioId = portfolioObject.portfolioId;
 		var optionElement : OptionElement 
-				= cast (cast Browser.document.getElementById(portfolioId));
+				= (cast Browser.document.getElementById(portfolioId));
 		if(optionElement == null){
 				optionElement = 
 				cast (Browser.document.createOptionElement());
@@ -218,8 +284,10 @@ class Portfolio {
 		var selectionElement :OptionElement  = 
 			cast ev.target;
 		var selectionId = selectionElement.id;
+		readPortfolio(selectionId);
 		trace ("Returning symbols for portfolio " + selectionId);
 	}
+
 	private var activeCompany : model.Company;
 	private var activePortfolio : PortfolioT;
 
