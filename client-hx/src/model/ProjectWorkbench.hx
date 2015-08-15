@@ -205,8 +205,8 @@ class ProjectWorkbench {
 		//Load the upload script and save the workbench.
 		//Clear the workbench id, to indicate that 
 		//this is a new entry
-
-		var file = getScriptDataElement().files[0];
+		clearWorkbenchId();
+		var file = getScriptUploadElement().files[0];
 		var reader = new FileReader();
 		var stream : Stream<Dynamic>  = 
 				MBooks_im.getSingleton().initializeElementStream(
@@ -311,6 +311,19 @@ class ProjectWorkbench {
 		return getWorkbenchIdElement().value;
 	}
 	private function clearWorkbenchId() {
+		var workbenchId : String = getWorkbenchIdElement().value;
+		if(workbenchId != "") {
+			trace("Clearing workbench id " );
+			var optionElement : OptionElement = 
+				cast Browser.document.getElementById(workbenchId);
+			optionElement.selected = false;		
+		}else {
+			trace("Not clearing empty workbench id");
+		}
+
+		var optionElement : OptionElement= 
+			cast Browser.document.getElementById(CHOOSE_WORKBENCH);
+		optionElement.selected = true;
 		getWorkbenchIdElement().value = "";
 	}
 	private function setWorkbenchIdFromMessage(wid) {
@@ -610,6 +623,7 @@ class ProjectWorkbench {
 		}else {
 			trace("Element already exists " + wId);
 		}
+		optionElement.selected = true;
 		return optionElement;
 	}
 

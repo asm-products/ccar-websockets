@@ -193,7 +193,7 @@ insertWorkbench w@(ProjectWorkbenchT cType wId uniqueProjectId
 											jobEndDate
 							resP <- get wid
 							case resP of 
-								Just r -> liftIO $ return $ Right r
+								Just r -> liftIO $ return $ Right r 
 								Nothing -> liftIO $ return $ Left $ 
 												"Entity not found " `mappend` uuidAsString
 						Nothing -> liftIO $ return $ Left ("Project " `mappend` uuidAsString 
@@ -327,7 +327,8 @@ manageWorkbench aValue@(Object a) = do
 							scriptDataPath jobStartDate jobEndDate)
 						-> return (GC.Reply, 
 								serialize r {
-									scriptType = scriptType
+									workbenchId = workbenchId 
+									, scriptType = scriptType
 									, scriptData = scriptData
 									, scriptSummary = scriptSummary
 									, numberOfCores = numberOfCores

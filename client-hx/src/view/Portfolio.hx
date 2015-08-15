@@ -215,6 +215,8 @@ class Portfolio {
 			activePortfolio = incomingMessage.Right;
 			if(incomingMessage.Right.crudType == "Delete"){
 				deletePortfolioEntry(incomingMessage.Right);
+			}else {
+				updatePortfolioEntry(incomingMessage.Right);
 			}
 
 		}else if(incomingMessage.Left != null) {
@@ -244,6 +246,15 @@ class Portfolio {
 		MBooks_im.getSingleton().doSendJSON(portfolioQuery);
 	}
 
+	private function updatePortfolioEntry(update : PortfolioT){
+		var optionElement : OptionElement 
+			= cast (Browser.document.getElementById(update.portfolioId));
+		if(optionElement != null){
+			optionElement.selected = true;
+		}else {
+			throw ("Option element for portfolio Id not found " + update);
+		}
+	}
 	private function deletePortfolioEntry(deleteMe : PortfolioT) {
 		trace("Deleting portfolio " + deleteMe);
 		var optionElement : OptionElement 
