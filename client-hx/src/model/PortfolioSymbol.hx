@@ -37,6 +37,8 @@ typedef SymbolType = {
 
 class PortfolioSymbol  {
 	public var portfolioSymbolT (null, default) : PortfolioSymbolT;
+	//Plural names represent the collection, the 
+	//singular represent the actual element.
 	public var sidesStream(default, null) : Deferred<Dynamic>;
 	public var typesStream(default, null) : Deferred<Dynamic>;
 	public var sideStream (default, null) : Deferred<SymbolSide>;

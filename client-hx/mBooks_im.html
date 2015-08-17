@@ -229,8 +229,8 @@
 				<select id="symbolTypeID"> 
 					<option value="0"> --Choose </option>
 				</select>
-				<label for="quantityID"> Quantity </label>
-				<input id="quantityID" type="text" placeholder="100"/>
+				<label for="symbolQuantityID"> Quantity </label>
+				<input id="symbolQuantityID" type="text" placeholder="100"/>
 				<label for="saveSymbol"> Save </label>
 				<button id="saveSymbol"> Save </button>
 				<label for="deleteSymbol"> Delete </label>
@@ -349,6 +349,13 @@
 						<li>All your jobs that are run for R will have an id and you can request for a webhook </li>
 						<li>If you are uploadinrg larger data sets, let us help you setup your cloud: either AWS.</li>
 						<li>Feature requests or bug requests can be entered here (implement href) </li>
+						<li>
+							Naming conventions need to be fixed: Save => Insert 
+							at times or save or updated. In most cases a call to 
+							save will do a simple insert. 
+							Update will fail if the record is not found.
+							Delete should work as expected.
+						</li>
 					</ul>
 				</p>
 			</div>
