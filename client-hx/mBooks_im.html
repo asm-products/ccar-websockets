@@ -218,9 +218,17 @@
 		<form class="vertical" id="symbol">
 			<div class="col_8">
 				<label for="symbolID"> Symbol </label>
-				<input id="symbolID" type="text" placeholder="sbr"/>
-				<label for="sideID"> Side </label>
-				<input id="sideID" type="text" placeholder="buy"/>
+				<input id="symbolID" type="text" placeholder="teva"/>
+				<label for="symbolSideID"> Side </label>
+				<select id="symbolSideID">
+					<option value="0">--Choose </option>
+				</select>
+				<label for="symbolTypeID"> 
+						Symbol type (asset class - Equity, Bonds, Options) 
+				</label>
+				<select id="symbolTypeID"> 
+					<option value="0"> --Choose </option>
+				</select>
 				<label for="quantityID"> Quantity </label>
 				<input id="quantityID" type="text" placeholder="100"/>
 				<label for="saveSymbol"> Save </label>
@@ -229,12 +237,22 @@
 				<button id="deleteSymbol"> Delete </button>
 				<label id="updateSymbol"> Update </label>
 				<button id="updateSymbol">Update </button>
+
 			</div>
 		</form>
-			<div class="col_12">
-					<p> Portfolio results </p>
-					<p> Symbol analysis </p>
-			</div>
+		<div class="col_12">
+			<table id="portfolioSymbolTable" cellspacing="0" cellpadding="0">
+				<thead>
+					<th> Symbol</th>
+					<th> Side </th>
+					<th> Symbol type </th>
+					<th> quantity </th>
+				</thead>				
+			</table>
+
+		<p> Portfolio analysis </p>
+		<p> Symbol analysis </p>
+		</div>
 	</div>
 
 	<div id="workbench-project" class="tab-content col_12">

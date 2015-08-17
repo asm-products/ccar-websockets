@@ -94,6 +94,7 @@ data PortfolioSymbolSideQuery = PortfolioSymbolSideQuery {
 
 
 
+
 -- DB queries
 
 queryPortfolioSymbolTypes :: T.Text -> Value -> IO(GC.DestinationType, T.Text)
@@ -444,5 +445,17 @@ instance ToJSON PortfolioCommands
 instance FromJSON PortfolioCommands
 instance ToJSON PortfolioSymbolTypeQuery
 instance FromJSON PortfolioSymbolTypeQuery 
-instance ToJSON PortfolioSymbolSideQuery 
-instance FromJSON PortfolioSymbolSideQuery
+instance ToJSON PortfolioSymbolSideQuery where
+	toJSON p2@(PortfolioSymbolSideQuery a b c) =
+		object [
+			"nickName" .= a 
+			, "commandType" .= b 
+			, "symbolSides" .= c
+		]
+
+instance FromJSON PortfolioSymbolSideQuery where
+	parseJSON (Object a) = PortfolioSymbolSideQuery <$>
+					a .: "nickName" <*> 
+					a .: "commandType" <*>
+					a .: "symbolSides"
+	parseJSON _ 		= Appl.empty

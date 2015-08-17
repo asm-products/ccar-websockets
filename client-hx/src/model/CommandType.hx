@@ -30,7 +30,7 @@ enum CommandType {
 	ExecuteWorkbench;
 	AssignCompany;
 	PortfolioSymbolTypesQuery;
-	PortfolioSymbolSideQuery;
+	PortfolioSymbolSidesQuery;
 	QueryPortfolios;
 	ManagePortfolio;
 }

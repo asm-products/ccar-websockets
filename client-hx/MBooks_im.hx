@@ -97,15 +97,23 @@ class MBooks_im {
 		selectedCompanyStream = new Deferred<Dynamic>();
 		assignCompanyStream = new Deferred<Dynamic> ();
 		activeCompanyStream = new Deferred<model.Company> ();
-		portfolioSymbolSidesStream = new Deferred<Dynamic>();
-		portfolioSymbolTypesStream = new Deferred<Dynamic>();
 		portfolioListStream = new Deferred<PortfolioQuery>();
 		portfolioStream = new Deferred<Dynamic> ();
 		applicationErrorStream = new Deferred<Dynamic>();
 		applicationErrorStream.then(updateErrorMessages);
+		getUserLoggedInStream().then(processSuccessfulLogin);
 	}
 
-
+	private function processSuccessfulLogin(loginEvent : Dynamic){
+		trace("Initialize the rest of the instances");
+		singleton.company = new view.Company();
+		singleton.project = new Project(singleton.company);
+		singleton.ccar = new CCAR("", "", "");
+		singleton.portfolio = new Portfolio();
+		singleton.portfolioSymbolModel = new model.PortfolioSymbol();
+		singleton.portfolioSymbolView = 
+			new view.PortfolioSymbol(singleton.portfolioSymbolModel);
+	}
 	// Connection details
 	private function connectionString() : String {
 		return protocol + "://" + Browser.location.hostname + ":" + portNumber + "/chat";
@@ -319,11 +327,11 @@ class MBooks_im {
 			}
 			case PortfolioSymbolTypesQuery : {
 				trace("Processing " + incomingMessage);
-				portfolioSymbolTypesStream.resolve(incomingMessage);
+				portfolioSymbolModel.typesStream.resolve(incomingMessage);
 			}
-			case PortfolioSymbolSideQuery : {
+			case PortfolioSymbolSidesQuery : {
 				trace("Processing " + incomingMessage);
-				portfolioSymbolSidesStream.resolve(incomingMessage);
+				portfolioSymbolModel.sidesStream.resolve(incomingMessage);
 			}
 			case QueryPortfolios : {
 				trace("Processing " + incomingMessage);
@@ -866,6 +874,8 @@ class MBooks_im {
 	var project : model.Project;
 	var ccar : model.CCAR;
 	var portfolio : view.Portfolio;
+	var portfolioSymbolModel : model.PortfolioSymbol;
+	var portfolioSymbolView : view.PortfolioSymbol;
 	/**
 	* A stream of events when a company drop down is selected.
 	*/
@@ -875,8 +885,6 @@ class MBooks_im {
 	*/
 	public var activeCompanyStream(default, null) : Deferred<model.Company>;
 	public var assignCompanyStream (default, null) : Deferred<Dynamic>;
-	public var portfolioSymbolSidesStream(default, null) : Deferred<Dynamic>;
-	public var portfolioSymbolTypesStream(default, null) : Deferred<Dynamic>;
 	//PortfolioQuery messages
 	public var portfolioListStream(default, null) : Deferred<PortfolioQuery>;
 	//ManagePortfolio messages.
@@ -885,10 +893,6 @@ class MBooks_im {
 	public var applicationErrorStream(default, null) : Deferred<Dynamic>;
 	static function main() {
 		singleton = new MBooks_im();
-		singleton.company = new view.Company();
-		singleton.project = new Project(singleton.company);
-		singleton.ccar = new CCAR("", "", "");
-		singleton.portfolio = new Portfolio();
 
 		singleton.connect();
 	}
