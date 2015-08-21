@@ -524,6 +524,7 @@ processCommandValue app nickName (Object a)   = do
                 String "QueryPortfolios" -> Portfolio.manageSearch nickName (Object a)
                 String "ManagePortfolio" -> Portfolio.manage nickName (Object a)
                 String "ManagePortfolioSymbol" -> PortfolioSymbol.manage nickName (Object a)
+                String "QueryPortfolioSymbol" -> PortfolioSymbol.manageSearch nickName (Object a)
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

@@ -341,6 +341,14 @@ class MBooks_im {
 				trace("Processing " + incomingMessage);
 				portfolioStream.resolve(incomingMessage);
 			}
+			case ManagePortfolioSymbol : {
+				trace("Processing "  + incomingMessage);
+				portfolioSymbolView.manage(incomingMessage);
+			}
+			case QueryPortfolioSymbol : {
+				trace("Processing "  + incomingMessage);
+				portfolioSymbolModel.query(incomingMessage);
+			}
 			case Undefined : {
 				processUndefinedCommandType(incomingMessage);
 
@@ -873,9 +881,9 @@ class MBooks_im {
 	var company : Company;
 	var project : model.Project;
 	var ccar : model.CCAR;
-	var portfolio : view.Portfolio;
-	var portfolioSymbolModel : model.PortfolioSymbol;
-	var portfolioSymbolView : view.PortfolioSymbol;
+	public var portfolio(default, null) : view.Portfolio;
+	public var portfolioSymbolModel(default, null) : model.PortfolioSymbol;
+	public var portfolioSymbolView(default, null): view.PortfolioSymbol;
 	/**
 	* A stream of events when a company drop down is selected.
 	*/

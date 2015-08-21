@@ -33,4 +33,6 @@ enum CommandType {
 	PortfolioSymbolSidesQuery;
 	QueryPortfolios;
 	ManagePortfolio;
+	ManagePortfolioSymbol;
+	QueryPortfolioSymbol;
 }

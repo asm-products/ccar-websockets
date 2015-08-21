@@ -30,3 +30,6 @@
 
 #### Suffix T is being used as Transient objects, this could create some confusion. -- Need to fix this.
 For example PortfolioT is not a Portfolio Monad Transformer. It is a dto<->dao pattern borrowed from hibernate.
+
+#### UI design issues
+Responses need to be managed in a view and the queries in a model. Is that reasonable?

@@ -62,7 +62,6 @@ class Portfolio {
 			);
 		deleteP.then(deletePortfolio);
 		MBooks_im.getSingleton().portfolioListStream.then(processPortfolioList);
-		activePortfolioStream.then(processActivePortfolio);		
 		MBooks_im.getSingleton().activeCompanyStream.then(processActiveCompany);
 		MBooks_im.getSingleton().portfolioStream.then(processManagePortfolio);
 		this.getPortfoliosForUser();
@@ -120,7 +119,7 @@ class Portfolio {
 		var portfolioT : PortfolioT = {
 			crudType : "Create"
 			, commandType : "ManagePortfolio"
-			, portfolioId : "-1"
+			, portfolioId : activePortfolio.portfolioId
 			, companyId : activeCompany.companyId
 			, userId : MBooks_im.getSingleton().getNickName()
 			, summary : getPortfolioSummary()
@@ -203,16 +202,12 @@ class Portfolio {
 		} 
 	}
 
-	private function processActivePortfolio(aPortfolio : PortfolioT) {
-		//trace("Processing active portfolio " + aPortfolio);
-		this.activePortfolio = aPortfolio;
-	}
 	private function processManagePortfolio(incomingMessage : Dynamic){
 		trace("Incoming message manage portfolio "  + incomingMessage);
 		if(incomingMessage.Right != null){
 			updatePortfolioList(incomingMessage.Right);
 			copyIncomingValues(incomingMessage.Right);
-			activePortfolio = incomingMessage.Right;
+			this.activePortfolioStream.resolve(incomingMessage.Right);
 			if(incomingMessage.Right.crudType == "Delete"){
 				deletePortfolioEntry(incomingMessage.Right);
 			}else {

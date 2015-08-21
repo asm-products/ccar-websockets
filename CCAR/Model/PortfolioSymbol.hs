@@ -1,6 +1,7 @@
 module CCAR.Model.PortfolioSymbol (
 	manage
 	, readPortfolioSymbol
+	, manageSearch
 	, testInsert
 	) where 
 import CCAR.Main.DBUtils
@@ -53,7 +54,7 @@ import System.Log.Logger as Logger
 
 iModuleName = "CCAR.Model.PortfolioSymbol"
 managePortfolioSymbolCommand = "ManagePortfolioSymbol"
-
+manageSearchPortfolioCommand = "QueryPortfolioSymbol"
 data CRUD = Create | Read | P_Update | Delete 
 			deriving (Show, Read, Eq, Data, Generic, Typeable)
 			
@@ -63,13 +64,14 @@ data PortfolioSymbolT = PortfolioSymbolT {
 	, commandType :: T.Text 
 	, portfolioID :: T.Text -- unique uuid for the portfolio
 	, symbol :: T.Text 
-	, quantity :: Double 
+	, quantity :: T.Text 
 	, side :: EnTypes.PortfolioSymbolSide 
 	, symbolType :: EnTypes.PortfolioSymbolType 
 	, createdBy :: T.Text 
 	, updatedBy :: T.Text 
 	, pSTNickName :: T.Text
 } deriving (Show, Read, Eq, Data, Generic, Typeable)
+
 
 instance ToJSON PortfolioSymbolT where 
 	toJSON pS1@(PortfolioSymbolT crType coType portId symbol quantity side symbolType cr up nickName)= 
@@ -111,6 +113,22 @@ data PortfolioSymbolQueryT = PortfolioSymbolQueryT {
 	, psqtNickName :: T.Text 
 } deriving (Show, Read, Eq, Data, Generic, Typeable)
 
+instance ToJSON PortfolioSymbolQueryT where 
+	toJSON qp@(PortfolioSymbolQueryT cType pID rS nickName) = 
+			object [
+				"nickName" .= nickName
+				, "portfolioId" .= pID
+				, "commandType" .= cType
+				, "resultSet" .= rS
+			]
+instance FromJSON PortfolioSymbolQueryT where
+	parseJSON (Object a) = PortfolioSymbolQueryT <$> 
+								a .: "commandType" <*> 
+								a .: "portfolioId" <*> 
+								a .: "resultSet" <*> 
+								a .: "nickName"
+	parseJSON _ 	= Appl.empty
+
 queryPortfolioSymbol :: PortfolioSymbolQueryT -> IO (Either T.Text PortfolioSymbolQueryT) 
 queryPortfolioSymbol p@(PortfolioSymbolQueryT cType 
 						pUUID 
@@ -143,10 +161,18 @@ daoToDto crudType pUUID creator updator currentRequest
 			p@(PortfolioSymbol pID symbol quantity side symbolType cB cT uB uT )  = 
 				Right $ PortfolioSymbolT crudType
 								managePortfolioSymbolCommand 
-								pUUID symbol quantity side symbolType 
+								pUUID symbol (T.pack $ show quantity) side symbolType 
 								creator updator currentRequest
 
 
+manageSearch :: NickName -> Value -> IO (GC.DestinationType, T.Text) 
+manageSearch aNickName aValue@(Object a) = 
+	case (fromJSON aValue) of 
+		Success r -> do 
+				result <- queryPortfolioSymbol r 
+				return (GC.Reply, serialize result) 
+		Error s -> return (GC.Reply, serialize $ genericErrorCommand $
+							"Error processing manage search for portfolio symbol: "  ++ s)
 
 
 -- create, read , update and delete operations
@@ -162,7 +188,7 @@ manage aNickName aValue@(Object a) =
 						Just pEVa -> do 
 							res1 <- return $ daoToDto (crudType r) portfolioUUID creator updator aNickName pEVa 
 							case res1 of 
-								Right pT -> return (GC.Reply, serialize res)
+								Right pT -> return (GC.Reply, serialize res1)
 								Left f -> do 
 									liftIO $ Logger.errorM iModuleName $ 
 										"Error processing manage portfolio " `mappend` (show aValue)
@@ -173,7 +199,10 @@ manage aNickName aValue@(Object a) =
 								"Error processing manage portfolio " `mappend` (show aValue)
 							return (GC.Reply, serialize $ genericErrorCommand $ 
 								"Error processing manage portfolio " ++ (T.unpack p2))
-
+		Error s -> 
+				return (GC.Reply, serialize $ 
+							genericErrorCommand $ 
+								"Error processing manage portfolio symbol " ++ s)
 
 process :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
 process pT = case (crudType pT) of 
@@ -211,7 +240,10 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 								req <- getBy $ PersonUniqueNickName requestor 
 								case (cr, up, req) of 
 									(Just (Entity crID crValue), Just (Entity upID upValue), Just (Entity reqID reqValue)) -> do 
-											n <- insert $ PortfolioSymbol pID symbol quantity side symbolType crID currentTime upID currentTime
+											n <- insert $ PortfolioSymbol pID symbol 
+														(read $ T.unpack quantity) 
+														side symbolType 
+														crID currentTime upID currentTime
 											return $ Right (n, (creator, updator, portfolioId))
 									_ -> do 
 										liftIO $ Logger.errorM iModuleName $ 
@@ -235,7 +267,7 @@ updatePortfolioSymbol a@(PortfolioSymbolT crType commandType
 		currentTime <- liftIO $ getCurrentTime
 		case portfolioSymbol of 
 			Right (psID, _) -> do 
-							x <- update psID [PortfolioSymbolQuantity =. quantity
+							x <- update psID [PortfolioSymbolQuantity =. (read $ T.unpack quantity)
 										   , PortfolioSymbolUpdatedOn =. currentTime]
 							return $ Right (psID, (creator, updator, portfolioId))
 			Left x -> do 
@@ -305,7 +337,7 @@ testInsert portfolioID = dbOps $ do
 												managePortfolioSymbolCommand
 												(portfolioUuid por)
 												"SBR"
-												314.14
+												"314.14"
 												EnTypes.Buy
 												EnTypes.Equity
 												(personNickName userFound)

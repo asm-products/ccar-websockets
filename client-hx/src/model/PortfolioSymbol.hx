@@ -2,19 +2,27 @@ package model;
 import promhx.Stream;
 import promhx.Deferred;
 import promhx.base.EventLoop;
+import model.Portfolio;
 
 typedef PortfolioSymbolT =  {
 	  var crudType : String;
 	  var commandType : String;
-	  var portfolioID : String;
+	  var portfolioId : String;
 	  var symbol : String;
 	  var quantity : String;
 	  var side : String;
 	  var symbolType : String;
-	  var createdBy : String;
-	  var updatedBy : String;
+	  var creator : String;
+	  var updator : String;
 	  var nickName : String;
 }
+
+typedef PortfolioSymbolQueryT  = {
+	var commandType : String;
+	var portfolioId : String; 
+	var nickName : String;
+	var resultSet : Array<Dynamic>;
+} 
 
 typedef PortfolioSymbolTypeQuery = {
 		var nickName : String;
@@ -35,14 +43,20 @@ typedef SymbolType = {
 	var symbolType : String;
 }
 
+
 class PortfolioSymbol  {
-	public var portfolioSymbolT (null, default) : PortfolioSymbolT;
+	public var activePortfolio (default, null) : PortfolioT;
+	public var portfolioSymbolT (default, null) : PortfolioSymbolT;
 	//Plural names represent the collection, the 
 	//singular represent the actual element.
 	public var sidesStream(default, null) : Deferred<Dynamic>;
 	public var typesStream(default, null) : Deferred<Dynamic>;
 	public var sideStream (default, null) : Deferred<SymbolSide>;
 	public var typeStream (default, null) : Deferred<SymbolType>;
+	public var insertStream (default, null) : Deferred<PortfolioSymbolT>;
+	public var updateStream (default, null) : Deferred<PortfolioSymbolT>;
+	public var deleteStream (default, null) : Deferred<PortfolioSymbolT>;
+	public var readStream (default, null) : Deferred<PortfolioSymbolT>;
 
 	public function new() {
 		trace("Creating portfolio symbol");
@@ -50,10 +64,31 @@ class PortfolioSymbol  {
 		typesStream = new Deferred<Dynamic>();
 		typeStream = new Deferred<SymbolType>();
 		sideStream = new Deferred<SymbolSide>();
+		insertStream = new Deferred<PortfolioSymbolT>();
+		updateStream = new Deferred<PortfolioSymbolT>();
+		deleteStream = new Deferred<PortfolioSymbolT>();
+		readStream = new Deferred<PortfolioSymbolT>();
 		sendPortfolioSymbolSideQuery();
 		sendPortfolioSymbolTypeQuery();
 		sidesStream.then(handleSymbolSideQuery);
 		typesStream.then(handleSymbolTypeQuery);
+		insertStream.then(sendPayload);
+		updateStream.then(sendPayload);
+		deleteStream.then(sendPayload);
+		readStream.then(sendPayload);
+		MBooks_im.getSingleton().portfolio.activePortfolioStream.then(processActivePortfolio);
+	}
+
+	private function processActivePortfolio(a : PortfolioT) {
+		if(a == null){
+			throw ("Active portfolio not defined " + a);
+		}
+		trace("Process active portfolio " + a);
+		this.activePortfolio = a;
+	}
+	private function sendPayload(payload : PortfolioSymbolT) {
+		trace("Processing sending payload "  + payload);
+		MBooks_im.getSingleton().doSendJSON(payload);
 	}
 
 	private function sendPortfolioSymbolSideQuery() {
@@ -96,10 +131,10 @@ class PortfolioSymbol  {
 			typeStream.resolve(p);
 		}
 	}
-	public function handlePortfolioSymbolTypeQuery(incomingMessage : PortfolioSymbolTypeQuery){
-		trace("Handle portfolio symbol type query");
-		var resultSet : Array<Dynamic> = incomingMessage.symbolTypes;
-	}
 
+
+	public function query(incomingMessage : PortfolioSymbolQueryT) {
+		trace("Query portfolio " + incomingMessage);
+	}
 	
 }
