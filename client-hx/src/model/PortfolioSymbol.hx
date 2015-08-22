@@ -58,6 +58,7 @@ class PortfolioSymbol  {
 	public var deleteStream (default, null) : Deferred<PortfolioSymbolT>;
 	public var readStream (default, null) : Deferred<PortfolioSymbolT>;
 
+
 	public function new() {
 		trace("Creating portfolio symbol");
 		sidesStream = new Deferred<Dynamic>();
@@ -85,6 +86,20 @@ class PortfolioSymbol  {
 		}
 		trace("Process active portfolio " + a);
 		this.activePortfolio = a;
+		sendPortfolioSymbolQuery();
+	}
+
+	private function sendPortfolioSymbolQuery() {
+		if(this.activePortfolio == null){
+			throw ("No active portfolio selected. Not fetching symbols");
+		}
+		var payload : PortfolioSymbolQueryT = {
+			commandType : "QueryPortfolioSymbol"
+			, portfolioId : activePortfolio.portfolioId
+			, nickName : MBooks_im.getSingleton().getNickName()
+			, resultSet : []
+		}
+		MBooks_im.getSingleton().doSendJSON(payload);
 	}
 	private function sendPayload(payload : PortfolioSymbolT) {
 		trace("Processing sending payload "  + payload);
@@ -130,11 +145,6 @@ class PortfolioSymbol  {
 			};
 			typeStream.resolve(p);
 		}
-	}
-
-
-	public function query(incomingMessage : PortfolioSymbolQueryT) {
-		trace("Query portfolio " + incomingMessage);
 	}
 	
 }

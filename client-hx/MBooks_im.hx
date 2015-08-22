@@ -347,7 +347,7 @@ class MBooks_im {
 			}
 			case QueryPortfolioSymbol : {
 				trace("Processing "  + incomingMessage);
-				portfolioSymbolModel.query(incomingMessage);
+				portfolioSymbolView.symbolQueryResponse.resolve(incomingMessage);
 			}
 			case Undefined : {
 				processUndefinedCommandType(incomingMessage);

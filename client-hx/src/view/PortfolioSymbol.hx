@@ -19,6 +19,7 @@ import js.html.OptionElement;
 import js.html.TableElement;
 import js.html.TableCellElement;
 import js.html.TableRowElement;
+import js.html.HTMLCollection;
 import haxe.ds.ObjectMap;
 import promhx.Stream;
 import promhx.Deferred;
@@ -44,6 +45,7 @@ class PortfolioSymbol {
 	private var updateStreamResponse(default, null) : Deferred<PortfolioSymbolT>;
 	private var deleteStreamResponse(default, null) : Deferred<PortfolioSymbolT>;
 	private var readStreamResponse(default, null) : Deferred<PortfolioSymbolT>;
+	public var symbolQueryResponse(default, null) : Deferred<PortfolioSymbolQueryT>;
 	private var model : model.PortfolioSymbol;
 	private var activePortfolio : PortfolioT;
 	public function new(m : model.PortfolioSymbol){
@@ -53,7 +55,7 @@ class PortfolioSymbol {
 	}
 	
 
-	private function getPortfolioSymbolTable() {
+	private function getPortfolioSymbolTable() : TableElement {
 		return (cast Browser.document.getElementById(PORTFOLIO_SYMBOL_TABLE));
 	}
 	private function getDeletePortfolioSymbolButton() {
@@ -149,6 +151,9 @@ class PortfolioSymbol {
 		updateStreamResponse.then(updateResponse);
 		deleteStreamResponse.then(deleteResponse);
 		readStreamResponse.then(readResponse);
+		symbolQueryResponse = new Deferred<PortfolioSymbolQueryT>();
+		symbolQueryResponse.then(handleQueryResponse);
+		rowMap = new ObjectMap<String, TableRowElement>();
 	}
 
 	private function computeInsertIndex() {
@@ -156,26 +161,72 @@ class PortfolioSymbol {
 				//current state of the table.
 	}
 
+	private function getKey(payload : PortfolioSymbolT) {
+		if(payload == null){
+			throw ("Get failed. No payload");
+		}
+		return (payload.symbol + payload.side + payload.symbolType);
+	}
+	private function deleteTableRowMap(payload : PortfolioSymbolT) {
+		trace("Deleting table row map " + payload);
+		var key : String = getKey(payload);
+		var row : TableRowElement = rowMap.get(key);
+		if(row == null) {
+			throw ("Nothing to delete " + payload);
+		}
+		rowMap.remove(key);
+		var pSymbolTable : TableElement = getPortfolioSymbolTable();
+		pSymbolTable.deleteRow(row.rowIndex);
+	}
+	private function updateTableRowMap(payload : PortfolioSymbolT) {
+		var key : String = getKey(payload);
+		var row : TableRowElement = rowMap.get(key);
+		if(row == null){
+			var pSymbolTable = getPortfolioSymbolTable();
+			row = cast(pSymbolTable.insertRow(computeInsertIndex()));
+			rowMap.set(key, row);
+			insertCells(row, payload);
+		}else {
+			var cells : HTMLCollection = row.children;
+			for(cell in cells){
+				var cellI : TableCellElement = cast cell;
+				var cellIndex : Int = cellI.cellIndex;
+				switch(cellIndex) {
+					case 0 : cellI.innerHTML = payload.symbol;
+					case 1 : cellI.innerHTML = payload.side;
+					case 2 : cellI.innerHTML = payload.symbolType;
+					case 3 : cellI.innerHTML = payload.quantity;
+				}
+			}
+		}
+	}
+
+	private function insertCells(aRow : TableRowElement, payload : PortfolioSymbolT) {
+		trace("Inserting cells from payload");
+		var newCell : TableCellElement = cast (aRow.insertCell(0));
+		newCell.innerHTML = payload.symbol;
+		newCell = cast aRow.insertCell(1);
+		newCell.innerHTML = payload.side;
+		newCell = cast aRow.insertCell(2);
+		newCell.innerHTML = payload.symbolType;
+		newCell = cast aRow.insertCell(3);
+		newCell.innerHTML = payload.quantity;
+	}
 	private function insertResponse(payload : PortfolioSymbolT) {
 		trace("Inserting view " + payload);
 		clearFields();
-		var pSymbolTable = getPortfolioSymbolTable();
-		var newRow : TableRowElement = cast (pSymbolTable.insertRow(computeInsertIndex()));
-		var newCell : TableCellElement = cast (newRow.insertCell(0));
-		newCell.innerHTML = payload.symbol;
-		newCell = cast newRow.insertCell(1);
-		newCell.innerHTML = payload.side;
-		newCell = cast newRow.insertCell(2);
-		newCell.innerHTML = payload.symbolType;
-		newCell = cast newRow.insertCell(3);
-		newCell.innerHTML = payload.quantity;
+		updateTableRowMap(payload);
 	}
 
 	private function updateResponse(payload : PortfolioSymbolT){
 		trace("Updating view " + payload);
+		clearFields();
+		updateTableRowMap(payload);
 	}
 	private function deleteResponse(payload : PortfolioSymbolT) {
 		trace("Deleting view "  + payload);
+		clearFields();
+		deleteTableRowMap(payload);
 	}
 
 	private function readResponse(payload : PortfolioSymbolT) {
@@ -341,11 +392,31 @@ class PortfolioSymbol {
 	}
 
 
+	private function handleQueryResponse(incomingMessage : Dynamic){
+		trace("Processing symbol query response " + incomingMessage);
+		if(incomingMessage.Right.resultSet == null){
+			trace("Result set is not defined??");
+		}
+		if(incomingMessage.Left != null){
+			MBooks_im.getSingleton().applicationErrorStream.resolve(incomingMessage);
+		}else {
+			var pS : PortfolioSymbolQueryT = incomingMessage.Right;
+			for (i in pS.resultSet) {
+				if (i.Right != null){
+					updateTableRowMap(i.Right);
+				}else if(i.Left != null){
+					MBooks_im.getSingleton().applicationErrorStream.resolve(i);
+				}
+			}
+
+		}
+
+	}
 
 	//A column name map to allow for rearranging columns on the 
 	//screen.
 	//When we allow users to move columns around, 
 	//this dictionary needs to be updated.
 	private var columnIndexMap : ObjectMap<String, Int>;
-	private var rowMap : ObjectMap<String, TableRowElement>();
+	private var rowMap : ObjectMap<String, TableRowElement>;
 }
