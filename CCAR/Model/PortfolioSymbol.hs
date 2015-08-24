@@ -183,17 +183,22 @@ manage aNickName aValue@(Object a) =
 			res <- process r  
 			case res of
 				Right (k, (creator, updator, portfolioUUID)) -> do 
-					portfolioEntity <- dbOps $ get k 
-					case portfolioEntity of 
-						Just pEVa -> do 
-							res1 <- return $ daoToDto (crudType r) portfolioUUID creator updator aNickName pEVa 
-							case res1 of 
-								Right pT -> return (GC.Reply, serialize res1)
-								Left f -> do 
-									liftIO $ Logger.errorM iModuleName $ 
-										"Error processing manage portfolio " `mappend` (show aValue)
-									return (GC.Reply, serialize $ genericErrorCommand $ 
-										"Error processing manage portfolio " ++ (T.unpack f))
+					case (crudType r) of 
+						Delete -> do 
+							reply <- return $ Right r 
+							return (GC.Reply, serialize (reply :: Either T.Text PortfolioSymbolT))
+						_ 	   -> do 
+							portfolioEntity <- dbOps $ get k 
+							case portfolioEntity of 
+								Just pEVa -> do 
+									res1 <- return $ daoToDto (crudType r) portfolioUUID creator updator aNickName pEVa 
+									case res1 of 
+										Right pT -> return (GC.Reply, serialize res1)
+										Left f -> do 
+											liftIO $ Logger.errorM iModuleName $ 
+												"Error processing manage portfolio " `mappend` (show aValue)
+											return (GC.Reply, serialize $ genericErrorCommand $ 
+												"Error processing manage portfolio " ++ (T.unpack f))
 				Left p2 -> do
 							liftIO $ Logger.errorM iModuleName $ 
 								"Error processing manage portfolio " `mappend` (show aValue)

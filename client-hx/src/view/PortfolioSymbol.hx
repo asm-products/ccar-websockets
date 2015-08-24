@@ -21,6 +21,7 @@ import js.html.TableCellElement;
 import js.html.TableRowElement;
 import js.html.HTMLCollection;
 import haxe.ds.ObjectMap;
+import haxe.ds.StringMap;
 import promhx.Stream;
 import promhx.Deferred;
 import promhx.base.EventLoop;
@@ -51,6 +52,7 @@ class PortfolioSymbol {
 	public function new(m : model.PortfolioSymbol){
 		trace("Instantiating new portfolio symbol view");
 		model = m;
+		rowMap = new StringMap<TableRowElement>();
 		setupStreams();
 	}
 	
@@ -153,7 +155,6 @@ class PortfolioSymbol {
 		readStreamResponse.then(readResponse);
 		symbolQueryResponse = new Deferred<PortfolioSymbolQueryT>();
 		symbolQueryResponse.then(handleQueryResponse);
-		rowMap = new ObjectMap<String, TableRowElement>();
 	}
 
 	private function computeInsertIndex() {
@@ -165,22 +166,25 @@ class PortfolioSymbol {
 		if(payload == null){
 			throw ("Get failed. No payload");
 		}
-		return (payload.symbol + payload.side + payload.symbolType);
+		return (payload.symbol + payload.side + payload.symbolType + payload.portfolioId);
 	}
 	private function deleteTableRowMap(payload : PortfolioSymbolT) {
 		trace("Deleting table row map " + payload);
 		var key : String = getKey(payload);
-		var row : TableRowElement = rowMap.get(key);
-		if(row == null) {
-			throw ("Nothing to delete " + payload);
+		trace("Deleting key " + key);
+		
+		if(!rowMap.exists(key)) {
+			trace("Nothing to delete " + payload);
+			return;
 		}
+		var row : TableRowElement = cast rowMap.get(key);
 		rowMap.remove(key);
 		var pSymbolTable : TableElement = getPortfolioSymbolTable();
 		pSymbolTable.deleteRow(row.rowIndex);
 	}
 	private function updateTableRowMap(payload : PortfolioSymbolT) {
 		var key : String = getKey(payload);
-		var row : TableRowElement = rowMap.get(key);
+		var row : TableRowElement = cast rowMap.get(key);
 		if(row == null){
 			var pSymbolTable = getPortfolioSymbolTable();
 			row = cast(pSymbolTable.insertRow(computeInsertIndex()));
@@ -260,6 +264,7 @@ class PortfolioSymbol {
 
 	}
 	private function updatePortfolioSymbol(ev : Event) {
+		trace("Update portfolio symbol " + ev);
 		var portfolioSymbolT  : PortfolioSymbolT = {
 			crudType : "P_Update"
 			, commandType : "ManagePortfolioSymbol"
@@ -276,6 +281,7 @@ class PortfolioSymbol {
 		
 	}
 	private function deletePortfolioSymbol(ev : Event){
+		trace("Delete portfolio symbol " + ev);
 		var portfolioSymbolT  : PortfolioSymbolT = {
 			crudType : "Delete"
 			, commandType : "ManagePortfolioSymbol"
@@ -418,5 +424,5 @@ class PortfolioSymbol {
 	//When we allow users to move columns around, 
 	//this dictionary needs to be updated.
 	private var columnIndexMap : ObjectMap<String, Int>;
-	private var rowMap : ObjectMap<String, TableRowElement>;
+	private var rowMap : StringMap<TableRowElement>;
 }
