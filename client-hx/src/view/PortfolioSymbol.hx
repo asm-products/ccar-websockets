@@ -20,6 +20,7 @@ import js.html.TableElement;
 import js.html.TableCellElement;
 import js.html.TableRowElement;
 import js.html.HTMLCollection;
+import js.html.FileReader;
 import haxe.ds.ObjectMap;
 import haxe.ds.StringMap;
 import promhx.Stream;
@@ -30,6 +31,12 @@ import model.PortfolioSymbol;
 import model.Company;
 import js.Lib.*;
 import util.*;
+import format.csv.*;
+import format.*;
+
+typedef Field = String;
+typedef Record = Array<Field>;
+typedef Csv = Array<Record>;
 
 class PortfolioSymbol {
 	private static var SYMBOL_SIDE_LIST = "symbolSideID";
@@ -40,6 +47,9 @@ class PortfolioSymbol {
 	private static var DELETE_SYMBOL_BUTTON = "deleteSymbol";
 	private static var UPDATE_SYMBOL_BUTTON = "updateSymbol";
 	private static var PORTFOLIO_SYMBOL_TABLE = "portfolioSymbolTable";
+	private static var UPLOAD_PORTFOLIO_FILE = "uploadPortfolioFile";
+	private static var UPLOAD_PORTFOLIO_BUTTON =  "uploadPortfolioButton";
+
 
 
 	private var insertStreamResponse(default, null) : Deferred<PortfolioSymbolT>;
@@ -56,7 +66,13 @@ class PortfolioSymbol {
 		setupStreams();
 	}
 	
+	private function getUploadPortfolioFile() : InputElement {
+		return (cast Browser.document.getElementById(UPLOAD_PORTFOLIO_FILE));
+	}
 
+	private function getUploadPortfolioButton() : ButtonElement {
+		return (cast Browser.document.getElementById(UPLOAD_PORTFOLIO_BUTTON));
+	}
 	private function getPortfolioSymbolTable() : TableElement {
 		return (cast Browser.document.getElementById(PORTFOLIO_SYMBOL_TABLE));
 	}
@@ -155,10 +171,67 @@ class PortfolioSymbol {
 		readStreamResponse.then(readResponse);
 		symbolQueryResponse = new Deferred<PortfolioSymbolQueryT>();
 		symbolQueryResponse.then(handleQueryResponse);
+
+		var uploadPortfolioButtonStream : Stream<Dynamic> =
+				MBooks_im.getSingleton().initializeElementStream(
+					cast getUploadPortfolioButton()
+					, "click"
+				);
+		uploadPortfolioButtonStream.then(uploadPortfolio);
 	}
 
+	private function uploadPortfolio(ev : Event) {
+		trace("Save button pressed");
+		var files  = getUploadPortfolioFile().files;
+		for (file in files){
+			var reader = new FileReader();
+			var stream_1 : Stream<Dynamic> = 
+				MBooks_im.getSingleton().initializeElementStream(
+					cast reader
+					, "load");
+			stream_1.then(processFileUpload);
+			reader.readAsText(file);
+
+		}
+
+	}
+	//Assumes a header row.
+	private function parsePortfolioDetails(fileContents : String){
+		trace("Parsing portfolio details");
+		var portfolioDetails : Array<Record> = 
+				Reader.parseCsv(fileContents);
+		var headerRead : Bool = false;
+
+		for(aRecord in portfolioDetails) {
+			var a : Record = cast aRecord;
+			if(a.length == 4){
+				if(headerRead == true){
+					insertPortfolioSymbolI(StringTools.trim(a[0]), 
+								StringTools.trim(a[1]), 
+								StringTools.trim(a[2]), 
+								StringTools.trim(a[3]));
+				}else{
+					trace("Skipping " + aRecord);
+				}
+			}else{
+				trace("Invalid record length " + aRecord);
+			}
+			headerRead = true;
+		}
+	}
+	private function processFileUpload(ev: Event) {
+		trace("Processing file upload ");
+		try {
+			var reader : FileReader = cast ev.target;
+			trace("Reading");
+			parsePortfolioDetails(reader.result);
+			trace("Read");
+		}catch(e : Dynamic){
+			trace("Exception " + e);
+		}
+	}
 	private function computeInsertIndex() {
-		return 0; //Need to compute the index based on the 
+		return 1; //Need to compute the index based on the 
 				//current state of the table.
 	}
 
@@ -243,6 +316,22 @@ class PortfolioSymbol {
 			throw ("Model not defined");
 		}
 		return model.activePortfolio.portfolioId;
+	}
+	private function insertPortfolioSymbolI(aSymbol : String, aSymbolType : String, aSide: String, quantity : String){
+		trace("Inserting portfolio symbol through upload ");
+		var portfolioSymbolT : PortfolioSymbolT = {
+			crudType : "Create"
+			, commandType : "ManagePortfolioSymbol"
+			, portfolioId : getPortfolioId()
+			, symbol : aSymbol
+			, quantity : quantity
+			, side : aSide
+			, symbolType : aSymbolType
+			, creator : MBooks_im.getSingleton().getNickName()
+			, updator : MBooks_im.getSingleton().getNickName()
+			, nickName : MBooks_im.getSingleton().getNickName()
+		}
+		model.insertStream.resolve(portfolioSymbolT);
 	}
 	private function insertPortfolioSymbol(ev : Event ){
 		trace("Insert portfolio symbol " + ev);

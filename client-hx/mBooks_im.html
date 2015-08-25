@@ -231,15 +231,26 @@
 				</select>
 				<label for="symbolQuantityID"> Quantity </label>
 				<input id="symbolQuantityID" type="text" placeholder="100"/>
+				<blockquote class="small">
+				<p> Upload a symbol file in the following format 
+				<p> Symbol, SymbolType, Side, Quantity
+				<p> In case of duplicate entries, the last value read from top to bottom will be used to update. Invalid symbol type and side will raise errors in the error stream. </p>
+				</blockquote>
+				<label for="uploadPortfolioFile"> Upload portfolio file here </label>
+				<input id="uploadPortfolioFile" type="file" multiple=""></input>
+				<label for="uploadPortfolioButton"> Upload Portfolio </label>
+				<button id="uploadPortfolioButton"> Click to upload </button>
 				<label for="saveSymbol"> Save </label>
 				<button id="saveSymbol"> Save </button>
 				<label for="deleteSymbol"> Delete </label>
 				<button id="deleteSymbol"> Delete </button>
 				<label for="updateSymbol"> Update </label>
 				<button id="updateSymbol">Update </button>
-
+			
 			</div>
+
 		</form>
+
 		<div class="col_12">
 			<table id="portfolioSymbolTable" cellspacing="0" cellpadding="0">
 				<thead>

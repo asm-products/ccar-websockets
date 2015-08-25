@@ -1,6 +1,8 @@
 #Fix the cp issue for promhx
 -cp ./src
 -cp /usr/share/haxe/lib/promhx/1,0,16/src/main/
+-cp /usr/share/haxe/lib/csv/0,4,0/lib
+-lib csv
 -lib promhx
 -lib munit
 -js mbooks_im.js
