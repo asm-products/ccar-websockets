@@ -360,7 +360,8 @@ testInsert index portfolioID = dbOps $ do
 								liftIO $ insertPortfolioSymbol $ PortfolioSymbolT Create 
 												managePortfolioSymbolCommand
 												(portfolioUuid por)
-												("ABC" `mappend` (T.pack $ show index))
+												{-("ABC" `mappend` (T.pack $ show index))-}
+												"ABC"
 												"314.14"
 												EnTypes.Buy
 												EnTypes.Equity

@@ -75,5 +75,3 @@ testCase2 aCount = do
 		Right (portfolioID) -> do 
 			forM [1..aCount] $ \x -> (PortfolioSymbol.testInsert x portfolioID)
 		Left _ ->  return $ [Left $ "Failed inserting portfolio symbol"]
-
-
