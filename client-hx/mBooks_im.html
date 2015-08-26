@@ -10,8 +10,8 @@
 <meta name="copyright" content="Joshua Gatcke 99lime.com All Rights Reserved" />
 <link rel="stylesheet" type="text/css" href="css/kickstart.css" media="all" />                  <!-- KICKSTART -->
 <link rel="stylesheet" type="text/css" href="style.css" media="all" />                          <!-- CUSTOM STYLES -->
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script type="text/javascript" src="js/kickstart.js"></script>                                  <!-- KICKSTART -->
+<!-- <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+ --><script type="text/javascript" src="js/kickstart.js"></script>                                  <!-- KICKSTART -->
 <style>
 		body {
 		  font: 15px sans-serif;
@@ -160,11 +160,9 @@
 					<label for="companyImage">Splash</label>
 					<input id="companyImage" type="file"/>
 					<img id="companySplash" height="200"/>
-					<label for="saveCompany"> Save </label>
-					<button id="saveCompany"> Save </button>
+					<button id="saveCompany"> Save Company</button>
 
 					<!-- Assign the current company to the user logged in. -->
-					<label for="assignCompany"> Assign company </label>
 					<button id="assignCompany"> Assign Company </button>
 				</div>
 			</form>
@@ -205,12 +203,9 @@
 
 				<label for="portfolioSummary"> Summary</label>
 				<textarea id="portfolioSummary"> </textarea>
-				<label for="savePortfolio"> Save Portfolio</label>
-				<button id="savePortfolio"> Save </button>
-				<label for="updatePortfolio"> Update portfolio </label>
-				<button id="updatePortfolio"> Update </button>
-				<label for="deletePortfolio"> Delete Portfolio</label>
-				<button id="deletePortfolio"> Delete </button>
+				<button id="savePortfolio"> Save Portfolio</button>
+				<button id="updatePortfolio"> Update Portfolio </button>
+				<button id="deletePortfolio"> Delete Portfolio </button>
 
 			</div>
 		</form>
@@ -221,13 +216,13 @@
 				<input id="symbolID" type="text" placeholder="teva"/>
 				<label for="symbolSideID"> Side </label>
 				<select id="symbolSideID">
-					<option value="0">--Choose </option>
+					<option value="0">--Select Side (buy/sell)</option>
 				</select>
 				<label for="symbolTypeID"> 
 						Symbol type (asset class - Equity, Bonds, Options) 
 				</label>
 				<select id="symbolTypeID"> 
-					<option value="0"> --Choose </option>
+					<option value="0"> --Select Symbol Type : Equity, Bonds</option>
 				</select>
 				<label for="symbolQuantityID"> Quantity </label>
 				<input id="symbolQuantityID" type="text" placeholder="100"/>
@@ -238,14 +233,10 @@
 				</blockquote>
 				<label for="uploadPortfolioFile"> Upload portfolio file here </label>
 				<input id="uploadPortfolioFile" type="file" multiple=""></input>
-				<label for="uploadPortfolioButton"> Upload Portfolio </label>
 				<button id="uploadPortfolioButton"> Click to upload </button>
-				<label for="saveSymbol"> Save </label>
-				<button id="saveSymbol"> Save </button>
-				<label for="deleteSymbol"> Delete </label>
-				<button id="deleteSymbol"> Delete </button>
-				<label for="updateSymbol"> Update </label>
-				<button id="updateSymbol">Update </button>
+				<button id="saveSymbol">Save Symbol </button>
+				<button id="deleteSymbol"> Delete Symbol </button>
+				<button id="updateSymbol">Update Symbol </button>
 			
 			</div>
 

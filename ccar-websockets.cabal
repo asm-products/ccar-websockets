@@ -90,6 +90,7 @@ executable ccar-websockets
                      , HSH                           >= 2.1.2 && < 2.2
                      , hslogger                      >= 1.2.9 && < 1.3
                      , tagsoup                       >= 0.13.3 && < 0.14
+                     , resourcet                     >= 1.1.5 &&  < 1.2
   -- Directories containing source files.
   -- hs-source-dirs:      
   

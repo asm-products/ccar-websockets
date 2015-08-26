@@ -234,7 +234,7 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 						liftIO $ Logger.errorM iModuleName 
 								$ "Portfolio symbol exists. Updating the record, because we have the record:"
 									`mappend` (show a)
-						updatePortfolioSymbol a 
+						updatePortfolioSymbolI portfolioSymbol a 
 					Left _ -> dbOps $ do 
 						portfolio <- getBy $ UniquePortfolio portfolioId 
 						currentTime <- liftIO $ getCurrentTime
@@ -257,6 +257,25 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 							Nothing -> return $ Left $ T.pack $ "Portfolio not found " `mappend` 
 																(T.unpack portfolioId)
 
+
+updatePortfolioSymbolI portfolioSymbol a@(PortfolioSymbolT crType commandType 
+								portfolioId 
+								symbol 
+								quantity
+								side 
+								symbolType 
+								creator
+								updator
+								requestor) = dbOps $ do 
+			currentTime <- liftIO $ getCurrentTime
+			case portfolioSymbol of 
+				Right (psID, _) -> do 
+								x <- update psID [PortfolioSymbolQuantity =. (read $ T.unpack quantity)
+											   , PortfolioSymbolUpdatedOn =. currentTime]
+								return $ Right (psID, (creator, updator, portfolioId))
+				Left x -> do 
+					liftIO $ Logger.errorM iModuleName $ "Error updating portfolio symbol " `mappend` (show a) 
+					return portfolioSymbol
 
 updatePortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
 updatePortfolioSymbol a@(PortfolioSymbolT crType commandType 
@@ -325,8 +344,8 @@ readPortfolioSymbol a@(PortfolioSymbolT crType commandType
 uuidAsString = UUID.toString 
 
 
-testInsert :: Key Portfolio -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text))) 
-testInsert portfolioID = dbOps $ do
+testInsert :: Integer -> Key Portfolio -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text))) 
+testInsert index portfolioID = dbOps $ do
 	u <- liftIO $ nextUUID
 	currentTime <- liftIO $ getCurrentTime
 	portfolio <- get portfolioID 
@@ -341,7 +360,7 @@ testInsert portfolioID = dbOps $ do
 								liftIO $ insertPortfolioSymbol $ PortfolioSymbolT Create 
 												managePortfolioSymbolCommand
 												(portfolioUuid por)
-												"SBR"
+												("ABC" `mappend` (T.pack $ show index))
 												"314.14"
 												EnTypes.Buy
 												EnTypes.Equity

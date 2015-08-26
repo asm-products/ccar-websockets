@@ -67,13 +67,13 @@ instance ModelHeader TestModel where
  |--}
 
 {--| Test inserting a portfolio  |--}
-testCase1 = Portfolio.testInsertPortfolio
+testCase1 aCount = forM [1..aCount] $ return Portfolio.testInsertPortfolio
 
-testCase2 = do 
+testCase2 aCount = do 
 	portfolio <- Portfolio.testInsertPortfolio 
 	case portfolio of 
 		Right (portfolioID) -> do 
-			PortfolioSymbol.testInsert portfolioID
-		Left _ -> return $ Left $ "Failed inserting portfolio symbol"
+			forM [1..aCount] $ \x -> (PortfolioSymbol.testInsert x portfolioID)
+		Left _ ->  return $ [Left $ "Failed inserting portfolio symbol"]
 
 

@@ -983,6 +983,7 @@ driver = do
         liftIO $ do
             flip runSqlPersistMPool pool $ do
                 runMigration migrateAll
+    Logger.debugM "CCAR.Main.Driver" "Closing connection"
     chan <- atomically newBroadcastTChan
 --    static@(Static settings) <- static "static"
     nickNameMap <- newTVarIO $ IMap.empty

@@ -18,7 +18,8 @@ import Data.ByteString.Char8 as C8
 import Data.Aeson
 import GHC.Generics
 import Control.Monad.IO.Class 
-import Control.Monad.Logger 
+import Control.Monad.Logger
+import Control.Monad.Trans.Resource(runResourceT) 
 import System.Log.Logger as Logger
 
 instance ToJSON SurveyPublicationState
@@ -76,10 +77,11 @@ getConnectionString = do
 dbOps f = do 
         connStr <- getConnectionString
         poolSize <- getPoolSize
-        runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
+        x <- runResourceT $ runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
             liftIO $ do
                 flip runSqlPersistMPool pool f 
-
+        infoM "CCAR.Main.DBUtils" "Closing connection"
+        return x
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] 
     [persistLowerCase| 
