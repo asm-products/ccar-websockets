@@ -70,8 +70,11 @@ class Portfolio {
 	public function new() {
 		activePortfolioStream = new Deferred<PortfolioT>();
 		setupEvents();
+		activePortfolioStream.then(updateActivePortfolio);
 	}
-
+	private function updateActivePortfolio(p : PortfolioT) {
+		this.activePortfolio = p;
+	}
 	private function processActiveCompany(selected: model.Company){
 		trace("Company selected for portfolio processing " + selected);
 		this.activeCompany = selected;
