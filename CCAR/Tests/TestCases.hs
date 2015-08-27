@@ -1,3 +1,4 @@
+
 import CCAR.Main.DBUtils
 import GHC.Generics
 import Data.Aeson as J
@@ -23,7 +24,9 @@ import Data.HashMap.Lazy as LH (HashMap, lookup)
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
-
+import Network.HTTP.Conduit
+import Data.Conduit
+import Data.Conduit.Attoparsec
 import GHC.Generics
 import GHC.IO.Exception
 
@@ -75,3 +78,10 @@ testCase2 aCount = do
 		Right (portfolioID) -> do 
 			forM [1..aCount] $ \x -> (PortfolioSymbol.testInsert x portfolioID)
 		Left _ ->  return $ [Left $ "Failed inserting portfolio symbol"]
+
+
+{-testCase3 :: IO ()
+testCase3 = withManager $ \manager -> do
+			value <- liftIO makeValue
+			valueBS <- return $ encode value
+			req' <- liftIO $ -}

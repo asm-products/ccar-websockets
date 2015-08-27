@@ -255,6 +255,7 @@ class PortfolioSymbol {
 		var pSymbolTable : TableElement = getPortfolioSymbolTable();
 		pSymbolTable.deleteRow(row.rowIndex);
 	}
+
 	private function updateTableRowMap(payload : PortfolioSymbolT) {
 		var key : String = getKey(payload);
 		var row : TableRowElement = cast rowMap.get(key);
@@ -273,6 +274,7 @@ class PortfolioSymbol {
 					case 1 : cellI.innerHTML = payload.side;
 					case 2 : cellI.innerHTML = payload.symbolType;
 					case 3 : cellI.innerHTML = payload.quantity;
+					case 4 : cellI.innerHTML = Date.now().toString();
 				}
 			}
 		}
@@ -288,6 +290,8 @@ class PortfolioSymbol {
 		newCell.innerHTML = payload.symbolType;
 		newCell = cast aRow.insertCell(3);
 		newCell.innerHTML = payload.quantity;
+		newCell = cast aRow.insertCell(4);
+		newCell.innerHTML = Date.now().toString();
 	}
 	private function insertResponse(payload : PortfolioSymbolT) {
 		trace("Inserting view " + payload);
