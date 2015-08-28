@@ -87,6 +87,7 @@ class Portfolio {
 
 	private function savePortfolio(ev : Event) {
 		if(activePortfolio == null) {
+			trace("Inserting as no active portfolio selected");
 			insertPortfolioI();
 		}else {
 			updatePortfolioI();
@@ -122,7 +123,7 @@ class Portfolio {
 		var portfolioT : PortfolioT = {
 			crudType : "Create"
 			, commandType : "ManagePortfolio"
-			, portfolioId : activePortfolio.portfolioId
+			, portfolioId : "-1"
 			, companyId : activeCompany.companyId
 			, userId : MBooks_im.getSingleton().getNickName()
 			, summary : getPortfolioSummary()
