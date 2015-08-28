@@ -37,14 +37,12 @@
 		
 
 
-	<div id="serverError" class="error" type="text">
-			<label for="serverError" class="error">Text Field (Error)</label>
-	</div>
-
 	<div class="grid flex" class="callout clearfix">
 		<div class="col_12" style="margin-top:10px;">
 			<h4 class="center"><p><i class="fa fa-fire"></i>
 				</p id="support_title">Query/manage pbdR scripts</h4>
+				<img id="companySplash" height="200"/>
+
 		</div>
 		<div class="col_4">
 		<form class="vertical">
@@ -167,7 +165,6 @@
 					<input id="generalMailbox" type="text" />
 					<label for="companyImage">Splash</label>
 					<input id="companyImage" type="file"/>
-					<img id="companySplash" height="200"/>
 					<button id="saveCompany"> Save Company</button>
 
 					<!-- Assign the current company to the user logged in. -->
@@ -360,18 +357,24 @@
 					</ul>
 				</p>
 			</div>
-	</div>
 
 
-<div class="grid flex" class="callout clearfix">
-	<div class="col_12" style="margin-top:10px;">
-		<h4 class="center"><p><i class="fa fa-fire"></i>
-		</p id="support_title">Error Messages</h4>
-	</div>
-	<label for="applicationError"> Error messages </label>
-	<textarea id="applicationError" rows="30">
-	</textarea>
+		<div class="grid flex" class="callout clearfix">
+			<div class="col_12" style="margin-top:10px;">
+				<h4 class="center"><p><i class="fa fa-fire"></i>
+				</p id="support_title">Error Messages</h4>
+			</div>
+			<label for="applicationError"> Error messages </label>
+			<textarea id="applicationError" rows="30">
+			</textarea>
+			
+			<div id="serverError" class="error" type="text">
+					<label for="serverError" class="error">Text Field (Error)</label>
+			</div>
+
+		</div>
 </div>
+
 <div class="haxe:trace"></div>
 <script src="js/d3/d3.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="mbooks_im.js"></script>

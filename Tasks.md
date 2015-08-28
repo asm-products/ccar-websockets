@@ -4,7 +4,7 @@
 Server is currently sending the password as cleartext (which wont be an issue once the server is wss enabled), nevertheless,
 the server should do the validation of the password and send a result back to the client.
 
-### Add admin profile to a user.
+### Add admin profile to a user and other entitlements
 Kick user text box should only be visible to users with appropriate permissions.
 
 ### Enable oauth2 login so user doesnt have to create a new account.
