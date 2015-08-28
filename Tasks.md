@@ -23,8 +23,28 @@ after an interval : 24 hours and when no user is logged in to the room.
 ### Integration with sphinx
 Each record needs to have a searchable attribute. Also, password field should never be displayed in search results.
 
-### Returning large datasets and cursors.
+### Returning large datasets and cursors
 Implement a cursor that is generic across various entities. Integration with sphinx should also allow for time based queries. There could be many more queries that will be needed to make the site usable.
+
+### Implement portfolio analysis scripts and entities.
+This task is divided into following parts
+	##### Implement/save the actual R script that performs portfolio analysis.
+	##### Implement market data entities for each symbol.
+	##### Execute/save the script for each portfolio and append the output to the portfolio element.
+
+### Implement Symbol analysis scripts and entities (along the similar lines as the portfolio analysis tasks)
+This task will finally be able to show some graphs on the site. The intent is to using ggplot to start with.
+
+### Implemment elementary machine learning in collaboration with Trenton R Users group
+This overlaps with a different project. This task is to integrate with the ml utility. The utility, plans to
+decode news and rank analysts for each symbol to establish a ranking for the analysts.
+	##### Implement the analysts rank entity and allow users to view it. This is a read-only entity for 
+		users.
+	##### Admin users should be able to tweak the ranks depending so input with an audit trail.
+
+
+
+
 
 
 
