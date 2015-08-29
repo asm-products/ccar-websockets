@@ -41,7 +41,6 @@
 		<div class="col_12" style="margin-top:10px;">
 			<h4 class="center"><p><i class="fa fa-fire"></i>
 				</p id="support_title">Query/manage pbdR scripts</h4>
-				<img id="companySplash" height="200"/>
 
 		</div>
 		<div class="col_4">
@@ -81,6 +80,7 @@
 		<select id="companyList">
 			<option value="0">-- Choose </option>
 		</select>
+		<img id="companySplash" height="200"/>
 
 	</div>
 	<ul id ="workbench" class="tabs col_12">
@@ -119,39 +119,76 @@
 				</div>
 			</div>
 	</div>
-	<div id="workbench-security" class="tab-content col_12">
-		<div id="usage_stuff" class="callout">
-			<h3 align="center">
-				What can you do on this site: 
-			</h3>
-			<ul class="tabs-content">
-				<li> Create and save R (using pbdR) scripts to run computations </li>
-				<li> Create CCAR scenarios to test risks if you are so inclined </li>
-				<li> Realtime graphs  </li>
-				<li> Gift/share scripts with other users. </li>
-				<li> Share results with other users </li>
-				<li> Private conversations with other users if you allow them to </li>
-				<li> Create and publish surveys </li>
-				<li> Create and manage projects of various kinds including 3d models </li>
-				<li> Create a market place for products </li>
-				<li> Create bids, trades for products </li>
-				<li> Send us feature requsets </li>
-				<li> Send us bug requests </li>
-				<li> View source </li>
-				<li> More to follow or less to offer ...depends on you </li>
-			</ul>
-			<ul class="tabl-content">
-				<p> We plan to integrate the site with Persona to keep your identity safe. The rest of the site will still be secure so your data, and algorithms, scripts are always safe. I am not a big fan of outh/oauth2 as they run the risk of become central stores of personal information. 
-				</p>
-			</ul>
-			<div class="security_status" display:none>
-				<p>
-					The site is not <strong>secure</strong>. You have been warned.
-				</p>
+
+	<div id="workbench-portfolio" class="tab-content col_12">
+		<p align="center">
+			Add symbols to a portfolio. Each portfolio lists
+			a set of symbols, direction and size. 
+			Allow users to perform symbol analysis from list of available
+			analysis snippets available to the user.
+		</p>
+		<form class="vertical" id="portfolio">
+			<div class="col_4">
+				<label for="portfolioList"> Portfolios </label>
+				<select id="portfolioList">
+					<option value="0">-- Choose </option>
+				</select>
+
+				<label for="portfolioSummary"> Summary</label>
+				<textarea id="portfolioSummary"> </textarea>
+				<button id="savePortfolio"> Save Portfolio</button>
+				<button id="updatePortfolio"> Update Portfolio </button>
+				<button id="deletePortfolio"> Delete Portfolio </button>
+
 			</div>
-		</div>
-		
-	</div>
+		</form>
+		<form class="vertical" id="symbol">
+			<div class="col_8">
+				<label for="symbolID"> Symbol </label>
+				<input id="symbolID" type="text" placeholder="teva"/>
+				<label for="symbolSideID"> Side </label>
+				<select id="symbolSideID">
+					<option value="0">--Select Side (buy/sell)</option>
+				</select>
+				<label for="symbolTypeID"> 
+						Symbol type (asset class - Equity, Bonds, Options) 
+				</label>
+				<select id="symbolTypeID"> 
+					<option value="0"> --Select Symbol Type : Equity, Bonds</option>
+				</select>
+				<label for="symbolQuantityID"> Quantity </label>
+				<input id="symbolQuantityID" type="text" placeholder="100"/>
+				<blockquote class="small">
+				<p> Upload a symbol file in the following format 
+				<p> Symbol, SymbolType, Side, Quantity
+				<p> In case of duplicate entries, the last value read from top to bottom will be used to update. Invalid symbol type and side will raise errors in the error stream. </p>
+				</blockquote>
+				<label for="uploadPortfolioFile"> Upload portfolio file here </label>
+				<input id="uploadPortfolioFile" type="file" multiple=""></input>
+				<button id="uploadPortfolioButton"> Click to upload </button>
+				<button id="saveSymbol">Save Symbol </button>
+				<button id="deleteSymbol"> Delete Symbol </button>
+				<button id="updateSymbol">Update Symbol </button>
+			</div>
+		</form>
+		<div class="col_12">
+			<table id="portfolioSymbolTable" cellspacing="0" cellpadding="0">
+				<thead>
+					<th> Symbol</th>
+					<th> Side </th>
+					<th> Symbol type </th>
+					<th> quantity </th>
+					<th> Last updated by you at </th>
+				</thead>				
+			</table>
+
+			<p> Portfolio analysis </p>
+			<p> Symbol analysis </p>
+		 </div>
+	    </div>
+	 </div>
+
+
 	<div id="workbench-company" class="tab-content col_12">
 		<div class="col_12">	
 			<form class="vertical" id="companyForm">
@@ -192,76 +229,6 @@
     		</div>
     </div>
 
-	<div id="workbench-portfolio" class="tab-content col_12">
-		<p align="center">
-			Add symbols to a portfolio. Each portfolio lists
-			a set of symbols, direction and size. 
-			Allow users to perform symbol analysis from list of available
-			analysis snippets available to the user.
-		</p>
-		<form class="vertical" id="portfolio">
-			<div class="col_4">
-				<label for="portfolioList"> Portfolios </label>
-				<select id="portfolioList">
-					<option value="0">-- Choose </option>
-				</select>
-
-				<label for="portfolioSummary"> Summary</label>
-				<textarea id="portfolioSummary"> </textarea>
-				<button id="savePortfolio"> Save Portfolio</button>
-				<button id="updatePortfolio"> Update Portfolio </button>
-				<button id="deletePortfolio"> Delete Portfolio </button>
-
-			</div>
-		</form>
-
-		<form class="vertical" id="symbol">
-			<div class="col_8">
-				<label for="symbolID"> Symbol </label>
-				<input id="symbolID" type="text" placeholder="teva"/>
-				<label for="symbolSideID"> Side </label>
-				<select id="symbolSideID">
-					<option value="0">--Select Side (buy/sell)</option>
-				</select>
-				<label for="symbolTypeID"> 
-						Symbol type (asset class - Equity, Bonds, Options) 
-				</label>
-				<select id="symbolTypeID"> 
-					<option value="0"> --Select Symbol Type : Equity, Bonds</option>
-				</select>
-				<label for="symbolQuantityID"> Quantity </label>
-				<input id="symbolQuantityID" type="text" placeholder="100"/>
-				<blockquote class="small">
-				<p> Upload a symbol file in the following format 
-				<p> Symbol, SymbolType, Side, Quantity
-				<p> In case of duplicate entries, the last value read from top to bottom will be used to update. Invalid symbol type and side will raise errors in the error stream. </p>
-				</blockquote>
-				<label for="uploadPortfolioFile"> Upload portfolio file here </label>
-				<input id="uploadPortfolioFile" type="file" multiple=""></input>
-				<button id="uploadPortfolioButton"> Click to upload </button>
-				<button id="saveSymbol">Save Symbol </button>
-				<button id="deleteSymbol"> Delete Symbol </button>
-				<button id="updateSymbol">Update Symbol </button>
-			
-			</div>
-
-		</form>
-
-		<div class="col_12">
-			<table id="portfolioSymbolTable" cellspacing="0" cellpadding="0">
-				<thead>
-					<th> Symbol</th>
-					<th> Side </th>
-					<th> Symbol type </th>
-					<th> quantity </th>
-					<th> Last updated by you at </th>
-				</thead>				
-			</table>
-
-		<p> Portfolio analysis </p>
-		<p> Symbol analysis </p>
-		</div>
-	</div>
 
 	<div id="workbench-project" class="tab-content col_12">
 		<div class="col_6">
@@ -338,7 +305,42 @@
 				<button id="clearFields"> Clear Fields </button>
 			</div>
 			</form>
+
 			</div>
+			<div id="workbench-security" class="tab-content col_12">
+				<div id="usage_stuff" class="callout">
+					<h3 align="center">
+						What can you do on this site: 
+					</h3>
+					<ul class="tabs-content">
+						<li> Create and save R (using pbdR) scripts to run computations </li>
+						<li> Create CCAR scenarios to test risks if you are so inclined </li>
+						<li> Realtime graphs  </li>
+						<li> Gift/share scripts with other users. </li>
+						<li> Share results with other users </li>
+						<li> Private conversations with other users if you allow them to </li>
+						<li> Create and publish surveys </li>
+						<li> Create and manage projects of various kinds including 3d models </li>
+						<li> Create a market place for products </li>
+						<li> Create bids, trades for products </li>
+						<li> Send us feature requsets </li>
+						<li> Send us bug requests </li>
+						<li> View source </li>
+						<li> More to follow or less to offer ...depends on you </li>
+					</ul>
+					<ul class="tabl-content">
+						<p> We plan to integrate the site with Persona to keep your identity safe. The rest of the site will still be secure so your data, and algorithms, scripts are always safe. I am not a big fan of outh/oauth2 as they run the risk of become central stores of personal information. 
+						</p>
+					</ul>
+					<div class="security_status" display:none>
+						<p>
+							The site is not <strong>secure</strong>. You have been warned.
+						</p>
+					</div>
+				</div>
+				
+			</div>
+
 			<div id="project_notes">
 				<h4 align="center"> Notes/Instructions </h4>
 				<p align="center">
