@@ -237,7 +237,7 @@ parseStatements = do
             x <- endBy parseExpr eol
             return x
 
-eol :: Parser Char
+eol :: Parser String
 eol = do 
-        x <- char ';' 
-        return x
+    try (string ";\n")
+    <|> try (string ";")
