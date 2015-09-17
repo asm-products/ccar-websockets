@@ -398,4 +398,12 @@ FRP : Functional reactive programming
 pbdR : parallel big data for (R)[http://pbd-r.org]
 
 
+Market data
+==============================================================
 
+##### Get market data for all symbols (ideally from a low-latency connection)
+##### Get equity reference data (industry etc.)
+
+Market analysis
+============================================================
+##### Download the R script
