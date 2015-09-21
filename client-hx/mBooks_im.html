@@ -84,13 +84,15 @@
 
 	</div>
 	<ul id ="workbench" class="tabs col_12">
-	<li><a href="#workbench-messaging">Messaging</a></li>
-	<li><a href="#workbench-general">General Info </a></li>
-	<li><a href="#workbench-company">Manage company</a></li>
-	<li><a href="#workbench-project">Manage projects</a></li>
-	<li><a href="#workbench-ccar">Manage CCAR</a></li>
-    <li><a href="#workbench-security"> Security notes </a> </li>
-    <li><a href="#workbench-portfolio"> Portfolio analysis </a> </li>
+	<li id="workbench-messaging-tab"><a href="#workbench-messaging">Messaging</a></li>
+	<li id ="workbench-general-tab"><a href="#workbench-general">General Info </a></li>
+	<li id = "workbench-company-tab"><a href="#workbench-company">Manage company</a></li>
+	<li id = "workbench-project-tab"><a href="#workbench-project">Manage projects</a></li>
+	<li id = "workbench-ccar-tab"><a href="#workbench-ccar">Manage CCAR</a></li>
+    <li id ="workbench-security-tab"><a href="#workbench-security"> Security notes </a> </li>
+    <li id ="workbench-portfolio-tab"><a href="#workbench-portfolio"> Portfolio analysis </a> </li>
+    <li id="workbench-entitlements-tab"><a href="#workbench-entitlements"> Entitlements (admin only) </a> </li>
+    <li id="workbench-errors-tab"> <a href="#workbench-errors"> Errors </a> </li>
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content col_12">
@@ -210,8 +212,8 @@
 			</form>
 		</div>
 	</div>
+
    <div id="workbench-ccar" class="tab-content col_12">
-           <div class="col_12">    
                    <form class="vertical" id="scenarioForm">
                            <div class="col_6">
                                    <!-- Placeholder Text -->
@@ -226,9 +228,7 @@
                                    <button id="saveScenario"> Save Scenario</button>
                            </div>
                    </form>
-    		</div>
     </div>
-
 
 	<div id="workbench-project" class="tab-content col_12">
 		<div class="col_6">
@@ -260,7 +260,6 @@
 				</div>
 			</form>
 		</div>
-		
 		<div class="col_6">
 			<form class="vertical" id="projectListForm">
 				<div class="col_6">
@@ -306,8 +305,8 @@
 			</div>
 			</form>
 
-			</div>
-			<div id="workbench-security" class="tab-content col_12">
+		</div>
+		<div id="workbench-security" class="tab-content col_12">
 				<div id="usage_stuff" class="callout">
 					<h3 align="center">
 						What can you do on this site: 
@@ -329,7 +328,7 @@
 						<li> More to follow or less to offer ...depends on you </li>
 					</ul>
 					<ul class="tabl-content">
-						<p> We plan to integrate the site with Persona to keep your identity safe. The rest of the site will still be secure so your data, and algorithms, scripts are always safe. I am not a big fan of outh/oauth2 as they run the risk of become central stores of personal information. 
+						<p> We plan to integrate the site with Persona to keep your identity safe. The rest of the site will still be secure so your data, and algorithms, scripts are always safe. I am not a big fan of outh/oauth2 as they run the risk of become central stores of personal information, although, if you feel inclined, we do plan on adding support to commonly available oauth providers starting with google and facebook.
 						</p>
 					</ul>
 					<div class="security_status" display:none>
@@ -339,8 +338,6 @@
 					</div>
 				</div>
 				
-			</div>
-
 			<div id="project_notes">
 				<h4 align="center"> Notes/Instructions </h4>
 				<p align="center">
@@ -359,21 +356,19 @@
 					</ul>
 				</p>
 			</div>
+		</div>
 
 
-		<div class="grid flex" class="callout clearfix">
-			<div class="col_12" style="margin-top:10px;">
-				<h4 class="center"><p><i class="fa fa-fire"></i>
-				</p id="support_title">Error Messages</h4>
+		<div id="workbench-errors" class="tab-content col_12">
+			<div class="grid flex" class="callout clearfix">
+				<div class="col_12" style="margin-top:10px;">
+					<h4 class="center"><p><i class="fa fa-fire"></i>
+					</p id="support_title">Error Messages</h4>
+				</div>
+				<label for="applicationError"> Error messages </label>
+				<textarea id="applicationError" rows="30" cols="100">
+				</textarea>				
 			</div>
-			<label for="applicationError"> Error messages </label>
-			<textarea id="applicationError" rows="30">
-			</textarea>
-			
-			<div id="serverError" class="error" type="text">
-					<label for="serverError" class="error">Text Field (Error)</label>
-			</div>
-
 		</div>
 </div>
 

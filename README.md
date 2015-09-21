@@ -43,8 +43,19 @@ Installation of the yesod toolchain
 * $ cabal install yesod-core --max-backjumps=-1 --reorder-goals --reinstall
 
 
-Instructions to login to postgres
+Some admin commmands
 ====================================
 sudo -u postgres psql -d <dbname>
+
+Login as root
+kill -QUIT $(cat /usr/local/nginx/logs/nginx.pid)
+#Starting stunnel if installed:
+root@koala:/etc/stunnel# /etc/init.d/stunnel4 restart
+
+Self signing certificates
+  Url [https://www.digitalocean.com/community/tutorials/how-to-set-up-an-ssl-tunnel-using-stunnel-on-ubuntu]
+  openssl genrsa -out /etc/stunnel/key.pem 4096
+  openssl req -new -x509 -key /etc/stunnel/key.pem -out /etc/stunnel/cert.pem -days 1826
+
 
 

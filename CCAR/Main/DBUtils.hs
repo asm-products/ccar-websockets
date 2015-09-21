@@ -144,6 +144,11 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             lastLoginTime UTCTime default=CURRENT_TIMESTAMP
             PersonUniqueNickName nickName
             deriving Show Eq
+             
+        Entitlement json
+            tabName Text  -- the tab on the ui. 
+            sectionName Text -- the section on the ui. 
+            entitlement PersonId 
         GuestLogin json 
             loginTime UTCTime default = CURRENT_TIMESTAMP 
             loginFor PersonId 

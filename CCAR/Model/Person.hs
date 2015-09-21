@@ -54,6 +54,7 @@ updateLogin p = do
                     flip runSqlPersistMPool pool $ do 
                         DB.updateWhere [PersonNickName ==. (personNickName p)][PersonLastLoginTime =. now]                         
                     return $ Just p 
+
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = dbOps $ do
                 	mP <- getBy $ PersonUniqueNickName aNickName

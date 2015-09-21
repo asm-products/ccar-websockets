@@ -300,7 +300,6 @@ instance Yesod App
 
 mkYesod "App" [parseRoutes|
 /chat HomeR GET
-/portNumber PortNumberR GET
 |]
 
 
@@ -908,10 +907,6 @@ writerThread app connection nickName terminate = do
                     writerThread app connection nickName terminate
 
 
-getPortNumberR :: Handler Html 
-getPortNumberR = do 
-    defaultLayout $ do 
-        [whamlet| 3000 |]
 getHomeR :: Handler Html
 getHomeR = do
     request <- waiRequest

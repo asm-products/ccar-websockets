@@ -56,7 +56,13 @@ import promhx.Deferred;
 class MBooks_im {
 
 	private static var singleton : MBooks_im;
-
+	private static var MESSAGING_DIV : String = "workbench-messaging";
+	private static var GENERAL_DIV : String = "workbench-general";
+	private static var COMPANY_DIV : String = "workbench-company";
+	private static var PROJECT_DIV : String = "workbench-project";
+	private static var CCAR_DIV  : String = "workbench-ccar";
+	private static var SECURITY_DIV : String = "workbench-security";
+	private static var PORTFOLIO_DIV : String = "workbench-portfolio";
 	public static function getSingleton() {
 		return singleton;
 	}
@@ -116,7 +122,8 @@ class MBooks_im {
 	}
 	// Connection details
 	private function connectionString() : String {
-		return protocol + "://" + Browser.location.hostname + ":" + portNumber + "/chat";
+		//return protocol + "://" + Browser.location.hostname + ":" + portNumber + "/chat";
+		return protocol + "://" + Browser.location.hostname + "/chat";
 	}
 
 	private function connect() {
@@ -183,9 +190,7 @@ class MBooks_im {
 	}
 
 	private  function onServerConnectionError(ev : Event){
-		trace("Error " + haxe.Json.stringify(ev));
-		getNickNameElement().disabled = true;
-		setError("Server not available. Please try back later.");
+		trace("Error " + ev);
 	}
 
 	// Message processing 
@@ -561,6 +566,15 @@ class MBooks_im {
 
 	}
 
+	//tabName
+	private function disableTab(tabName : String, tabSectionName : String) {
+		var element : DivElement = cast Browser.document.getElementById(tabName);
+		trace("Disabling tab " + tabName);
+		element.setAttribute("style", "display:none");
+		var containerElement = Browser.document.getElementById(tabSectionName);
+		containerElement.setAttribute("style", "display:none");
+
+	}
 	private function getMessageInput() : InputElement {
 		var inputElement : InputElement = cast Browser.document.getElementById(MESSAGE_INPUT);
 		return inputElement;
