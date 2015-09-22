@@ -274,6 +274,14 @@ instance FromJSON CCARText where
     parseJSON (Object v) = parseCCARText  v 
     parseJSON _          = Appl.empty
 
+instance FromJSON UserOperations where 
+    parseJSON (Object v) = parseCreateUser v 
+    parseJSON _          = Appl.empty
+
+instance FromJSON CCARUpload where 
+    parseJSON (Object v) = parseCCARUpload v 
+    parseJSON _          = Appl.empty
+
 
 iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
 iParseJSON = J.eitherDecode . E.encodeUtf8 . L.fromStrict
@@ -432,14 +440,14 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
 processCommand (Just a) = return (GroupCommunication.Reply, a)
 
 processCommandValue :: App -> T.Text -> Value -> IO (DestinationType, T.Text)
-processCommandValue app nickName (Object a)   = do  
+processCommandValue app nickName o@(Object a)   = do  
     case cType of 
         Nothing -> return $ (GroupCommunication.Reply, ser $ 
                         CommandError $ genericErrorCommand "Unable to process command")
         Just aType -> 
             case aType of 
                 String "Login" -> 
-                        case (parse parseLogin a) of
+                        case (parse parseJSON o :: Result Login) of
                             Success r -> do 
                                     (d, c) <- processCommand $ (Just (CommandLogin r))
                                     return (d, ser c)
@@ -447,7 +455,7 @@ processCommandValue app nickName (Object a)   = do
                                     return (GroupCommunication.Reply,
                                             ser $ CommandError $ genericErrorCommand $ "parse login  failed "++ s)
                 String "ManageUser" ->
-                        case (parse parseCreateUser a) of
+                        case (parse parseJSON o :: Result UserOperations) of
                             -- Assert that the user operation is not an insert for the person table.
                             Success r -> do
                                     (d, c) <- processCommand $ Just $ CommandUO r
@@ -456,7 +464,7 @@ processCommandValue app nickName (Object a)   = do
                                 return (GroupCommunication.Reply 
                                     , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
                 String "UserBanned" -> do
-                        c <- return $ parse UserJoined.parseUserBanned a 
+                        c <- return $ (parse parseJSON o :: Result UserBanned)
                         case c of
                             Success u@(UserJoined.UserBanned a1) -> do
                                 bConns <- atomically $ getClientState a1 app 
@@ -470,7 +478,7 @@ processCommandValue app nickName (Object a)   = do
                                     , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
 
                 String "CCARUpload" ->
-                        case (parse parseCCARUpload a) of
+                        case (parse parseJSON o :: Result CCARUpload) of
                             Success r -> do  
                                     (d, c) <- processCommand $ Just $ CommandCCARUpload r 
                                     return (d, ser c)
@@ -489,7 +497,7 @@ processCommandValue app nickName (Object a)   = do
                                     ser $ CommandError $ genericErrorCommand $ 
                                         "Parse Keep alive failed" ++ s ++ (show a))
                 String "ParsedCCARText" ->
-                        case (parse parseCCARText a) of
+                        case (parse parseJSON o :: Result CCARText) of
                             Success r -> do 
                                     (d, c) <- processCommand $ Just $ ParseCCARText r 
                                     return (d, ser c)
@@ -613,12 +621,12 @@ authenticate aConn aText app@(App a c) =
             Nothing -> return (GroupCommunication.Reply, 
                         L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
                                 $ genericErrorCommand ("Invalid command during login"))
-            Just (Object a) -> do
+            Just o@(Object a) -> do
                 (d, c) <- processCommandValue app aText (Object a) 
                 c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
                 case c1 of 
-                    Just (Object a ) -> do  
-                        result <- return $ parse parseLogin a 
+                    Just o2@(Object a ) -> do  
+                        result <- return $ (parse parseJSON o2 :: Result Login)
                         case result of 
                             Success (r@(Login a b)) -> do 
                                     nickName <- getPersonNickName a 
@@ -635,11 +643,11 @@ processUserLoggedIn aConn aText app@(App a c) = do
     case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
                     ser $ CommandError $ genericErrorCommand ("Login has errors"))
-            Just (Object a) -> do
+            Just o@(Object a) -> do
                 Just commandType <- return $ LH.lookup "commandType" a
                 case commandType of 
                     String "UserLoggedIn" -> do 
-                        c <- return $ parse UserJoined.parseUserLoggedIn a  
+                        c <- return $ (parse parseJSON o :: Result UserLoggedIn)
                         case c of 
                             Success u@(UserJoined.UserLoggedIn a) -> do 
                                         atomically $ addConnection app aConn a 
@@ -648,7 +656,7 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                                 $ CommandError $ 
                                                 genericErrorCommand ("Invalid command during login"))                                
                     String "UserJoined" -> do 
-                        c <- return $ parse UserJoined.parseUserJoined a  
+                        c <- return $ (parse parseJSON o :: Result UserJoined)
                         case c of 
                             Success u@(UserJoined.UserJoined a) -> do 
                                         return $ (Broadcast, ser u)

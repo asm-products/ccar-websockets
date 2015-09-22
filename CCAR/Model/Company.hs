@@ -254,8 +254,8 @@ process c@(ManageCompany nickName crudType company) =  do
 	        Read -> queryCompany nickName company
 	        Delete -> deleteCompany company
 
-manageCompany aNickName (Object a) = do 
-	case (parse parseManageCompany a) of
+manageCompany aNickName o@(Object a) = do 
+	case (parse parseJSON o :: Result ManageCompany) of
 	    Success r@(ManageCompany a cType company) -> do
 	    		company <- process r  
 	    		return (GC.Reply, 
@@ -265,8 +265,8 @@ manageCompany aNickName (Object a) = do
 				    	serialize $ genericErrorCommand $ 
 				    		"Sending message failed " ++ s)
 
-queryAllCompanies aNickName (Object a) = do 
-		case (parse parseQueryCompany a) of 
+queryAllCompanies aNickName o@(Object a) = do 
+		case (parse parseJSON o :: Result QueryCompany) of 
 			Success r -> do 
 					companiesD <- selectAllCompanies
 					companiesT <- mapM (\x@(Entity k v) -> 
@@ -280,7 +280,7 @@ queryAllCompanies aNickName (Object a) = do
 
 
 assignUserToCompany aNickName aValue = do 
-	case (fromJSON aValue) of 
+	case (parse parseJSON aValue :: Result AssignUser) of 
 		Success a@(AssignUser cType cID user chatMinder support) -> do 
 			x <- insertCompanyPerson user cID chatMinder 
 			case x of 
