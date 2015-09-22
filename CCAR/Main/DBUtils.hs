@@ -148,7 +148,13 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         Entitlement json
             tabName Text  -- the tab on the ui. 
             sectionName Text -- the section on the ui. 
-            entitlement PersonId 
+            UniqueEntitlement tabName sectionName
+            deriving Show Eq
+        CompanyUserEntitlement json 
+            entitlement EntitlementId 
+            companyUserId CompanyUserId 
+            deriving Show Eq
+
         GuestLogin json 
             loginTime UTCTime default = CURRENT_TIMESTAMP 
             loginFor PersonId 

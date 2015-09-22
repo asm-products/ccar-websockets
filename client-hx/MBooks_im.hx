@@ -4,6 +4,7 @@
 import haxe.Json;
 import haxe.Utf8;
 import haxe.Timer;
+import haxe.Http;
 import js.html.Element;
 import haxe.ds.GenericStack;
 import js.html.Event;
@@ -63,6 +64,7 @@ class MBooks_im {
 	private static var CCAR_DIV  : String = "workbench-ccar";
 	private static var SECURITY_DIV : String = "workbench-security";
 	private static var PORTFOLIO_DIV : String = "workbench-portfolio";
+	private static var SETUP_GMAIL  : String = "setupGmailOauth";
 	public static function getSingleton() {
 		return singleton;
 	}
@@ -108,8 +110,24 @@ class MBooks_im {
 		applicationErrorStream = new Deferred<Dynamic>();
 		applicationErrorStream.then(updateErrorMessages);
 		getUserLoggedInStream().then(processSuccessfulLogin);
+		var oauthStream : Stream<Dynamic> = 
+			initializeElementStream(getGmailOauthButton() , "click");
+		oauthStream.then(performGmailOauth);
 	}
+	private function performGmailOauth(incoming : Dynamic) {
+		trace("Processing gmail outh" + incoming);
+		var goauthUrl : String = "https://accounts.google.com/o/oauth2/auth";
+		var oauthRequest : Http = new Http(goauthUrl);
+		oauthRequest.setParameter("client_id", "481504989252-nh8dddoljkd9inmu3c82jr4ll4cn0sfn.apps.googleusercontent.com");
+		oauthRequest.setParameter("redirect_uri", "http://chat.sarvabioremed.com/oauth2callback");
+		oauthRequest.setParameter("scope", "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile");
+		oauthRequest.setParameter("response_type", "token id_token");
+		trace("Request " + oauthRequest);
+	}
+	private function getGmailOauthButton() : ButtonElement {
+		return (cast Browser.document.getElementById(SETUP_GMAIL));
 
+	}
 	private function processSuccessfulLogin(loginEvent : Dynamic){
 		trace("Initialize the rest of the instances");
 		singleton.company = new view.Company();
@@ -227,8 +245,7 @@ class MBooks_im {
 			}
 			case CCARUpload : {
 				trace("Parsing ccar upload " + incomingMessage);
-				ccar.processCCARUpload(incomingMessage);
-				
+				ccar.processCCARUpload(incomingMessage);				
 			}
 			case ManageCompany : {
 				company.processManageCompany(incomingMessage);

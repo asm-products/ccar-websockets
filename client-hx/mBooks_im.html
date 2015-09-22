@@ -83,7 +83,9 @@
 		<img id="companySplash" height="200"/>
 
 	</div>
+	<!-- Naming conventions: tabs are suffixes and without the tabs is the details -->
 	<ul id ="workbench" class="tabs col_12">
+	<li id="workbench-oauth-tab"><a href="#workbench-oauth"> User oauths </a></li>
 	<li id="workbench-messaging-tab"><a href="#workbench-messaging">Messaging</a></li>
 	<li id ="workbench-general-tab"><a href="#workbench-general">General Info </a></li>
 	<li id = "workbench-company-tab"><a href="#workbench-company">Manage company</a></li>
@@ -93,6 +95,7 @@
     <li id ="workbench-portfolio-tab"><a href="#workbench-portfolio"> Portfolio analysis </a> </li>
     <li id="workbench-entitlements-tab"><a href="#workbench-entitlements"> Entitlements (admin only) </a> </li>
     <li id="workbench-errors-tab"> <a href="#workbench-errors"> Errors </a> </li>
+    <li id="workbench-companyusers-tab"> <a href="#workbench-companyusers"> Assign users to a company </a> </li>
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content col_12">
@@ -207,7 +210,11 @@
 					<button id="saveCompany"> Save Company</button>
 
 					<!-- Assign the current company to the user logged in. -->
-					<button id="assignCompany"> Assign Company </button>
+					<!-- Hide the assign company and allow a user to be logged into the source company
+						where the source company is an identifier string that is setup in the
+						query string for the page.
+					 -->
+					<button id="assignCompany" style="display:none"> Assign Company </button>
 				</div>
 			</form>
 		</div>
@@ -370,6 +377,41 @@
 				</textarea>				
 			</div>
 		</div>
+
+		<div id="workbench-entitlements" class="tab-content col_12">
+			<h4 align="center"> Manage user entitlements (for administrators only) </h4>
+			<form class="vertical">
+				<label for="searchUsers"> Search for users </label>
+				<input id ="searchUsers"> </text>
+				<label for="allCompanyUsersSearchList"> Registered users </label>
+				<select id="allCompanyUsersSearchList">
+				</select>
+				<label for="pendingApprovalRequests"> Requests pending for approval </label>
+				<select id="pendingApprovalRequests">					
+				</select>
+				<label for="availableEntitlements"> Available entitlements</label>
+				<select id="availableEntitlements" multiple="multiple"> 
+				</select>
+				<label for="usersEntitlements"> Users entitlements </label>
+				<select id="usersEntitlements" multiple="multiple">
+				</select>
+				<button id="addEntitlements">Add Entitlements (select the available entitlements) </button>
+				<button id="removeEntitlements">Remove entitlements (select the userEntitlements)</button>
+			</form> 
+		</div>
+		<div id="workbench-companyusers" class="tab-content col_12">
+			<h4 align="center"> Manage users for a company </h4>
+			<form class="vertical">
+				<label for="assignUserToCompany"> Assign user to the current company </label>
+				<select id="assignCompanyUsers" multiple="multiple">
+				</select>
+
+			</form>
+		</div>
+		<div id="workbench-oauth">
+			<h4 align="center"> Oauth management </h4>
+			<button id="setupGmailOauth"> Gmail oauth </button>
+		</div>
 </div>
 
 <div class="haxe:trace"></div>
@@ -380,7 +422,7 @@
 
 <div id="test"/>
 <div id="footer">
-&copy; Copyright 2014 All Rights Reserved. <a href="mailto:dinkar.ganti@gmail.com">Dinkar Ganti</a>. This website was built with
+&copy; Copyright 2014 All Rights Reserved. <a href="mailto:dinkar.ganti@gmail.com">Dinkar Ganti</a>. This site uses the following libraries to keep things simple for the users. Like them, even if you dont like this site!
 		<a href="http://www.99lime.com">HTML KickStart</a> . 
 		<a href="http://www.yesodweb.com/">Yesod </a>. 
 		<a href="http://haxe.org/"> Haxe </a> . 
