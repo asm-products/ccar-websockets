@@ -9,10 +9,12 @@ import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
 import System.Locale as Loc 
 import Data.Time
-
+import Network.HTTP.Client as HttpClient
 
 serialize :: (ToJSON a) => a -> T.Text 
 serialize  = L.toStrict . E.decodeUtf8 . En.encode  
 
 
 parseDate (Just aDate) = parseTime Loc.defaultTimeLocale (Loc.rfc822DateFormat) (aDate)
+
+

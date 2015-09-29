@@ -95,6 +95,10 @@ executable ccar-websockets
                      , http-conduit                  >= 2.1.8 && < 2.2
                      , html-conduit                  >= 1.2.0 && < 1.3
                      , http-types                    >= 0.8.6 && < 0.9
+                     , http-client                   >= 0.4.20 && < 0.5
+                     , http-types                    >= 0.8.6 && < 0.9
+                     , network-uri                   >= 2.6.0.3 && < 2.7
+
   -- Directories containing source files.
   -- hs-source-dirs:      
   
@@ -110,6 +114,7 @@ executable ccar-websockets
                         QuasiQuotes
                         RecordWildCards
                         NamedFieldPuns
+                        ViewPatterns
 
   --ghc-options: -ddump-splices
   ghc-options: 

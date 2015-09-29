@@ -407,3 +407,12 @@ Market data
 Market analysis
 ============================================================
 ##### Download the R script
+
+
+Integrating with trading systems
+============================================
+#### Integrate with oauth providers such as tradestation, etrade, scotttrade etc.
+#### Publish some commonly used scripts to be used by an investor for portfolio analysis.
+#### Get certificates to manage the tests.
+
+

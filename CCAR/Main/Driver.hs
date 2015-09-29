@@ -65,6 +65,11 @@ import System.Log.Handler.Simple as SimpleLogger
 import System.Log.Handler.Syslog as SyslogLogger 
 import System.Log.Logger as Logger
 import System.Log as Log
+import CCAR.Entitlements.GmailAuthentication as GmailAuthentication
+import Network.URI
+import Network.HTTP.Client as HttpClient
+import Network.HTTP.Conduit 
+import Network.HTTP.Types as W 
 
 
 
@@ -73,12 +78,11 @@ iModuleName :: String
 iModuleName = "CCAR.Main.Driver"
 
 
---connStr = "host=localhost dbname=ccar_debug user=ccar password=ccar port=5432"
+--connStr = "host= dbname= user= password= port="
 connStr = getConnectionString
 
 data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined | Guest
     deriving(Show, Typeable, Data, Generic, Eq)
-
 
 data CheckPassword = CheckPassword {pwNickName :: T.Text, pwPassword :: T.Text, 
                 passwordValid :: Maybe Bool, 
@@ -256,6 +260,8 @@ parseCCARText v = CCARText <$>
                     v .: "ccarText"
 
 
+
+
 instance FromJSON Login where
     parseJSON (Object v) = parseLogin v
     parseJSON _          = Appl.empty
@@ -309,6 +315,12 @@ instance Yesod App
 mkYesod "App" [parseRoutes|
 /chat HomeR GET
 |]
+
+
+postGmailOauthR :: T.Text -> T.Text -> Handler T.Text
+postGmailOauthR = undefined
+getGmailOauthR :: T.Text -> T.Text -> Handler T.Text 
+getGmailOauthR a b = return $ a `mappend` b
 
 
 checkPassword :: CheckPassword -> IO (DestinationType, CheckPassword) 
@@ -532,6 +544,7 @@ processCommandValue app nickName o@(Object a)   = do
                 String "ManagePortfolio" -> Portfolio.manage nickName (Object a)
                 String "ManagePortfolioSymbol" -> PortfolioSymbol.manage nickName (Object a)
                 String "QueryPortfolioSymbol" -> PortfolioSymbol.manageSearch nickName (Object a)
+                
                 _ -> 
                     return 
                          ( GroupCommunication.Reply

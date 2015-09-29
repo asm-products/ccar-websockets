@@ -43,6 +43,14 @@ Installation of the yesod toolchain
 * $ cabal install yesod-core --max-backjumps=-1 --reorder-goals --reinstall
 
 
+Installation using stack
+======================================
+wget -q -O- https://s3.amazonaws.com/download.fpcomplete.com/ubuntu/fpco.key | sudo apt-key add -
+echo 'deb http://download.fpcomplete.com/ubuntu/precise stable main'|sudo tee /etc/apt/sources.list.d/fpco.list
+echo 'deb http://download.fpcomplete.com/ubuntu/trusty stable main'|sudo tee /etc/apt/sources.list.d/fpco.list
+sudo apt-get update && sudo apt-get install stack -y
+
+
 Some admin commmands
 ====================================
 sudo -u postgres psql -d <dbname>
@@ -56,6 +64,5 @@ Self signing certificates
   Url [https://www.digitalocean.com/community/tutorials/how-to-set-up-an-ssl-tunnel-using-stunnel-on-ubuntu]
   openssl genrsa -out /etc/stunnel/key.pem 4096
   openssl req -new -x509 -key /etc/stunnel/key.pem -out /etc/stunnel/cert.pem -days 1826
-
-
-
+To find out which version of ubuntu I am running
+ lsb_release -a 

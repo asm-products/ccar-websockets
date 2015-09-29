@@ -216,7 +216,10 @@ process pT = case (crudType pT) of
 	P_Update -> updatePortfolioSymbol pT 
 	Delete -> deletePortfolioSymbol pT 		
 
-insertPortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
+type P_Creator = T.Text
+type P_Updator = T.Text 
+type P_PortfolioId = T.Text
+insertPortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (P_Creator, P_Updator, P_PortfolioId)))
 insertPortfolioSymbol a@(PortfolioSymbolT crType commandType 
 								portfolioId 
 								symbol 
@@ -256,7 +259,6 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 										return  $ Left $ T.pack $ "Insert failed " `mappend` (T.unpack portfolioId)
 							Nothing -> return $ Left $ T.pack $ "Portfolio not found " `mappend` 
 																(T.unpack portfolioId)
-
 
 updatePortfolioSymbolI portfolioSymbol a@(PortfolioSymbolT crType commandType 
 								portfolioId 

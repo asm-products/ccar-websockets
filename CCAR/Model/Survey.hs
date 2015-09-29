@@ -96,8 +96,8 @@ process c@(CommandManageSurvey nickName crudType survey) = do
         Delete -> deleteSurvey nickName survey          
 
 
-manageSurvey nickName (Object a ) =
-        case (parse parseMS a) of
+manageSurvey nickName  a  =
+        case (parse parseJSON a :: Result CommandManageSurvey) of
             Success r ->  process r 
             Error s -> return (GC.Reply, 
                         serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))

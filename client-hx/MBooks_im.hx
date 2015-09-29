@@ -7,6 +7,7 @@ import haxe.Timer;
 import haxe.Http;
 import js.html.Element;
 import haxe.ds.GenericStack;
+import js.html.XMLHttpRequest;
 import js.html.Event;
 import js.html.CloseEvent;
 import js.html.MessageEvent;
@@ -21,6 +22,7 @@ import js.html.SelectElement;
 import js.html.OptionElement;
 import js.html.FileReader;
 import js.html.ImageElement;
+import js.html.MessageEvent;
 import model.Contact;
 import model.Company;
 import model.Login;
@@ -114,15 +116,21 @@ class MBooks_im {
 			initializeElementStream(getGmailOauthButton() , "click");
 		oauthStream.then(performGmailOauth);
 	}
+
+	private static var GOAUTH_URL = "gmail_oauthrequest";
+	
 	private function performGmailOauth(incoming : Dynamic) {
 		trace("Processing gmail outh" + incoming);
-		var goauthUrl : String = "https://accounts.google.com/o/oauth2/auth";
-		var oauthRequest : Http = new Http(goauthUrl);
-		oauthRequest.setParameter("client_id", "481504989252-nh8dddoljkd9inmu3c82jr4ll4cn0sfn.apps.googleusercontent.com");
-		oauthRequest.setParameter("redirect_uri", "http://chat.sarvabioremed.com/oauth2callback");
-		oauthRequest.setParameter("scope", "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile");
-		oauthRequest.setParameter("response_type", "token id_token");
-		trace("Request " + oauthRequest);
+		var oauthRequest : XMLHttpRequest = new XMLHttpRequest();
+		var url : String = "http://" + Browser.location.hostname + "/" + GOAUTH_URL;
+		oauthRequest.open("GET", url);
+		oauthRequest.onloadend = oauthRequestData;
+		oauthRequest.send();
+	}
+	private function oauthRequestData(data : Event) {
+		var message : MessageEvent = cast data;
+		trace("Data " + message.data);
+		
 	}
 	private function getGmailOauthButton() : ButtonElement {
 		return (cast Browser.document.getElementById(SETUP_GMAIL));
@@ -142,6 +150,7 @@ class MBooks_im {
 	private function connectionString() : String {
 		//return protocol + "://" + Browser.location.hostname + ":" + portNumber + "/chat";
 		return protocol + "://" + Browser.location.hostname + "/chat";
+		//return protocol + "://" + Browser.location.hostname;
 	}
 
 	private function connect() {
@@ -791,7 +800,7 @@ class MBooks_im {
 	private static var SERVER_ERROR : String = "serverError";
 	private static var APPLICATION_ERROR : String = "applicationError";
 	private function setError(aMessage) {
-		getServerErrorElement().innerHTML = aMessage;
+		applicationErrorStream.resolve(aMessage);
 	}
 
 	public function getCompany() : Company {
