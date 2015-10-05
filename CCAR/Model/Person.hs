@@ -57,7 +57,7 @@ updateLogin p = do
 
 checkLoginExists :: T.Text  -> IO (Maybe (Entity Person))
 checkLoginExists aNickName = dbOps $ do
-                	mP <- getBy $ PersonUniqueNickName aNickName
+                	mP <- getBy $ UniqueNickName aNickName
                 	return mP 
 
 queryAllPersons :: IO [Entity Person]
@@ -113,7 +113,7 @@ fixPreferences Nothing = undefined
 
 getMessageCount :: T.Text -> IO Int 
 getMessageCount aNickName = dbOps $ do 
-            person <- DB.getBy $ PersonUniqueNickName aNickName
+            person <- DB.getBy $ UniqueNickName aNickName
             liftIO $ Logger.debugM iModuleName  $ 
                     "Message Count " ++ (show person)
             case person of 
@@ -130,7 +130,7 @@ createGuestLogin :: NickName -> IO (Key GuestLogin)
 createGuestLogin aNickName = do 
         currentTime <- getCurrentTime
         dbOps $ do 
-            person <- DB.getBy $ PersonUniqueNickName aNickName 
+            person <- DB.getBy $ UniqueNickName aNickName 
             case person of 
                 Just (Entity personId _ ) -> insert $ GuestLogin currentTime personId 
 

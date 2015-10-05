@@ -40,7 +40,7 @@ import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util as Util
-import CCAR.Command.ErrorCommand
+import CCAR.Command.ApplicationError
 import Database.Persist.Postgresql as Postgresql 
 import CCAR.Model.Portfolio as Portfolio 
 import CCAR.Model.PortfolioSymbol as PortfolioSymbol

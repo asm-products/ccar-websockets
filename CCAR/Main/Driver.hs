@@ -41,7 +41,7 @@ import Data.ByteString as DBS
 import Data.ByteString.Char8 as C8 
 import System.Environment
 
-import CCAR.Main.Util
+import CCAR.Main.Util as Util
 import GHC.Generics
 import Data.Data
 import Data.Typeable 
@@ -51,13 +51,14 @@ import Data.Map as IMap
 import CCAR.Main.DBUtils
 import CCAR.Main.GroupCommunication as GroupCommunication
 import CCAR.Main.UserJoined as UserJoined 
-import CCAR.Command.ErrorCommand 
+import CCAR.Command.ApplicationError 
 import CCAR.Model.Person
 import CCAR.Model.Company as Company 
 import CCAR.Model.Project as Project
 import CCAR.Model.ProjectWorkbench as ProjectWorkbench
 import CCAR.Model.Portfolio as Portfolio
 import CCAR.Model.PortfolioSymbol as PortfolioSymbol
+import CCAR.Entitlements.Entitlements as Entitlements
 -- logging
 import System.Log.Formatter as LogFormatter
 import System.Log.Handler(setFormatter)
@@ -131,7 +132,7 @@ data Command = CommandLogin Login
                 | CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
                 | CommandCCARUpload CCARUpload
-                | CommandError ErrorCommand 
+                | CommandError ApplicationError 
                 | CommandKeepAlive KeepAliveCommand
                 | ParseCCARText CCARText
                 deriving(Show, Eq)
@@ -192,12 +193,12 @@ instance ToJSON Command where
     toJSON aCommand = 
         case aCommand of
             CommandLogin l -> genLogin l 
-            CommandError e -> genErrorCommand e
+            CommandError e -> toJSON e
             CommandUO e -> genUserOperations e
             CommandCCARUpload a  -> genCCARUpload a
             CommandKeepAlive a -> genCommandKeepAlive a
             ParseCCARText a -> toJSON a
-            _ -> genErrorCommand $ ErrorCommand {errorCode = "Unknown" :: T.Text , 
+            _ -> toJSON $ ApplicationError {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
 
@@ -206,7 +207,7 @@ commandType = LH.lookup "commandType"
 
 parseCommand value = do
         case (commandType value) of
-            Nothing -> CommandError <$> parseErrorCommand value
+            Nothing -> CommandError <$> parseApplicationError value
             Just cType -> 
                 case (cType) of 
                     "Login"-> CommandLogin <$> parseLogin value
@@ -214,7 +215,7 @@ parseCommand value = do
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
-                    _       -> CommandError <$> parseErrorCommand value
+                    _       -> CommandError <$> (parseApplicationError value)
 
 
 parseKeepAlive v = v .: "keepAlive"
@@ -385,7 +386,7 @@ processCommand (Just (CommandError error)) =
 
 processCommand Nothing = return $  
                         (GroupCommunication.Reply, CommandError $ 
-                            genericErrorCommand "Unable to process command")
+                            appError ("Unable to process command" :: T.Text))
 
 processCommand (Just (CommandKeepAlive a)) = 
         return $ (GroupCommunication.Reply, CommandKeepAlive a)
@@ -452,31 +453,31 @@ processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aLi
 processCommand (Just a) = return (GroupCommunication.Reply, a)
 
 processCommandValue :: App -> T.Text -> Value -> IO (DestinationType, T.Text)
-processCommandValue app nickName o@(Object a)   = do  
+processCommandValue app nickName aValue@(Object a)   = do  
     case cType of 
         Nothing -> return $ (GroupCommunication.Reply, ser $ 
-                        CommandError $ genericErrorCommand "Unable to process command")
+                        CommandError $ appError ("Unable to process command" :: T.Text))
         Just aType -> 
             case aType of 
                 String "Login" -> 
-                        case (parse parseJSON o :: Result Login) of
+                        case (parse parseJSON aValue :: Result Login) of
                             Success r -> do 
                                     (d, c) <- processCommand $ (Just (CommandLogin r))
                                     return (d, ser c)
                             Error s -> 
                                     return (GroupCommunication.Reply,
-                                            ser $ CommandError $ genericErrorCommand $ "parse login  failed "++ s)
+                                            ser $ CommandError $ appError $ "parse login  failed "++ s)
                 String "ManageUser" ->
-                        case (parse parseJSON o :: Result UserOperations) of
+                        case (parse parseJSON aValue :: Result UserOperations) of
                             -- Assert that the user operation is not an insert for the person table.
                             Success r -> do
                                     (d, c) <- processCommand $ Just $ CommandUO r
                                     return (d, ser c)
                             Error s -> 
                                 return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
+                                    , ser $ CommandError $ appError $ "parse manage user failed " ++ s )
                 String "UserBanned" -> do
-                        c <- return $ (parse parseJSON o :: Result UserBanned)
+                        c <- return $ (parse parseJSON aValue :: Result UserBanned)
                         case c of
                             Success u@(UserJoined.UserBanned a1) -> do
                                 bConns <- atomically $ getClientState a1 app 
@@ -487,17 +488,17 @@ processCommandValue app nickName o@(Object a)   = do
                                             )) bConns  -- To handle multiple connections to a client.
                                 return (GroupCommunication.Broadcast, ser u)
                             Error s ->  return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ genericErrorCommand $ "parse manage user failed " ++ s )
+                                    , ser $ CommandError $ appError $ "parse manage user failed " ++ s )
 
                 String "CCARUpload" ->
-                        case (parse parseJSON o :: Result CCARUpload) of
+                        case (parse parseJSON aValue :: Result CCARUpload) of
                             Success r -> do  
                                     (d, c) <- processCommand $ Just $ CommandCCARUpload r 
                                     return (d, ser c)
                             Error s -> 
                                 return (GroupCommunication.Reply 
                                     , ser $ 
-                                        CommandError $ genericErrorCommand $ "parse ccar upload failed " ++ s ++ (show a))
+                                        CommandError $ appError $ "parse ccar upload failed " ++ s ++ (show a))
                 String "KeepAlive" ->
                         case (parse parseKeepAlive a) of
                             Success r -> do 
@@ -506,17 +507,17 @@ processCommandValue app nickName o@(Object a)   = do
                             Error s -> 
                                 return (
                                     GroupCommunication.Reply, 
-                                    ser $ CommandError $ genericErrorCommand $ 
+                                    ser $ CommandError $ appError $ 
                                         "Parse Keep alive failed" ++ s ++ (show a))
                 String "ParsedCCARText" ->
-                        case (parse parseJSON o :: Result CCARText) of
+                        case (parse parseJSON aValue :: Result CCARText) of
                             Success r -> do 
                                     (d, c) <- processCommand $ Just $ ParseCCARText r 
                                     return (d, ser c)
                             Error s -> 
                                 return (
                                     GroupCommunication.Reply
-                                    , ser $ CommandError $ genericErrorCommand $ "Parse CCAR Text " ++ s ++ (show a)
+                                    , ser $ CommandError $ appError $ "Parse CCAR Text " ++ s ++ (show a)
                                 )
                 String "SendMessage" -> do 
                         (dType, value) <- processSendMessage (Object a)
@@ -544,11 +545,13 @@ processCommandValue app nickName o@(Object a)   = do
                 String "ManagePortfolio" -> Portfolio.manage nickName (Object a)
                 String "ManagePortfolioSymbol" -> PortfolioSymbol.manage nickName (Object a)
                 String "QueryPortfolioSymbol" -> PortfolioSymbol.manageSearch nickName (Object a)
-                
+                String "ManageEntitlements" -> Entitlements.manage nickName aValue 
+                                                            >>= \(gc, either) -> 
+                                                                return (gc, Util.serialize either)                
                 _ -> 
                     return 
                          ( GroupCommunication.Reply
-                         , ser $ CommandError $ genericErrorCommand ("Unable to process command " ++ (show aType)))
+                         , ser $ CommandError $ appError ("Unable to process command " ++ (show aType)))
     where 
         cType =  LH.lookup "commandType" a
         ser a = L.toStrict $ E.decodeUtf8 $ En.encode a 
@@ -563,7 +566,9 @@ getNickName :: Maybe Value -> IO (Maybe T.Text, T.Text)
 getNickName aCommand = 
     do
         case aCommand of
-            Nothing -> return $ (Nothing, L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError $ genericErrorCommand "Unknown error")
+            Nothing -> return $ 
+                (Nothing, L.toStrict $ E.decodeUtf8 $ En.encode $ 
+                    CommandError $ appError ("Unknown error" :: T.Text))
             Just (Object a) -> 
                   case nn of
                     Nothing -> return (Nothing, "Nickname tag not found")
@@ -579,7 +584,7 @@ processIncomingMessage app conn aNickName aCommand = do
     case aCommand of 
         Nothing -> do
                 Logger.infoM iModuleName $ "Processing error..."
-                result <- return (CommandError $ genericErrorCommand ("Unknown error")) 
+                result <- return (CommandError $ appError ("Unknown error" :: T.Text)) 
                 return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
                     
         Just (Object a) -> do 
@@ -589,7 +594,7 @@ processIncomingMessage app conn aNickName aCommand = do
                             Logger.errorM iModuleName $  ("Exception "  ++ show (e :: PersistException)) 
                             atomically $ deleteConnection app aNickName
                             return (GroupCommunication.Broadcast, 
-                                    serialize $ UserJoined.userLeft aNickName)
+                                    Util.serialize $ UserJoined.userLeft aNickName)
                             )
                 --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
@@ -633,7 +638,7 @@ authenticate aConn aText app@(App a c) =
         case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
                         L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
-                                $ genericErrorCommand ("Invalid command during login"))
+                                $ appError ("Invalid command during login" :: T.Text))
             Just o@(Object a) -> do
                 (d, c) <- processCommandValue app aText (Object a) 
                 c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
@@ -655,7 +660,7 @@ processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType
 processUserLoggedIn aConn aText app@(App a c) = do
     case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
-                    ser $ CommandError $ genericErrorCommand ("Login has errors"))
+                    ser $ CommandError $ appError ("Login has errors" :: T.Text))
             Just o@(Object a) -> do
                 Just commandType <- return $ LH.lookup "commandType" a
                 case commandType of 
@@ -667,7 +672,7 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                         return $ (Broadcast, ser u)
                             _ -> return $ (GroupCommunication.Reply, ser  
                                                 $ CommandError $ 
-                                                genericErrorCommand ("Invalid command during login"))                                
+                                                appError ("Invalid command during login" :: T.Text))                                
                     String "UserJoined" -> do 
                         c <- return $ (parse parseJSON o :: Result UserJoined)
                         case c of 
@@ -675,7 +680,8 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                         return $ (Broadcast, ser u)
                             _ -> return $ (GroupCommunication.Reply, ser  
                                                 $ CommandError $ 
-                                                genericErrorCommand ("Invalid command during login"))
+                                                appError 
+                                                    ("Invalid command during login" :: T.Text))
                     String "ManageUser"-> do 
                         c2 <- return $ (parse parseCreateUser a)
                         case c2 of 
@@ -687,7 +693,7 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                     return (d, ser cuo)
                             Error s -> 
                                 return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ genericErrorCommand 
+                                    , ser $ CommandError $ appError 
                                             $ "parse manage user failed " ++ s )
                     String "GuestUser" -> do 
                         result <- return $ (parse parseGuestUser a)
@@ -698,10 +704,10 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                     return $ (GroupCommunication.Broadcast, ser g)                          
                             Error errMessage ->  
                                     return (GroupCommunication.Reply 
-                                        , ser $ CommandError $ genericErrorCommand
+                                        , ser $ CommandError $ appError
                                                 $ ("Guest login failed ") `mappend`  errMessage )
                     _ -> return (GroupCommunication.Reply 
-                                , ser $ CommandError $ genericErrorCommand 
+                                , ser $ CommandError $ appError 
                                         $ "process user logged in failed :  " ++ (show aText) )
 
             where 

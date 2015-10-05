@@ -93,7 +93,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             updatedBy PersonId
             signupTime UTCTime default=CURRENT_TIMESTAMP
             updatedTime UTCTime default=CURRENT_TIMESTAMP
-            CompanyUniqueID companyID 
+            UniqueCompanyId companyID 
             deriving Eq
         CompanyDomain json 
             company CompanyId 
@@ -142,7 +142,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             password Text
             locale Text Maybe
             lastLoginTime UTCTime default=CURRENT_TIMESTAMP
-            PersonUniqueNickName nickName
+            UniqueNickName nickName
             deriving Show Eq
              
         Entitlement json
@@ -153,6 +153,10 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         CompanyUserEntitlement json 
             entitlement EntitlementId 
             companyUserId CompanyUserId 
+            deriving Show Eq
+        CompanyUserEntitlementRequest json 
+            entitlement CompanyUserEntitlementId
+            approvedBy CompanyUserId 
             deriving Show Eq
 
         GuestLogin json 

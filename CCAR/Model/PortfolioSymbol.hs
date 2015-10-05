@@ -43,7 +43,7 @@ import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util as Util
-import CCAR.Command.ErrorCommand
+import CCAR.Command.ApplicationError
 import Database.Persist.Postgresql as Postgresql 
 -- For haskell shell
 import HSH
@@ -171,7 +171,7 @@ manageSearch aNickName aValue@(Object a) =
 		Success r -> do 
 				result <- queryPortfolioSymbol r 
 				return (GC.Reply, serialize result) 
-		Error s -> return (GC.Reply, serialize $ genericErrorCommand $
+		Error s -> return (GC.Reply, serialize $ appError $
 							"Error processing manage search for portfolio symbol: "  ++ s)
 
 
@@ -197,16 +197,16 @@ manage aNickName aValue@(Object a) =
 										Left f -> do 
 											liftIO $ Logger.errorM iModuleName $ 
 												"Error processing manage portfolio " `mappend` (show aValue)
-											return (GC.Reply, serialize $ genericErrorCommand $ 
+											return (GC.Reply, serialize $ appError $ 
 												"Error processing manage portfolio " ++ (T.unpack f))
 				Left p2 -> do
 							liftIO $ Logger.errorM iModuleName $ 
 								"Error processing manage portfolio " `mappend` (show aValue)
-							return (GC.Reply, serialize $ genericErrorCommand $ 
+							return (GC.Reply, serialize $ appError $ 
 								"Error processing manage portfolio " ++ (T.unpack p2))
 		Error s -> 
 				return (GC.Reply, serialize $ 
-							genericErrorCommand $ 
+							appError $ 
 								"Error processing manage portfolio symbol " ++ s)
 
 process :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
@@ -243,9 +243,9 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 						currentTime <- liftIO $ getCurrentTime
 						case portfolio of 
 							Just (Entity pID pValue) -> do 
-								cr <- getBy $ PersonUniqueNickName creator
-								up <- getBy $ PersonUniqueNickName updator 
-								req <- getBy $ PersonUniqueNickName requestor 
+								cr <- getBy $ UniqueNickName creator
+								up <- getBy $ UniqueNickName updator 
+								req <- getBy $ UniqueNickName requestor 
 								case (cr, up, req) of 
 									(Just (Entity crID crValue), Just (Entity upID upValue), Just (Entity reqID reqValue)) -> do 
 											n <- insert $ PortfolioSymbol pID symbol 

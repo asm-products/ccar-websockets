@@ -17,7 +17,7 @@ import Database.Persist
 import Database.Persist.Postgresql as Postgresql 
 import Database.Persist.TH 
 import CCAR.Main.DBUtils
-import CCAR.Command.ErrorCommand 
+import CCAR.Command.ApplicationError 
 import Data.Text as T 
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
@@ -101,7 +101,7 @@ insertCompany aNickName aCompany = do
 	Logger.debugM iModuleName $ 
 					"Inserting " `mappend` (show aCompany)
 	dbOps $ do 
-		person <- getBy $ PersonUniqueNickName aNickName
+		person <- getBy $ UniqueNickName aNickName
 		case person of 
 			Just(Entity personId v) -> do  
 				insert c
@@ -121,7 +121,7 @@ insertCompany aNickName aCompany = do
 deleteCompany :: CompanyT -> IO (Maybe Company)
 deleteCompany aCompanyId = dbOps $ 
 	do 
-		company <- getBy $ CompanyUniqueID (companyID aCompanyId)
+		company <- getBy $ UniqueCompanyId (companyID aCompanyId)
 		liftIO $ Logger.debugM iModuleName $ 
 				"Deleting " `mappend` (show company)
 		case company of 
@@ -140,12 +140,12 @@ updateCompany :: NickName -> CompanyT -> IO (Maybe Company)
 updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
-		person <- getBy $ PersonUniqueNickName aNickName 
+		person <- getBy $ UniqueNickName aNickName 
 		liftIO $ Logger.debugM iModuleName $ 
 						"Updating company " `mappend` (show person)
 		case person of 
 			Just (Entity p _ ) -> do 
-				company <- getBy $  CompanyUniqueID (companyID aCompany)
+				company <- getBy $  UniqueCompanyId (companyID aCompany)
 				case company of
 					Just (Entity k v) -> do 
 							res <- return v { companyCompanyName = tName
@@ -159,7 +159,7 @@ updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do
 
 
 queryCompany aNickName aCompany = do 
-	x <- dbOps $ getBy $ CompanyUniqueID (companyID aCompany)
+	x <- dbOps $ getBy $ UniqueCompanyId (companyID aCompany)
 	y <- case x of 
 		Just (Entity p v) -> return $ Just v
 		Nothing -> return Nothing
@@ -171,8 +171,8 @@ insertCompanyPerson :: NickName -> CompanyID -> Bool -> IO (Either T.Text (Key C
 insertCompanyPerson aNickName aCompanyId chatMinder = do
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
-		personId <- getBy $ PersonUniqueNickName aNickName
-		cid <- getBy $ CompanyUniqueID aCompanyId 
+		personId <- getBy $ UniqueNickName aNickName
+		cid <- getBy $ UniqueCompanyId aCompanyId 
 
 		liftIO $ Logger.debugM iModuleName $ "Company " ++ (show cid)
 		liftIO $ Logger.debugM iModuleName $ "Person " ++ (show personId)
@@ -198,8 +198,8 @@ insertCompanyPerson aNickName aCompanyId chatMinder = do
 
 queryCompanyUser n c = do
 	x <- dbOps $ do
-		personId <- getBy $ PersonUniqueNickName n 
-		cId <- getBy $ CompanyUniqueID c 
+		personId <- getBy $ UniqueNickName n 
+		cId <- getBy $ UniqueCompanyId c 
 		x <- case (personId, cId) of 
 			(Just (Entity p1 pV), Just (Entity c1 cV)) -> getBy $ UniqueCompanyUser c1 p1
 		return x
@@ -207,8 +207,8 @@ queryCompanyUser n c = do
 assignSupportForCompany :: NickName -> CompanyID -> Bool -> IO ()
 assignSupportForCompany aNickName aCompanyId support = do 
 	x <- dbOps $ do 
-		personId <- getBy $ PersonUniqueNickName aNickName
-		cid <- getBy $ CompanyUniqueID aCompanyId 
+		personId <- getBy $ UniqueNickName aNickName
+		cid <- getBy $ UniqueCompanyId aCompanyId 
 		case(personId, cid) of 
 				(Just (Entity k1 p1), Just (Entity k2 p2)) -> do 
 					pcid <- getBy $ UniqueCompanyUser k2 k1
@@ -220,8 +220,8 @@ type Locale = T.Text
 updateCompanyPersonLocale :: NickName -> CompanyID -> Locale -> IO () 
 updateCompanyPersonLocale aNickName aCompanyId aLocale = do 
 	x <- dbOps $ do 
-		personId <- getBy $ PersonUniqueNickName aNickName
-		cid <- getBy $ CompanyUniqueID aCompanyId 
+		personId <- getBy $ UniqueNickName aNickName
+		cid <- getBy $ UniqueCompanyId aCompanyId 
 		case(personId, cid) of 
 				(Just (Entity k1 p1), Just (Entity k2 p2)) -> do 
 					pcid <- getBy $ UniqueCompanyUser k2 k1
@@ -232,8 +232,8 @@ updateCompanyPersonLocale aNickName aCompanyId aLocale = do
 updateCompanyChatMinder :: NickName -> CompanyID -> Bool -> IO () 
 updateCompanyChatMinder aNickName aCompanyId chatMinder = do 
 	x <- dbOps $ do 
-		personId <- getBy $ PersonUniqueNickName aNickName
-		cid <- getBy $ CompanyUniqueID aCompanyId 
+		personId <- getBy $ UniqueNickName aNickName
+		cid <- getBy $ UniqueCompanyId aCompanyId 
 		case(personId, cid) of 
 				(Just (Entity k1 p1), Just (Entity k2 p2)) -> do 
 					pcid <- getBy $ UniqueCompanyUser k2 k1
@@ -262,7 +262,7 @@ manageCompany aNickName o@(Object a) = do
 	    				serialize $ manageCommandDTO aNickName cType company)
 	    Error s -> do 
 			  return (GC.Reply, 
-				    	serialize $ genericErrorCommand $ 
+				    	serialize $ appError $ 
 				    		"Sending message failed " ++ s)
 
 queryAllCompanies aNickName o@(Object a) = do 
@@ -275,7 +275,7 @@ queryAllCompanies aNickName o@(Object a) = do
 					return (GC.Reply
 							, serialize $ QueryCompany aNickName "SelectAllCompanies" companiesT)
 			Error s -> 	return (GC.Reply, 
-				    	serialize $ genericErrorCommand $ 
+				    	serialize $ appError $ 
 				    		"Query all companies failed " ++ s)
 
 
@@ -288,7 +288,7 @@ assignUserToCompany aNickName aValue = do
 				Left z -> return (GC.Reply, serialize $ 
 										a{auCompanyID = z, auUserName = z})
 		Error errorMsg -> return (GC.Reply, 
-					serialize $ genericErrorCommand $ 
+					serialize $ appError $ 
 						"Error assignUserToCompany " ++ errorMsg)
 
 gen (ManageCompany nickName crudType company) = object ["crudType" .= crudType

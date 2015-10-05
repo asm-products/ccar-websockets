@@ -93,7 +93,8 @@
 	<li id = "workbench-ccar-tab"><a href="#workbench-ccar">Manage CCAR</a></li>
     <li id ="workbench-security-tab"><a href="#workbench-security"> Security notes </a> </li>
     <li id ="workbench-portfolio-tab"><a href="#workbench-portfolio"> Portfolio analysis </a> </li>
-    <li id="workbench-entitlements-tab"><a href="#workbench-entitlements"> Entitlements (admin only) </a> </li>
+    <li id="user-entitlements-tab"><a href="#user-entitlements"> Entitlements (admin only) </a> </li>
+    <li id="manage-entitlements-tab"><a href="#manage-entitlements"> Manage entitlements </a> </li>
     <li id="workbench-errors-tab"> <a href="#workbench-errors"> Errors </a> </li>
     <li id="workbench-companyusers-tab"> <a href="#workbench-companyusers"> Assign users to a company </a> </li>
 	</ul>
@@ -378,11 +379,26 @@
 			</div>
 		</div>
 
-		<div id="workbench-entitlements" class="tab-content col_12">
+		<div id="manage-entitlements" class="tab-content col_12">
+			<h4 align="center"> Manage entitlements (for administrators only) </h4>
+			<form class="vertical">
+				<label for="entitlementTabName"> Entitlement tab </label>
+				<input id="entitlementTabName"></input>
+				<label for="entitlementSectionName"> Entitlement section </label>
+				<input id="entitlementSectionname"></input>
+				<label for"entitlementsList"> Entitlements (features) 
+				<select id="entitlementsList"></select>
+				<button id="addEntitlement"> Add entitlement </button>
+				<button id="updateEntitlement"> Update entitlement</button>
+				<button id="removeEntitlement"> Remove entitlement </button>
+			</form>
+		</div>
+		
+		<div id="user-entitlements" class="tab-content col_12">
 			<h4 align="center"> Manage user entitlements (for administrators only) </h4>
 			<form class="vertical">
 				<label for="searchUsers"> Search for users </label>
-				<input id ="searchUsers"> </text>
+				<input id ="searchUsers"> </input>
 				<label for="allCompanyUsersSearchList"> Registered users </label>
 				<select id="allCompanyUsersSearchList">
 				</select>
@@ -395,8 +411,8 @@
 				<label for="usersEntitlements"> Users entitlements </label>
 				<select id="usersEntitlements" multiple="multiple">
 				</select>
-				<button id="addEntitlements">Add Entitlements (select the available entitlements) </button>
-				<button id="removeEntitlements">Remove entitlements (select the userEntitlements)</button>
+				<button id="addUserEntitlements">Add Entitlements (select the available entitlements) </button>
+				<button id="removeUserEntitlements">Remove entitlements (select the userEntitlements)</button>
 			</form> 
 		</div>
 		<div id="workbench-companyusers" class="tab-content col_12">

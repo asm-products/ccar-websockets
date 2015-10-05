@@ -153,7 +153,14 @@ class Util {
 		div.setAttribute("style", "display:none");
 	}
 
+	public static function logToServer(logMessage : String){
+		//Send the log message to the server.
+	}
 
+	public static function log(logMessage : String){
+		trace(logMessage);
+		
+	}
 	//Prefix: to maintain uniqueness
 	private static var LABEL: String = "LABEL_";
 	private static var DIV : String = "DIV_";

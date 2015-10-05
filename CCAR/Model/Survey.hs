@@ -9,7 +9,7 @@ import Database.Persist
 import Database.Persist.Postgresql as Postgresql 
 import Database.Persist.TH 
 import CCAR.Main.DBUtils
-import CCAR.Command.ErrorCommand 
+import CCAR.Command.ApplicationError 
 import Data.Text as T 
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
@@ -49,7 +49,7 @@ updateSurveyFor updNickName creatorNickName survey = undefined
 
 -- Survey can only be updated by the creator by default.
 uSurvey aNickName survey currentTime = do 
-        mP <- getBy $ PersonUniqueNickName aNickName
+        mP <- getBy $ UniqueNickName aNickName
         sId <- case mP of 
             Just (Entity kP p ) -> do
                 surveyE <- getBy $ UniqueSurvey kP $ surveySurveyTitle survey
@@ -61,7 +61,7 @@ uSurvey aNickName survey currentTime = do
         return sId
 
 iSurvey aNickName survey  = do 
-            mP <- getBy $ PersonUniqueNickName aNickName
+            mP <- getBy $ UniqueNickName aNickName
             surveyId <- case mP of 
                     Just (Entity k p) -> insert $ survey {surveyCreatedBy = k, surveyUpdatedBy = k}
             return surveyId
@@ -100,7 +100,7 @@ manageSurvey nickName  a  =
         case (parse parseJSON a :: Result CommandManageSurvey) of
             Success r ->  process r 
             Error s -> return (GC.Reply, 
-                        serialize $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
+                        serialize $ appError $ "Sending message failed " ++ s ++ (show a))
 
 
 

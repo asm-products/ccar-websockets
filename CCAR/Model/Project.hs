@@ -41,7 +41,7 @@ import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util as Util
-import CCAR.Command.ErrorCommand
+import CCAR.Command.ApplicationError as ApplicationError 
 import Database.Persist.Postgresql as Postgresql 
 
 
@@ -92,8 +92,8 @@ insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do
 	case uuid of 
 		Just uuidJ -> do
 			dbOps $ do 
-				uploader <- getBy $ PersonUniqueNickName up 
-				company <- getBy $ CompanyUniqueID cid
+				uploader <- getBy $ UniqueNickName up 
+				company <- getBy $ UniqueCompanyId cid
 				case (uploader, company) of 
 					(Just (Entity personId personV)
 						, Just(Entity companyId cValue)) -> do 
@@ -109,7 +109,7 @@ insertProject t@(ProjectT c i cid s de sd ed up upT pr) = do
 
 readProject :: ProjectT -> IO (Either T.Text ProjectT)
 readProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
-	company <- getBy $ CompanyUniqueID cid	
+	company <- getBy $ UniqueCompanyId cid	
 	case company of 
 		Just (Entity k v) -> do 
 			project <- getBy $ UniqueProject i
@@ -127,7 +127,7 @@ readProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 
 updateProject :: ProjectT -> IO (Either T.Text ProjectT)
 updateProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
-	company <- getBy $ CompanyUniqueID cid
+	company <- getBy $ UniqueCompanyId cid
 	case company of 
 		Just (Entity k v) -> do 
 						project <- getBy $ UniqueProject i
@@ -143,7 +143,7 @@ updateProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
 
 deleteProject :: ProjectT -> IO (Either T.Text ProjectT)
 deleteProject t@(ProjectT c i cid s de sd ed up upT pr) = dbOps $ do
-		company <- getBy $ CompanyUniqueID cid 
+		company <- getBy $ UniqueCompanyId cid 
 		case company of 
 			Just (Entity k v) -> do 
 					project <- getBy $ UniqueProject i 
@@ -170,13 +170,13 @@ manageProject aNickName (Object a) = do
 							return (GC.Reply, 
 								serialize mProject)
 					Left y -> return (GC.Reply, 
-							serialize $ genericErrorCommand $ "Project processing failed " 
-									++ y)
+							serialize $ ApplicationError.appError $ 
+								T.intercalate "->" ["Project processing failed", y])
 				where 
 					project = processP r
 		Error s -> 
 			  return (GC.Reply, 
-		    	serialize $ genericErrorCommand $ 
+		    	serialize $ appError $ 
 		    		"Manage project failed " ++ s)
 
 
@@ -188,14 +188,14 @@ queryActiveProjects aNickName (Object a) = do
 				return (GC.Reply, 
 						serialize $ QueryProject n cType cid resAP)
 		Error s -> return (GC.Reply, 
-						serialize $ genericErrorCommand $ 
+						serialize $ appError $ 
 							"Query active projects failed " ++ s)
 
-type CompanyUniqueID = T.Text
+type UniqueCompanyId = T.Text
 
-selectActiveProjects  :: CompanyUniqueID-> IO [Entity Project]
+selectActiveProjects  :: UniqueCompanyId-> IO [Entity Project]
 selectActiveProjects x = dbOps $ do 
-				company <- getBy $ CompanyUniqueID x
+				company <- getBy $ UniqueCompanyId x
 				case company of 
 					Just (Entity k v) -> selectList [ProjectCompanyId ==. k ][]
 

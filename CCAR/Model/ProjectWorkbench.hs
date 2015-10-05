@@ -46,7 +46,7 @@ import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util as Util
-import CCAR.Command.ErrorCommand
+import CCAR.Command.ApplicationError
 import Database.Persist.Postgresql as Postgresql 
 -- For haskell shell
 import HSH
@@ -310,7 +310,7 @@ queryActiveWorkbenches aValue@(Object a) = do
 				return (GC.Reply, 
 						serialize $ QueryAllWorkbenches n c pid activeWE)
 		Error errorMsg -> return (GC.Reply, 
-					serialize $ genericErrorCommand $ 
+					serialize $ appError $ 
 						"Error processing query active workbenches " ++ errorMsg)
 
 
@@ -336,10 +336,10 @@ manageWorkbench aValue@(Object a) = do
 									, jobStartDate = jobStartDate
 									, jobEndDate = jobEndDate
 								})  -- If things work, return the original value?
-					Left f -> return (GC.Reply, serialize $ genericErrorCommand $ 
+					Left f -> return (GC.Reply, serialize $ appError $ 
 								"Error processing manageWorkbench " ++ (T.unpack f))
 		Error errorMsg -> return (GC.Reply, 
-					serialize $ genericErrorCommand $ 
+					serialize $ appError $ 
 						"Error in manageworkbench " ++ errorMsg)
 
 
@@ -452,7 +452,7 @@ executeWorkbench aValue@(Object a) = case (fromJSON aValue) of
 												Either T.Text ExecuteWorkbench))
 	Error errorMsg -> return (GC.Reply
 			, serialize $
-					genericErrorCommand $ "Error processing executeWorkbench " ++ errorMsg)				
+					appError $ "Error processing executeWorkbench " ++ errorMsg)				
 	where 
 		nickName = LH.lookup "nickName" a 
 

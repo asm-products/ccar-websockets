@@ -36,6 +36,10 @@ class Portfolio {
 	private static var PORTFOLIO_SUMMARY : String = "portfolioSummary";
 	public var model (default, null): model.Portfolio;
 
+	/**
+	* A stream to listen for changing active portfolio stream. For example,
+	* charts for a portfolio, portfolio analyses or accounts.
+	*/
 	public var activePortfolioStream (default, null) : Deferred<PortfolioT>;
 	//Symbol, side and quantity when entered (key press or select) should 
 	//trigger a save event. 

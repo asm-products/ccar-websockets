@@ -37,7 +37,7 @@ import Data.Data
 import Data.Typeable 
 import CCAR.Main.DBUtils
 import CCAR.Main.EnumeratedTypes as Et
-import CCAR.Command.ErrorCommand
+import CCAR.Command.ApplicationError
 import CCAR.Main.Util as Util
 
 {- 
@@ -156,7 +156,7 @@ processSendMessage (Object a) =
         case (parse parseSendMessage a) of
             Success r ->  process r 
             Error s -> return (CCAR.Main.GroupCommunication.Reply, 
-            			toJSON $ genericErrorCommand $ "Sending message failed " ++ s ++ (show a))
+            			toJSON $ appError $ "Sending message failed " ++ s ++ (show a))
 
 
 testMessages = do 

@@ -48,7 +48,7 @@ import Data.UUID as UUID
 import qualified CCAR.Main.EnumeratedTypes as EnTypes 
 import qualified CCAR.Main.GroupCommunication as GC
 import CCAR.Main.Util as Util
-import CCAR.Command.ErrorCommand
+import CCAR.Command.ApplicationError
 import Database.Persist.Postgresql as Postgresql 
 -- For haskell shell
 import HSH
@@ -136,8 +136,8 @@ data PortfolioQuery = PortfolioQuery {
 queryPortfolios :: PortfolioQuery -> IO (Either T.Text PortfolioQuery)
 queryPortfolios query = do 
 	dbOps $ do 
-		company <- getBy $ CompanyUniqueID $ qCompanyId query 
-		user <- getBy $ PersonUniqueNickName $ qUserId query
+		company <- getBy $ UniqueCompanyId $ qCompanyId query 
+		user <- getBy $ UniqueNickName $ qUserId query
 		case (company, user) of 
 			(Just (Entity cId _) , Just (Entity uId _)) -> do 
 				companyUserId <- getBy $ UniqueCompanyUser cId uId
@@ -200,7 +200,7 @@ dtoToDao pT@(PortfolioT cType
 			porId comId userId summary createdBy updatedBy) = do 
 	currentTime <- getCurrentTime 
 	dbOps $ do 
-			com <- getBy $ CompanyUniqueID comId 
+			com <- getBy $ UniqueCompanyId comId 
 			porKV <- getBy $ UniquePortfolio porId 
 			case porKV of 
 				Just (Entity pKey pValue) -> return $ Right pValue
@@ -243,10 +243,10 @@ manageSearch aNickName aValue@(Object a) =
 				res <- queryPortfolios r 
 				case res of 
 					Right x -> return (GC.Reply, serialize x) 
-					Left y -> return (GC.Reply, serialize $ genericErrorCommandText $ 
+					Left y -> return (GC.Reply, serialize $ appError $ 
 												"Manage query failed "  <> y)
 		Error s ->  return (GC.Reply,
-                     serialize $ genericErrorCommand $ "parse login  failed "++ s)
+                     serialize $ appError $ "parse login  failed "++ s)
 
 
 manage :: NickName -> Value -> IO (GC.DestinationType, T.Text)
@@ -271,14 +271,14 @@ manage aNickName aValue@(Object a) =
 											liftIO $ Logger.errorM iModuleName $ 
 												("Input uuids and db uuids dont match "  :: String)
 												`mappend` (show res)
-											return (GC.Reply, serialize $ genericErrorCommand $
-														"Input output uuids dont match ")
+											return (GC.Reply, serialize $ appError $
+														T.unpack "Input output uuids dont match ")
 								Left f2 -> 
-									return (GC.Reply, serialize $ genericErrorCommandText f2)
+									return (GC.Reply, serialize $ appError f2)
 				Left f -> do 
 					liftIO $ Logger.errorM iModuleName $ 
 							"Error processing manage portfolio " `mappend` (show aValue)
-					return (GC.Reply, serialize $ genericErrorCommand $ 
+					return (GC.Reply, serialize $ appError $ 
 								"Error processing manage portfolio " ++ (T.unpack f))
 
 
@@ -306,9 +306,9 @@ insertPortfolio p@(PortfolioT cType
 		Just u -> do 
 			currentTime <- getCurrentTime
 			dbOps $ do 
-				c <- getBy $ CompanyUniqueID companyId 
-				nPerson <- getBy $ PersonUniqueNickName userId 
-				crBy <- getBy $ PersonUniqueNickName createdBy
+				c <- getBy $ UniqueCompanyId companyId 
+				nPerson <- getBy $ UniqueNickName userId 
+				crBy <- getBy $ UniqueNickName createdBy
 				case (c, nPerson, crBy) of 
 					(Just (Entity cKey _)
 						, Just (Entity nKey _)

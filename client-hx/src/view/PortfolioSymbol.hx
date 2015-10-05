@@ -140,6 +140,7 @@ class PortfolioSymbol {
 		columnIndexMap.set("SymbolType", 2);
 		columnIndexMap.set("Quantity", 3);
 	}
+
 	private function setupStreams() {
 		model.sideStream.then(updateSidesStream);
 		model.typeStream.then(updateTypesStream);

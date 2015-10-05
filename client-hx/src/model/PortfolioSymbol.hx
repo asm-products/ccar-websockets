@@ -44,12 +44,21 @@ typedef SymbolType = {
 }
 
 
+/**
+	Plurals -> collection. 
+	singular -> element.
+*/
 class PortfolioSymbol  {
 	public var activePortfolio (default, null) : PortfolioT;
-	public var portfolioSymbolT (default, null) : PortfolioSymbolT;
-	//Plural names represent the collection, the 
-	//singular represent the actual element.
+	/**
+	* Stream processing sides for a trade.
+	*/
 	public var sidesStream(default, null) : Deferred<Dynamic>;
+
+	/**
+	* Product types: equity, options, bonds, futures, currencies
+	* for example.
+	*/
 	public var typesStream(default, null) : Deferred<Dynamic>;
 	public var sideStream (default, null) : Deferred<SymbolSide>;
 	public var typeStream (default, null) : Deferred<SymbolType>;
@@ -145,6 +154,5 @@ class PortfolioSymbol  {
 			};
 			typeStream.resolve(p);
 		}
-	}
-	
+	}	
 }

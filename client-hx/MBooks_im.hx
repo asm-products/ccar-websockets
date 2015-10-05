@@ -34,6 +34,7 @@ import model.UserOperation;
 import model.Project;
 import model.CCAR;
 import model.Portfolio;
+import view.Entitlement;
 import util.Util;
 import util.Config;
 import js.Browser;
