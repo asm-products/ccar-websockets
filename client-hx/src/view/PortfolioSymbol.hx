@@ -313,6 +313,7 @@ class PortfolioSymbol {
 
 	private function readResponse(payload : PortfolioSymbolT) {
 		trace("Reading view " + payload);
+		throw "Read response Not implemented";
 	}
 
 
@@ -494,12 +495,15 @@ class PortfolioSymbol {
 
 	private function handleQueryResponse(incomingMessage : Dynamic){
 		trace("Processing symbol query response " + incomingMessage);
-		if(incomingMessage.Right.resultSet == null){
-			trace("Result set is not defined??");
-		}
 		if(incomingMessage.Left != null){
 			MBooks_im.getSingleton().applicationErrorStream.resolve(incomingMessage);
 		}else {
+			if(incomingMessage.Right.resultSet == null){
+				trace("Result set is not defined??");
+				MBooks_im.getSingleton().applicationErrorStream.resolve(incomingMessage);
+				return;
+			}
+
 			var pS : PortfolioSymbolQueryT = incomingMessage.Right;
 			for (i in pS.resultSet) {
 				if (i.Right != null){

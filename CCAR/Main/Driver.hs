@@ -909,10 +909,19 @@ writerThread app connection nickName terminate = do
             return () 
         else do 
             msg <- WSConn.receiveData connection `catch` 
-                (\h@(CloseRequest _ _) -> do 
-                        _ <- handleDisconnects app connection nickName h
-                        writerThread app connection nickName True
-                        return "Close request received")
+                (\h -> 
+                    case h of 
+                        (CloseRequest a b ) -> 
+                            do 
+                            _ <- handleDisconnects app connection nickName h
+                            writerThread app connection nickName True
+                            return "Close request received"                        
+                        x -> do 
+                            handleDisconnects app connection nickName h 
+                            writerThread app connection nickName True 
+                            return $ T.pack $ show x     
+
+                )
             (result, nickName) <- liftIO $ getNickName $ incomingDictionary (msg :: T.Text)
             Logger.debugM iModuleName 
                             $ show $ msg  `mappend` nickName

@@ -116,6 +116,7 @@ class MBooks_im {
 		var oauthStream : Stream<Dynamic> = 
 			initializeElementStream(getGmailOauthButton() , "click");
 		oauthStream.then(performGmailOauth);
+		entitlements = new view.Entitlement();
 	}
 
 	private static var GOAUTH_URL = "gmail_oauthrequest";
@@ -381,9 +382,14 @@ class MBooks_im {
 				trace("Processing "  + incomingMessage);
 				portfolioSymbolView.symbolQueryResponse.resolve(incomingMessage);
 			}
+			case ManageEntitlements:{
+				trace("Processing " + incomingMessage);
+				entitlements.modelResponseStream.resolve(incomingMessage);
+
+			}
 			case Undefined : {
 				processUndefinedCommandType(incomingMessage);
-
+				entitlements.modelResponseStream.resolve(incomingMessage);
 			}
 
 		}
@@ -925,6 +931,7 @@ class MBooks_im {
 	public var portfolio(default, null) : view.Portfolio;
 	public var portfolioSymbolModel(default, null) : model.PortfolioSymbol;
 	public var portfolioSymbolView(default, null): view.PortfolioSymbol;
+	public var entitlements(default, null): view.Entitlement;
 	/**
 	* A stream of events when a company drop down is selected.
 	*/
