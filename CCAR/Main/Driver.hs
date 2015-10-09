@@ -547,8 +547,11 @@ processCommandValue app nickName aValue@(Object a)   = do
                 String "QueryPortfolioSymbol" -> PortfolioSymbol.manageSearch nickName (Object a)
                 String "ManageEntitlements" -> Entitlements.manage nickName aValue 
                                                             >>= \(gc, either) -> 
+                                                                return (gc, Util.serialize either)
+                String "QueryEntitlements" -> Entitlements.query nickName aValue 
+                                                            >>= \(gc, either) -> 
                                                                 return (gc, Util.serialize either)                
-                _ -> 
+                _ ->                                                
                     return 
                          ( GroupCommunication.Reply
                          , ser $ CommandError $ appError ("Unable to process command " ++ (show aType)))

@@ -69,7 +69,7 @@ class Entitlement {
 				nickName : MBooks_im.getSingleton().getNickName()
 				, queryParameters : "*"
 				, commandType : "QueryEntitlements"
-				, resultSet : null
+				, resultSet : new Array<EntitlementT>()
 			}
 		MBooks_im.getSingleton().doSendJSON(queryEntitlements);
 	}

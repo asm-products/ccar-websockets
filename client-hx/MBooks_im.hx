@@ -83,6 +83,7 @@ class MBooks_im {
 	}
 
 	private var maxAttempts : Int = 3;
+
 	function new (){
 		trace("Calling MBooks_im");
 		reset();
@@ -105,6 +106,7 @@ class MBooks_im {
 			initializeElementStream(getMessageInput(), "keyup");
 		mStream.then(sendMessage);
 		userLoggedIn = new Deferred<Dynamic>();
+		userLoggedIn.then(authenticationChecks);
 		selectedCompanyStream = new Deferred<Dynamic>();
 		assignCompanyStream = new Deferred<Dynamic> ();
 		activeCompanyStream = new Deferred<model.Company> ();
@@ -385,7 +387,9 @@ class MBooks_im {
 			case ManageEntitlements:{
 				trace("Processing " + incomingMessage);
 				entitlements.modelResponseStream.resolve(incomingMessage);
-
+			}
+			case QueryEntitlements : {
+				entitlements.queryEntitlementResponse.resolve(incomingMessage);
 			}
 			case Undefined : {
 				processUndefinedCommandType(incomingMessage);
@@ -442,6 +446,7 @@ class MBooks_im {
 		if(lStatus == Undefined){
 			throw ("Undefined status");			
 		}
+
 	}
 	private function processManageUser(p : Dynamic) {
 		var person : Person = p.person;
@@ -976,5 +981,11 @@ class MBooks_im {
 		return untyped __js__(name);
 	}
 
+	private function authenticationChecks(incoming : Dynamic){
+		//Get user entitlements
+		//if user is admin, then query all entitlements.
+		trace("Processing " + incoming);
+		entitlements.queryAllEntitlements();
+	}
 
 }

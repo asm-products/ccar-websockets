@@ -36,4 +36,5 @@ enum CommandType {
 	ManagePortfolioSymbol;
 	QueryPortfolioSymbol;
 	ManageEntitlements;
+	QueryEntitlements;
 }

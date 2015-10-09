@@ -59,6 +59,7 @@ class Entitlement {
 	private var updateEntitlementButton : ButtonElement;
 	private var deleteEntitlementButton : ButtonElement;
 	private var entitlementsList : SelectElement;
+	public var queryEntitlementResponse(default, null) : Deferred<model.QueryEntitlement>;
 	public var modelResponseStream(default, null) : Deferred<model.EntitlementT>;
 	public var modelStream(default, null) : Deferred<model.EntitlementT>;
 	public var view (default, null) : Deferred<model.EntitlementT>;
@@ -96,6 +97,9 @@ class Entitlement {
 		modelResponseStream = new Deferred<model.EntitlementT>();
 		modelResponseStream.then(handleModelResponse);
 		modelObject = new model.Entitlement(modelStream);
+
+		queryEntitlementResponse = new Deferred<model.QueryEntitlement>();
+		queryEntitlementResponse.then(handleQueryEntitlementResponse);
 		addEntitlementButton = cast (Browser.document.getElementById(ADD_ENTITLEMENT));
 		updateEntitlementButton = cast (Browser.document.getElementById(UPDATE_ENTITLEMENT));
 		deleteEntitlementButton = cast (Browser.document.getElementById(REMOVE_ENTITLEMENT));
@@ -147,11 +151,27 @@ class Entitlement {
 		sectionName = aName;
 	}
 
+	private function incomingMessageNull(source : String)  {
+		var errorMessage = "Incoming message is null. Should never happen. @ " + source;
+		MBooks_im.getSingleton().applicationErrorStream.resolve(errorMessage);
+
+	}
+	private function handleQueryEntitlementResponse(incoming : Dynamic){
+		if(incoming == null){
+			incomingMessageNull("QueryEntitlement");
+			return;
+		}if(incoming.Left != null){
+			MBooks_im.getSingleton().applicationErrorStream.resolve(incoming);
+		}else if(incoming.Right != null){
+			updateEntitlementList(incoming.Right);
+		}		
+	}
+
 	private function handleModelResponse(incoming : Dynamic) {
 		trace("handling model response");
 		if(incoming == null){
-			var errorMessage = "Incoming message is null. Should never happen. Famous XXXX words";
-			MBooks_im.getSingleton().applicationErrorStream.resolve(errorMessage);
+			incomingMessageNull("ModelResponse");
+			return;
 		}
 		if(incoming.Left != null){
 			MBooks_im.getSingleton().applicationErrorStream.resolve(incoming);
@@ -159,6 +179,18 @@ class Entitlement {
 			updateSelf(incoming.Right);
 		}
 	}
+	
+
+	private function updateEntitlementList(queryEntitlement : model.QueryEntitlement){
+		//Delete all the elements in the list and then add
+		//the result.
+		var entitlementList : Array<EntitlementT> = queryEntitlement.resultSet;
+		deleteFromEntitlementList();
+		for(entitlement in entitlementList){
+			updateIntoView(entitlement);
+		}
+	}
+
 	private function updateSelf(entitlement : model.EntitlementT){
 		trace("Updating view " +  entitlement);
 		//If the crud type is Delete, then remove the element
@@ -185,6 +217,7 @@ class Entitlement {
 		//or insert into the view.
 		clearTextFields();
 		updateList(entitlement);
+		updateTextFields(entitlement);
 	}
 
 	private function clearTextFields(){
@@ -193,6 +226,10 @@ class Entitlement {
 		}
 	}
 	
+	private function updateTextFields(entitlement : model.EntitlementT){
+		sectionNameElement.value = entitlement.sectionName;
+		tabNameElement.value = entitlement.tabName;		
+	}
 	private function getOptionElementKey(entitlement : model.EntitlementT){
 		trace("Creating an option element key");
 		var optionElementKey : String = 
@@ -218,24 +255,51 @@ class Entitlement {
 					cast optionElement
 					, "click"
 				);
+			var s2 =  MBooks_im.getSingleton().initializeElementStream(
+					cast optionElement
+					, "blur"
+				);
+			s2.then(handleEntitlementSelected);
 			stream.then(handleEntitlementSelected);
 			entitlementsList.appendChild(optionElement);		
+
 		}else {
 			optionElement.text = printListText(entitlement);
 		}
+		optionElement.selected = true;
 
 	}
 	
 	private function removeFromList(entitlement : model.EntitlementT){
 		trace("Removing element from list");
 		var optionElementKey = getOptionElementKey(entitlement);
-		var optionElement :OptionElement = cast (Browser.document.getElementById(optionElementKey));
+		removeElementFromList(optionElementKey);
+	}
+
+	private function removeElementFromList(id : String){
+		entitlementMap.remove(id);
+		var optionElement :OptionElement = cast (Browser.document.getElementById(id));
 		if(optionElement == null){
-			throw ("Nothing to delete " + entitlement);
+			throw ("Nothing to delete " + id);
 		}
-		entitlementMap.remove(optionElementKey);
 		optionElement.parentNode.removeChild(optionElement);
 		trace("The above code should most likely work");
+		for(entitlement in entitlementMap) {
+			var optionElementKey = getOptionElementKey(entitlement);
+			var optionElement : OptionElement = cast (Browser.document.getElementById(optionElementKey));
+			if(optionElement != null){
+				optionElement.selected = true;
+				updateTextFields(entitlement);
+				break;
+			}
+		}
+
+	}
+	private function deleteFromEntitlementList(){
+		for(entitlement in entitlementMap){
+			removeElementFromList(getOptionElementKey(entitlement));
+		}
+		entitlementMap = new Map<String, model.EntitlementT>();
 	}
 
 	private function handleEntitlementSelected(ev : Event){
@@ -246,6 +310,12 @@ class Entitlement {
 			throw ("Entitlement not found");
 		}
 		entitlement.crudType = "Read";
+		if (entitlement.nickName == null){
+			entitlement.nickName = MBooks_im.getSingleton().getNickName();
+		}
+		if (entitlement.commandType == null){
+			entitlement.commandType = MANAGE_ENTITLEMENTS_COMMAND;
+		}
 		modelStream.resolve(entitlement);	
 	}
 
