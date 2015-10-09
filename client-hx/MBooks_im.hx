@@ -215,13 +215,18 @@ class MBooks_im {
 	private function onClose(ev: CloseEvent){
 		trace("Connection closed " + ev.code + "->" + ev.reason);
 		setError(ev.code + ":" + ev.reason);
+		cleanup();
 		disableKeepAlive();
 
 
 	}
-
+	private function cleanup () {
+		trace("Do all of the cleanup");
+	}
 	private  function onServerConnectionError(ev : Event){
 		trace("Error " + ev);
+		getOutputEventStream().end();
+		websocket.close();
 	}
 
 	// Message processing 
