@@ -2,7 +2,6 @@
 module CCAR.Command.ApplicationError
 (ApplicationError(..)
  , appError
- , parseApplicationError
 )
  where
 
@@ -12,6 +11,7 @@ import Data.Typeable
 import Data.Text as T
 import Data.Aeson
 import Control.Applicative as Appl
+import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 
 data ApplicationError = ApplicationError {errorCode :: T.Text, message :: T.Text} 
                 deriving (Show, Read, Eq, Data, Generic, Typeable)
@@ -30,15 +30,15 @@ instance Error String where
 instance Error Text where 
 	appError = appErrorText 
 
+instance Error (LH.HashMap T.Text Value) where 
+	appError = parseApplicationError
+
 appErrorString errorMessage = ApplicationError {errorCode = T.pack "Error" 
                                        , message = T.pack errorMessage}
 
 appErrorText errorText = ApplicationError {errorCode = T.pack "Error" 
 										, message = errorText}
 
-
-
-parseApplicationError value= do
-        return $ ApplicationError {errorCode = T.pack "Error"
+parseApplicationError value= ApplicationError {errorCode = T.pack "Error"
                                , message = T.pack $ show value}
 

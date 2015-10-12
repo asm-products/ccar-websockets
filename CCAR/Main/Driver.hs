@@ -2,6 +2,7 @@
 
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, TypeFamilies, OverloadedStrings #-}
 module CCAR.Main.Driver
+    (driver)
 where 
 
 import Yesod.Core
@@ -79,7 +80,6 @@ iModuleName :: String
 iModuleName = "CCAR.Main.Driver"
 
 
---connStr = "host= dbname= user= password= port="
 connStr = getConnectionString
 
 data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined | Guest
@@ -89,8 +89,11 @@ data CheckPassword = CheckPassword {pwNickName :: T.Text, pwPassword :: T.Text,
                 passwordValid :: Maybe Bool, 
                 numberOfAttemmpts :: Integer}
                     deriving(Show, Eq, Typeable, Data, Generic)
+
 instance ToJSON CheckPassword 
 instance FromJSON CheckPassword
+
+
 
 data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
                 deriving (Show, Eq)
@@ -201,13 +204,12 @@ instance ToJSON Command where
             _ -> toJSON $ ApplicationError {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
 
-
-
+commandType :: HashMap T.Text Value -> Maybe Value
 commandType = LH.lookup "commandType"
 
 parseCommand value = do
         case (commandType value) of
-            Nothing -> CommandError <$> parseApplicationError value
+            Nothing -> CommandError <$> (pure $ appError value)
             Just cType -> 
                 case (cType) of 
                     "Login"-> CommandLogin <$> parseLogin value
@@ -215,7 +217,7 @@ parseCommand value = do
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
-                    _       -> CommandError <$> (parseApplicationError value)
+                    _       -> CommandError <$>  (pure $ appError value)
 
 
 parseKeepAlive v = v .: "keepAlive"
@@ -547,10 +549,26 @@ processCommandValue app nickName aValue@(Object a)   = do
                 String "QueryPortfolioSymbol" -> PortfolioSymbol.manageSearch nickName (Object a)
                 String "ManageEntitlements" -> Entitlements.manage nickName aValue 
                                                             >>= \(gc, either) -> 
-                                                                return (gc, Util.serialize either)
+                                                                return (gc, Util.serialize 
+                                                                    (either :: Either ApplicationError Entitlements.EntitlementT)
+                                                                    )
                 String "QueryEntitlements" -> Entitlements.query nickName aValue 
                                                             >>= \(gc, either) -> 
-                                                                return (gc, Util.serialize either)                
+                                                                return (gc, 
+                                                                    Util.serialize 
+                                                                    (either :: 
+                                                                            Either ApplicationError Entitlements.QueryEntitlementT))
+                String "ManageCompanyEntitlements" -> Entitlements.manage nickName aValue 
+                                                        >>= \(gc, either) ->
+                                                            return (gc , 
+                                                                Util.serialize 
+                                                                    (either :: Either ApplicationError 
+                                                                                Entitlements.CompanyEntitlementT))
+                String "QueryCompanyEntitlements" -> Entitlements.query nickName aValue 
+                                                    >>= \(gc, either) ->
+                                                        return (gc, Util.serialize
+                                                                (either :: 
+                                                                    Either ApplicationError Entitlements.QueryCompanyEntitlementT))
                 _ ->                                                
                     return 
                          ( GroupCommunication.Reply

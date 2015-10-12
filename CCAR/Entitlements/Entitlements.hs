@@ -4,6 +4,10 @@ module CCAR.Entitlements.Entitlements
 		, retrieve
 		, query
 		, testInsert
+		, QueryEntitlementT
+		, EntitlementT 
+		, CompanyEntitlementT
+		, QueryCompanyEntitlementT 
 	)
 where 
 
@@ -53,10 +57,10 @@ import Database.Persist.Postgresql as Postgresql
 import HSH
 import System.IO(openFile, writeFile, IOMode(..))
 import System.Log.Logger as Logger
+import CCAR.Main.DBOperations (Query, query, manage, Manager)
 
-{--
-Manage user entitlements.
---}
+-- | Manage user entitlements.
+
 
 newtype ModuleName = ModuleName {unMod :: T.Text} deriving (Show, Read, Eq, Data, Generic, Typeable)
 type CommandType = T.Text
@@ -72,6 +76,22 @@ manageCompanyEntitlements = "ManageCompanyEntitlements"
 
 
 
+instance Manager EntitlementT where 
+	manage = manageEntitlement 
+
+instance Manager CompanyEntitlementT where 
+	manage = manageCompanyEntitlement
+
+instance Query QueryEntitlementT where 
+	query = queryQe
+
+
+instance Query QueryCompanyEntitlementT where 
+	query = queryQCE
+
+
+
+-- | Company-> User-> Entitlement uniquely identify this entitlement.
 data CompanyEntitlementT = CompanyEntitlementT {
 	entitlementCommandType :: CommandType 
 	, entitlementCrudType :: CRUD 
@@ -80,6 +100,42 @@ data CompanyEntitlementT = CompanyEntitlementT {
 	, entTabName :: T.Text 
 	, entSecName :: T.Text
 } deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+
+dtoCE coType crudType companyID userId tabName secName = 
+		CompanyEntitlementT coType crudType companyID userId tabName secName
+
+
+-- | Query company entitlements for a user
+data QueryCompanyEntitlementT = QueryCompanyEntitlementT{
+	qceEntitlementCommandType :: CommandType
+	, qceNickName :: T.Text
+	, qceCompanyName :: T.Text 
+	, qceUserId :: T.Text
+	, qceQueryParameters :: T.Text 
+	, qceResultSet :: [CompanyEntitlementT]
+} deriving (Show, Read, Eq, Data, Generic, Typeable)
+
+instance ToJSON QueryCompanyEntitlementT where 
+	toJSON ps@(QueryCompanyEntitlementT cType nn cName cUserId qP qR) = 
+		object [
+			"commandType" .= cType 
+			, "nickName" .= nn 
+			, "companyName" .= cName 
+			, "userId" .= cUserId
+			, "queryParameters" .= qP 
+			, "resultSet" .= qR
+		]
+
+instance FromJSON QueryCompanyEntitlementT where 
+	parseJSON (Object a) = QueryCompanyEntitlementT <$> 
+		a .: "commandType" <*>
+		a .: "nickName" <*> 
+		a .: "companyName" <*> 
+		a .: "userId" <*>
+		a .: "queryParameters" <*>
+		a .: "resultSet"
+	parseJSON _ = Appl.empty
 
 
 instance ToJSON CompanyEntitlementT where 
@@ -92,6 +148,8 @@ instance ToJSON CompanyEntitlementT where
 			, "tabName" .= entTabName
 			, "sectionName" .= entSecName
 		]
+
+
 
 instance FromJSON CompanyEntitlementT where 
 	parseJSON (Object a) = CompanyEntitlementT <$> 
@@ -158,8 +216,9 @@ instance FromJSON QueryEntitlementT where
 		a .: "resultSet"
 	parseJSON _ = Appl.empty
 
-{-- Assign entitlements for a user for a company --}
-assign :: NickName -> Value  -> IO (GC.DestinationType, Either T.Text CompanyEntitlementT)
+
+-- | Assign entitlements for a user for a company
+assign :: NickName -> Value  -> IO (GC.DestinationType, Either ApplicationError CompanyEntitlementT)
 assign aNickName aValue = do 
 	case (parse parseJSON aValue) of 
 		Success ce@(CompanyEntitlementT coType crType cId userId tabName sectionName) -> 
@@ -171,7 +230,40 @@ assign aNickName aValue = do
 
 
 
-query aNickName aValue@(Object a) = do 
+{- | NOTE: This will query all the entitlements that match a company id. -}
+queryCompanyEntitlements comType cName userNickName = 
+		dbOps $ do 
+		company <- getBy $  UniqueCompanyId cName 
+		userId <- getBy $ UniqueNickName userNickName 
+		resultSet <- case (company, userId) of 
+						((Just (Entity cKey c)), (Just (Entity uKey u))) -> do 
+							companyUserId <- getBy $ UniqueCompanyUser cKey uKey
+							case companyUserId of 
+								Just (Entity cuKey cuE) -> 
+										selectList [CompanyUserEntitlementCompanyUserId ==. cuKey] 
+														[Asc CompanyUserEntitlementCompanyUserId]
+								Nothing -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
+						(Nothing, Nothing) -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
+		mapM (\a@(Entity k x) -> do 
+			entitlement <- get $ companyUserEntitlementEntitlement x 
+			case entitlement of 
+				Just entitlement->  
+						return $ CompanyEntitlementT comType Read userNickName cName 
+									(entitlementSectionName entitlement) 
+								 	(entitlementTabName entitlement)) resultSet 
+
+{- | Return all the entitlements setup for this user for this company.
+-}
+
+queryQCE aNickName aValue@(Object a) = do 
+	Logger.debugM iModuleName $ "Query company entitlements " 
+	x <- case (parse parseJSON aValue) of 
+		Success query@(QueryCompanyEntitlementT cType nn cName userId qP r) -> do 
+			ents <- queryCompanyEntitlements cType cName userId 
+			return $ Right $ QueryCompanyEntitlementT cType nn cName userId qP ents
+	return (GC.Reply, x)
+
+queryQe aNickName aValue@(Object a) = do 
 	Logger.debugM iModuleName $ show aValue
 	x <- case (parse parseJSON aValue) of 
 			Success query@(QueryEntitlementT coType nickName param _) -> do 
@@ -186,8 +278,8 @@ queryEntitlements limit = dbOps $ selectList [] [LimitTo limit]
 
 
 {--  Manage : add/update/delete --}
-manage :: NickName -> Value -> IO (GC.DestinationType, Either ApplicationError EntitlementT)
-manage aNickName aValue@(Object a) = do
+manageEntitlement :: NickName -> Value -> IO (GC.DestinationType, Either ApplicationError EntitlementT)
+manageEntitlement aNickName aValue@(Object a) = do
 	Logger.debugM iModuleName $ show $ T.intercalate "-" ["inside manage", aNickName, 
 				T.pack $ show aValue] 
 	case (parse parseJSON aValue) of 
@@ -197,6 +289,22 @@ manage aNickName aValue@(Object a) = do
 				C_Update -> updateE e 
 				Read -> retrieve e 
 				Delete -> deleteE e
+		Error s -> return (GC.Reply, Left $ appError s)
+
+
+manageCompanyEntitlement :: NickName -> Value -> IO (GC.DestinationType, Either ApplicationError CompanyEntitlementT) 
+manageCompanyEntitlement aNickName aValue = do 
+	Logger.debugM iModuleName $ show $ T.intercalate "-" ["Inside manage", aNickName
+										, T.pack $ show aValue]
+	case (parse parseJSON aValue) of 
+		Success ce -> do 
+			case c of 
+				Create -> createCompanyEntitlement ce 
+				C_Update -> updateCompanyEntitlement ce 
+				Read -> retrieveCompanyEntitlement ce 
+				Delete -> deleteCompanyEntitlement ce 
+			where 
+				c = entitlementCrudType ce 
 		Error s -> return (GC.Reply, Left $ appError s)
 
 
@@ -253,7 +361,6 @@ createCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab s
 		company <- getBy $ UniqueCompanyId companyId
 		user <- getBy $ UniqueNickName userId 
 		case (chk, company, user)  of 
-			(Nothing, Nothing, Nothing) -> return (GC.Reply, Left $ "Entitlement not found " `mappend` (T.pack $ show ce))
 			(
 				Just (Entity eid entitlement)
 				, (Just (Entity cid cEntity))
@@ -261,12 +368,13 @@ createCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab s
 				) -> do 
 					companyUser <- getBy $ UniqueCompanyUser cid uid
 					case companyUser of 
-						Nothing -> return (GC.Reply, Left $ "User not assigned " `
-									mappend` userId `mappend` " " `mappend` companyId)
+						Nothing -> return (GC.Reply, Left $ appError $ T.intercalate "-" ["User not assigneg" 
+																		, userId 
+																		, companyId])
 						Just (Entity cuId cu) -> do 
 							insert $ CompanyUserEntitlement eid cuId
 							return (GC.Reply, Right ce)
-			_ -> return (GC.Reply, Left $ "Need to use traverse here" `mappend` (T.pack $ show ce))
+			_ -> return (GC.Reply, Left $ appError $ "Need to use traverse here" `mappend` (T.pack $ show ce))
 
 
 updateCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = undefined 
@@ -275,15 +383,14 @@ retrieveCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab
 		ent <- getBy $ UniqueEntitlement tab section 
 		company <- getBy $ UniqueCompanyId companyId 
 		user <- getBy $ UniqueNickName userId
-		return (GC.Reply, Left $ "Record not found " `mappend` (T.pack $ show ce))
-{-		case (ent, company, user) of 
-			(Just (Entity eid entitlement) 
-			, Just (Entity cid cEntity)
-			, Just (Entity uid uEntity)) -> do 
+		case (ent, company, user) of 
+			(	Just (Entity eid entitlement) 
+				, Just (Entity cid cEntity)
+				, Just (Entity uid uEntity) ) -> do 
 				companyUser <- getBy $ UniqueCompanyUser cid uid 
 				case companyUser of 
 					Just (Entity cuId cu) -> do 
-						cet <- getBy $ CompanyUserEntitlement eid cuId 
+						cet <- getBy $ UniqueCompanyUserEntitlement eid cuId 
 						case cet of 
 							Just (Entity cueId cuEntitlement) -> do 
 								return (GC.Reply, Right $ 
@@ -293,12 +400,35 @@ retrieveCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab
 												(entitlementTabName entitlement)
 												(entitlementSectionName entitlement)
 									)
-							Nothing -> return (GC.Reply, Left $ "Record not found " `mappend` (T.pack $ show ce))
-		case _ -> return (GC.Reply, Left $ "Record not found " `mappend` (T.pack $ show ce))
+							Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+					Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+			(_, _, _) -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
 
--}
 
-deleteCompanyEntitlement ce = undefined
+deleteCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
+	dbOps $ do 
+		ent <- getBy $ UniqueEntitlement tab section 
+		company <- getBy $ UniqueCompanyId companyId 
+		user <- getBy $ UniqueNickName userId 
+		case (ent, company, user) of 
+			(	Just (Entity eid entitlement) 
+				, Just (Entity cid cEntity)
+				, Just (Entity uid uEntity) ) -> do 
+				companyUser <- getBy $ UniqueCompanyUser cid uid 
+				case companyUser of 
+					Just (Entity cuId cu) -> do 
+						cet <- Postgresql.deleteBy $ UniqueCompanyUserEntitlement eid cuId
+						return (GC.Reply, Right $ 
+									CompanyEntitlementT c crType 
+										companyId 
+										userId 
+										(entitlementTabName entitlement)
+										(entitlementSectionName entitlement)
+							)
+					Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+			(_, _, _) -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+
+
 
 
 testInsert = do 

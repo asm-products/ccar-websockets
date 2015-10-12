@@ -153,6 +153,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
         CompanyUserEntitlement json 
             entitlement EntitlementId 
             companyUserId CompanyUserId 
+            UniqueCompanyUserEntitlement entitlement companyUserId
             deriving Show Eq
         CompanyUserEntitlementRequest json 
             entitlement CompanyUserEntitlementId

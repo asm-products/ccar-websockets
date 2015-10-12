@@ -12,10 +12,10 @@ name:                ccar-websockets
 version:             0.1.0.0
 
 -- A short (one-line) description of the package.
--- synopsis:            
+synopsis: A portal to manage users, trades, test scores, surveys
 
 -- A longer description of the package.
--- description:         
+description: A portal to manage regular CRUD.
 
 -- The license under which the package is released.
 license:             Apache-2.0
@@ -31,7 +31,7 @@ author:              Dinkar Ganti
 maintainer:          dinkar.ganti@gmail.com
 
 -- A copyright notice.
--- copyright:           
+copyright:           Copyright : Dinkar Ganti, 2015
 
 category:            Network
 
