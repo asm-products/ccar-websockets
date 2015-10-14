@@ -119,6 +119,7 @@ class MBooks_im {
 			initializeElementStream(getGmailOauthButton() , "click");
 		oauthStream.then(performGmailOauth);
 		entitlements = new view.Entitlement();
+		companyEntitlements = new view.CompanyEntitlement(entitlements);
 	}
 
 	private static var GOAUTH_URL = "gmail_oauthrequest";
@@ -402,6 +403,14 @@ class MBooks_im {
 			}
 
 		}
+	}
+
+	
+
+	public function incomingMessageNull(source : String)  {
+		var errorMessage = "Incoming message is null. Should never happen. @ " + source;
+		MBooks_im.getSingleton().applicationErrorStream.resolve(errorMessage);
+
 	}
 
 
@@ -942,6 +951,7 @@ class MBooks_im {
 	public var portfolioSymbolModel(default, null) : model.PortfolioSymbol;
 	public var portfolioSymbolView(default, null): view.PortfolioSymbol;
 	public var entitlements(default, null): view.Entitlement;
+	public var companyEntitlements(default, null) : view.CompanyEntitlement;
 	/**
 	* A stream of events when a company drop down is selected.
 	*/

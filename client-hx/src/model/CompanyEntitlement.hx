@@ -34,53 +34,46 @@ import util.*;
 
 //crudType is one of "Create", "C_Update", "Delete", "Read"
 
-typedef QueryEntitlement = {
+typedef QueryCompanyEntitlement = {
 	var nickName : String;
 	var queryParameters : String;
 	var commandType : String;
-	var resultSet : Array<EntitlementT>;
+	var resultSet : Array<CompanyEntitlementT>;
 }
 
 
-typedef EntitlementT = {
+typedef CompanyEntitlementT = {
 	var nickName : String;
 	var crudType : String;
 	var commandType : String;
+	var userId : String;
 	var tabName : String;
-	var sectionName : String;	
-}
+	var sectionName : String;
+	}
 
+class CompanyEntitlement {
+	private var payload : CompanyEntitlementT;
 
-class Entitlement {
-	private var payload : EntitlementT;
-
-	public function new(stream : Deferred<EntitlementT>){
+	public function new(stream : Deferred<CompanyEntitlementT>){
 		Util.log("Creating new entitlement");
 		stream.then(updateModel);
 	}
-
-	private function updateModel(anEntitlement : EntitlementT){
+	private function updateModel(anEntitlement : CompanyEntitlementT){
 		trace("Updating model " + anEntitlement);
 		MBooks_im.getSingleton().doSendJSON(anEntitlement);
 	}
 	
 	public function queryAllEntitlements() {
 		trace("Query all the entitlements");
-		var queryEntitlements : QueryEntitlement = 
+		var queryEntitlements : QueryCompanyEntitlement = 
 			{
 				nickName : MBooks_im.getSingleton().getNickName()
 				, queryParameters : "*"
-				, commandType : "QueryEntitlements"
-				, resultSet : new Array<EntitlementT>()
+				, commandType : "QueryCompanyEntitlements"
+				, resultSet : new Array<CompanyEntitlementT>()
 			}
 		MBooks_im.getSingleton().doSendJSON(queryEntitlements);
 	}
-	public static function listDisplay(entT : model.EntitlementT ) : String {
-		return (entT.tabName + "->" + entT.sectionName);
-	}	
-	public static function optionId(entT : model.EntitlementT) : String {
-		return (entT.tabName + entT.sectionName);
-	}
-
+	
 
 }

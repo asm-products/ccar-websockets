@@ -235,6 +235,7 @@ queryCompanyEntitlements comType cName userNickName =
 		dbOps $ do 
 		company <- getBy $  UniqueCompanyId cName 
 		userId <- getBy $ UniqueNickName userNickName 
+		liftIO $ Logger.debugM iModuleName $ "User " ++ (show userId)
 		resultSet <- case (company, userId) of 
 						((Just (Entity cKey c)), (Just (Entity uKey u))) -> do 
 							companyUserId <- getBy $ UniqueCompanyUser cKey uKey
@@ -243,7 +244,9 @@ queryCompanyEntitlements comType cName userNickName =
 										selectList [CompanyUserEntitlementCompanyUserId ==. cuKey] 
 														[Asc CompanyUserEntitlementCompanyUserId]
 								Nothing -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
-						(Nothing, Nothing) -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
+						(_, _) -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
+
+
 		mapM (\a@(Entity k x) -> do 
 			entitlement <- get $ companyUserEntitlementEntitlement x 
 			case entitlement of 
@@ -354,7 +357,7 @@ deleteE e@(EntitlementT c co tab sec _) = do
 		Postgresql.deleteBy $ UniqueEntitlement tab sec 
 		return (GC.Reply, Right e)
 
-
+{- | Create an entitlement for a user for a company.  -}
 createCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
 	dbOps $ do 
 		chk <- getBy $ UniqueEntitlement tab section 
@@ -377,7 +380,11 @@ createCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab s
 			_ -> return (GC.Reply, Left $ appError $ "Need to use traverse here" `mappend` (T.pack $ show ce))
 
 
-updateCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = undefined 
+{- | Updates an entitlement for a user for a company. Not implemented. We remove and add
+     entitlements for a company for a user. -}
+updateCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = undefined
+
+{- | Retrieves an entitlement for a user for a company. -}
 retrieveCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
 	dbOps $ do 
 		ent <- getBy $ UniqueEntitlement tab section 
@@ -402,9 +409,10 @@ retrieveCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab
 									)
 							Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
 					Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
-			(_, _, _) -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+			_ -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
 
 
+{- | Delete an entitlement for a company for a user. -}
 deleteCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
 	dbOps $ do 
 		ent <- getBy $ UniqueEntitlement tab section 
@@ -426,7 +434,7 @@ deleteCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab s
 										(entitlementSectionName entitlement)
 							)
 					Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
-			(_, _, _) -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+			_ -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
 
 
 

@@ -30,6 +30,7 @@ import model.Company;
 import js.Lib.*;
 import util.*;
 import model.Entitlement;
+import view.ListManager;
 
 /*
 * Client --------------------------------------------> Server
@@ -109,14 +110,15 @@ class Entitlement {
 	public function queryAllEntitlements(){
 		modelObject.queryAllEntitlements();
 	}
-	//TODO: Refactor the rest of the code to look like below.
-	//probably cleaner.
+
+	//TODO: Refactor.
 	public function setupStreams(){
 		addEntitlementButton.addEventListener("click", addEntitlementEvent);
 		updateEntitlementButton.addEventListener("click", updateEntitlementEvent);
 		deleteEntitlementButton.addEventListener("click", deleteEntitlementEvent);
-
 	}
+
+
 	private function getModelEntitlement(aCrudType){
 		var change : model.EntitlementT = {
 			crudType : aCrudType
@@ -152,9 +154,7 @@ class Entitlement {
 	}
 
 	private function incomingMessageNull(source : String)  {
-		var errorMessage = "Incoming message is null. Should never happen. @ " + source;
-		MBooks_im.getSingleton().applicationErrorStream.resolve(errorMessage);
-
+		MBooks_im.getSingleton().incomingMessageNull(source);
 	}
 	private function handleQueryEntitlementResponse(incoming : Dynamic){
 		if(incoming == null){
@@ -212,6 +212,7 @@ class Entitlement {
 		//update the selection element.
 		removeFromList(entitlement);
 	}
+
 	private function updateIntoView(entitlement : model.EntitlementT) {
 		//update into the view
 		//or insert into the view.
@@ -230,12 +231,14 @@ class Entitlement {
 		sectionNameElement.value = entitlement.sectionName;
 		tabNameElement.value = entitlement.tabName;		
 	}
+
 	private function getOptionElementKey(entitlement : model.EntitlementT){
 		trace("Creating an option element key");
 		var optionElementKey : String = 
 				MANAGE_ENTITLEMENTS_COMMAND + entitlement.tabName + entitlement.sectionName;
 		return optionElementKey;
 	}
+
 	private function printListText(entitlement){
 		return entitlement.tabName + "->" + entitlement.sectionName;
 	}
@@ -255,11 +258,6 @@ class Entitlement {
 					cast optionElement
 					, "click"
 				);
-			var s2 =  MBooks_im.getSingleton().initializeElementStream(
-					cast optionElement
-					, "blur"
-				);
-			s2.then(handleEntitlementSelected);
 			stream.then(handleEntitlementSelected);
 			entitlementsList.appendChild(optionElement);		
 
@@ -277,7 +275,7 @@ class Entitlement {
 	}
 
 	private function removeElementFromList(id : String){
-		entitlementMap.remove(id);
+
 		var optionElement :OptionElement = cast (Browser.document.getElementById(id));
 		if(optionElement == null){
 			throw ("Nothing to delete " + id);
@@ -296,10 +294,16 @@ class Entitlement {
 
 	}
 	private function deleteFromEntitlementList(){
-		for(entitlement in entitlementMap){
-			removeElementFromList(getOptionElementKey(entitlement));
+		try {
+			for(entitlement in entitlementMap){
+				removeElementFromList(getOptionElementKey(entitlement));
+			}
+			entitlementMap = new Map<String, model.EntitlementT>();
+		}catch(e : Dynamic){
+			trace("Exception deleting elements from the list. Restore to previous view." 
+				+ e);
+
 		}
-		entitlementMap = new Map<String, model.EntitlementT>();
 	}
 
 	private function handleEntitlementSelected(ev : Event){
