@@ -59,6 +59,7 @@ class CompanyEntitlement {
 		userEntitlementsList = cast (Browser.document.getElementById(USER_ENTITLEMENTS));
 		view.queryEntitlementResponse.then(handleQueryEntitlementResponse);
 		entitlementsManager = new ListManager<EntitlementT>(userEntitlementsList, MANAGE_COMPANY_USER_ENTS, Entitlement.optionId, Entitlement.listDisplay);
+		view.modelResponseStream.then(handleModelResponse);
 	}	
 	private function handleQueryEntitlementResponse(incoming : Dynamic){
 		trace("Query entitlements ");
@@ -84,5 +85,33 @@ class CompanyEntitlement {
 	private function entitlementAdded(ev : Event) {
 		trace("Entitlement " + ev);
 	}
+
+	private function handleModelResponse(incoming : Dynamic) {
+		trace("handling model response");
+		if(incoming == null){
+			MBooks_im.getSingleton().incomingMessageNull("ModelResponse");
+			return;
+		}
+		if(incoming.Left != null){
+			MBooks_im.getSingleton().applicationErrorStream.resolve(incoming);
+		}else if(incoming.Right != null){
+			updateSelf(incoming.Right);
+		}
+	}
+
+	private function updateSelf(entitlement : model.EntitlementT){
+		trace("Updating view " +  entitlement);
+		//If the crud type is Delete, then remove the element
+		//from the list. Pick the next element,
+		//replace the values with the values in that element.
+		//If the crud type is update, replace the values on the view
+		//with the values in the model.
+		if (entitlement.crudType == "Delete") {
+			entitlementsManager.delete(entitlement);
+		}else {
+			entitlementsManager.upsert(entitlement);
+		}
+	}
+
 
 }

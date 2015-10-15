@@ -55,6 +55,11 @@ class ListManager<T> {
 	private function key(element : T) : String {
 		return this.prefix + optionId(element);
 	}
+
+	//Upsert : add and return the stream.
+	public function upsert(element : T) : Stream<Dynamic> {
+		return add(element);
+	}
 	public function add(element : T ) : Stream<Dynamic>{
 		trace("Adding element " + element);
 		var optionElement : OptionElement 
@@ -77,7 +82,24 @@ class ListManager<T> {
 		}
 		return null;
 	}
+	public function update(element : T){
+		var key : String = key(element);
+		var optionElement : OptionElement = 
+			cast (Browser.document.getElementById(key));
+		if(optionElement == null) {
+			throw ("Element not found "  + element);
+		}else {
+			assertEquals(optionElement.id, key);
+			optionElement.text = listDisplay(element);
+			optionElement.selected = true;
+		}
+	}
 
+	private function assertEquals(a : Dynamic, b : Dynamic){
+		if(a != b){
+			throw ("Assertion failed " + a  + " not equal " + b);
+		}
+	}
 	public function delete(element : T ) {
 		trace("Deleting element " + element);
 		var key : String = key(element);
