@@ -1,5 +1,5 @@
 module CCAR.Main.DBOperations 
-	(query, Query, manage, Manager) where 
+	(query, Query, manage, Manager, ModuleInfo, name) where 
 import Data.Text as T 
 import Data.Aeson as J
 import CCAR.Main.GroupCommunication as GC
@@ -12,3 +12,7 @@ class Query a where
 
 class Manager a where 
 	manage :: T.Text -> Value -> IO (GC.DestinationType,  Either ApplicationError a)
+
+
+class ModuleInfo a where 
+	name  :: a -> String

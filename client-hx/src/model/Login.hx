@@ -15,9 +15,11 @@ class Login {
 	}
 	public static function createLoginResponse(incomingMessage : Dynamic, person : Person) : Login {
 		//trace("Creating login response " + incomingMessage);
-		var commandType : String = incomingMessage.commandType;
-		var loginStatus : LoginStatus = Type.createEnum (LoginStatus, incomingMessage.loginStatus);
-		var p : Dynamic = incomingMessage.login;
+		if(incomingMessage.Right == null){
+			throw ("Invalid login " + incomingMessage);
+		}
+		var commandType : String = "" + MBooks_im.getSingleton().parseCommandType(incomingMessage);
+		var loginStatus : LoginStatus = Type.createEnum (LoginStatus, incomingMessage.Right.loginStatus);
 		var result : Login = new Login(commandType, person, loginStatus);
 		return result;
 	}

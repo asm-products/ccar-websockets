@@ -60,6 +60,7 @@ import CCAR.Model.ProjectWorkbench as ProjectWorkbench
 import CCAR.Model.Portfolio as Portfolio
 import CCAR.Model.PortfolioSymbol as PortfolioSymbol
 import CCAR.Entitlements.Entitlements as Entitlements
+import CCAR.Model.Login as Login
 -- logging
 import System.Log.Formatter as LogFormatter
 import System.Log.Handler(setFormatter)
@@ -82,8 +83,6 @@ iModuleName = "CCAR.Main.Driver"
 
 connStr = getConnectionString
 
-data LoginStatus = UserExists | UserNotFound | InvalidPassword | Undefined | Guest
-    deriving(Show, Typeable, Data, Generic, Eq)
 
 data CheckPassword = CheckPassword {pwNickName :: T.Text, pwPassword :: T.Text, 
                 passwordValid :: Maybe Bool, 
@@ -95,8 +94,6 @@ instance FromJSON CheckPassword
 
 
 
-data Login  =    Login {login :: Maybe Person, loginStatus :: Maybe LoginStatus} 
-                deriving (Show, Eq)
 
 data UserOperations = UserOperations{operation :: Us.CRUD, person :: Maybe Person} 
                 deriving (Show, Eq)
@@ -131,8 +128,7 @@ type To = T.Text
 
 -- Chose not to name the Message component as Message and left as T.Text ??
 -- Will bite me.
-data Command = CommandLogin Login 
-                | CommandUO UserOperations 
+data Command = CommandUO UserOperations 
                 | CommandUTO UserTermsOperations
                 | CommandCCARUpload CCARUpload
                 | CommandError ApplicationError 
@@ -160,9 +156,6 @@ genCCARUpload (CCARUpload a b c d ) = object["uploadedBy" .= a
                                     , "ccarData" .= c
                                     , "ccarResultSet" .= d
                                     , "commandType" .= (String "CCARUpload")]
-genLogin  (Login a b) = object [
-    "commandType" .= (String "Login")
-    , "login" .= Just a, "loginStatus" .= b]
 
 genUserOperations (UserOperations o p) = object [
                         "operation" .= o
@@ -177,8 +170,6 @@ genCommandKeepAlive a  = object ["KeepAlive" .= a
                                 , "commandType" .= ("KeepAlive" :: T.Text)]
 
 
-instance ToJSON Login where
-    toJSON = genLogin 
 instance ToJSON UserOperations where
     toJSON = genUserOperations
 
@@ -195,7 +186,6 @@ instance ToJSON CCAR where
 instance ToJSON Command where
     toJSON aCommand = 
         case aCommand of
-            CommandLogin l -> genLogin l 
             CommandError e -> toJSON e
             CommandUO e -> genUserOperations e
             CommandCCARUpload a  -> genCCARUpload a
@@ -212,7 +202,6 @@ parseCommand value = do
             Nothing -> CommandError <$> (pure $ appError value)
             Just cType -> 
                 case (cType) of 
-                    "Login"-> CommandLogin <$> parseLogin value
                     "ManageUser" -> CommandUO <$> parseCreateUser value
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
@@ -248,9 +237,6 @@ parsePerson v = do
 parseCreateUser v = UserOperations <$>
                         v .: "operation" <*> 
                         v .: "person"
-parseLogin v = Login <$> 
-                v .: "login" <*>
-                (v .: "loginStatus")
 
 parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "title" <*>
@@ -261,14 +247,6 @@ parseCCARText v = CCARText <$>
                     v .: "uploadedBy" <*>
                     v .: "scenarioName" <*>
                     v .: "ccarText"
-
-
-
-
-instance FromJSON Login where
-    parseJSON (Object v) = parseLogin v
-    parseJSON _          = Appl.empty
-
 
 
 instance FromJSON CCAR where 
@@ -367,22 +345,8 @@ deleteCCAR c = dbOps $ do
 
 
 
+
 processCommand :: Maybe Command  -> IO (DestinationType, Command)
-processCommand (Just (CommandLogin aLogin)) = do 
-    p <- case (login aLogin) of
-            Just a -> return a 
-    chk <- checkLoginExists (personNickName p)
-    Logger.infoM iModuleName $ show $ "Login exists " ++ (show chk)
-    case chk of 
-        Nothing -> return $ (GroupCommunication.Reply, 
-                CommandLogin $ Login {login = Just p, 
-               loginStatus = Just UserNotFound})
-        Just (Entity aid a)  -> do 
-                _ <- updateLogin a 
-                return $ (Reply, CommandLogin $ 
-                    Login {login = Just a, loginStatus = Just UserExists})
-
-
 processCommand (Just (CommandError error)) = 
         return $ (GroupCommunication.Reply, CommandError error)
 
@@ -461,14 +425,6 @@ processCommandValue app nickName aValue@(Object a)   = do
                         CommandError $ appError ("Unable to process command" :: T.Text))
         Just aType -> 
             case aType of 
-                String "Login" -> 
-                        case (parse parseJSON aValue :: Result Login) of
-                            Success r -> do 
-                                    (d, c) <- processCommand $ (Just (CommandLogin r))
-                                    return (d, ser c)
-                            Error s -> 
-                                    return (GroupCommunication.Reply,
-                                            ser $ CommandError $ appError $ "parse login  failed "++ s)
                 String "ManageUser" ->
                         case (parse parseJSON aValue :: Result UserOperations) of
                             -- Assert that the user operation is not an insert for the person table.
@@ -569,6 +525,14 @@ processCommandValue app nickName aValue@(Object a)   = do
                                                         return (gc, Util.serialize
                                                                 (either :: 
                                                                     Either ApplicationError Entitlements.QueryCompanyEntitlementT))
+                String "Login" -> 
+                            Login.query nickName aValue 
+                                >>= \(gc, result) -> 
+                                    return (gc, 
+                                            Util.serialize
+                                            (result ::Either ApplicationError Login))
+
+
                 _ ->                                                
                     return 
                          ( GroupCommunication.Reply
@@ -660,17 +624,15 @@ authenticate aConn aText app@(App a c) =
             Nothing -> return (GroupCommunication.Reply, 
                         L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
                                 $ appError ("Invalid command during login" :: T.Text))
-            Just o@(Object a) -> do
-                (d, c) <- processCommandValue app aText (Object a) 
-                c1 <- return $ (J.decode $ E.encodeUtf8 $ L.fromStrict c :: Maybe Value)
-                case c1 of 
-                    Just o2@(Object a ) -> do  
-                        result <- return $ (parse parseJSON o2 :: Result Login)
-                        case result of 
-                            Success (r@(Login a b)) -> do 
-                                    nickName <- getPersonNickName a 
-                                    userJoined <- return $ UserJoined.userJoined nickName 
-                                    return (GroupCommunication.Reply, userJoined)
+            Just o@(Object a) -> do                
+                result <- return $ (parse parseJSON o :: Result Login)
+                case result of 
+                    Success (r@(Login a b)) -> do 
+                            nickName <- getPersonNickName a 
+                            userJoined <- return $ UserJoined.userJoined nickName 
+                            return (GroupCommunication.Reply, userJoined)
+                    Error s -> 
+                        return (GroupCommunication.Reply, T.pack s)
         where 
             aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
 
@@ -1041,6 +1003,3 @@ driver = do
     nickNameMap <- newTVarIO $ IMap.empty
     warp 3000 $ App chan  nickNameMap
 
-
-instance ToJSON LoginStatus
-instance FromJSON LoginStatus

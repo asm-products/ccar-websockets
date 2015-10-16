@@ -517,8 +517,6 @@ class PortfolioSymbol {
 
 	}
 
-	//A column name map to allow for rearranging columns on the 
-	//screen.
 	//When we allow users to move columns around, 
 	//this dictionary needs to be updated.
 	private var columnIndexMap : ObjectMap<String, Int>;
