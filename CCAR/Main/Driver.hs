@@ -112,6 +112,24 @@ data CCARText = CCARText { textUploadedBy :: T.Text
                             , scenarioName :: T.Text
                            , ccarText :: T.Text} deriving  (Show, Eq)
 
+data KeepAliveCommand = KeepAliveCommand {
+        kaNickName :: T.Text
+        , kaCommandType :: T.Text 
+        , keepAlive :: T.Text } deriving(Show, Eq)
+
+instance ToJSON KeepAliveCommand where 
+    toJSON (KeepAliveCommand k1 k2 k3) = 
+        object ["nickName" .= k1 
+                , "commandType" .= k2 
+                , "keepAlive" .= k3]
+
+instance FromJSON KeepAliveCommand where 
+    parseJSON (Object a) = KeepAliveCommand <$> 
+        a .: "nickName" <*>
+        a .: "commandType" <*>
+        a .: "keepAlive"
+    parseJSON _ = Appl.empty
+
 
 -- Clever code warning: the json parsing does the parse (need to fix this)
 instance ToJSON CCARText where 
@@ -120,7 +138,7 @@ instance ToJSON CCARText where
                                         , "ccarText" .= (readExpr cc)
                                         , "commandType" .= ("ParsedCCARText" :: T.Text)]
 
-type KeepAliveCommand = T.Text
+
 type From = T.Text
 type To = T.Text
 
@@ -130,7 +148,6 @@ type To = T.Text
 data Command = CommandUTO UserTermsOperations
                 | CommandCCARUpload CCARUpload
                 | CommandError ApplicationError 
-                | CommandKeepAlive KeepAliveCommand
                 | ParseCCARText CCARText
                 deriving(Show, Eq)
 
@@ -180,7 +197,6 @@ instance ToJSON Command where
         case aCommand of
             CommandError e -> toJSON e
             CommandCCARUpload a  -> genCCARUpload a
-            CommandKeepAlive a -> genCommandKeepAlive a
             ParseCCARText a -> toJSON a
             _ -> toJSON $ ApplicationError {errorCode = "Unknown" :: T.Text , 
                         message = T.pack (show aCommand)}
@@ -194,7 +210,6 @@ parseCommand value = do
             Just cType -> 
                 case (cType) of 
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
-                    "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
                     _       -> CommandError <$>  (pure $ appError value)
 
@@ -329,7 +344,6 @@ deleteCCAR c = dbOps $ do
 
 
 
-
 processCommand :: Maybe Command  -> IO (DestinationType, Command)
 processCommand (Just (CommandError error)) = 
         return $ (GroupCommunication.Reply, CommandError error)
@@ -338,8 +352,6 @@ processCommand Nothing = return $
                         (GroupCommunication.Reply, CommandError $ 
                             appError ("Unable to process command" :: T.Text))
 
-processCommand (Just (CommandKeepAlive a)) = 
-        return $ (GroupCommunication.Reply, CommandKeepAlive a)
 
 
 -- | Query operations are replies and db operations are broadcast. | --
@@ -386,20 +398,6 @@ processCommandValue app nickName aValue@(Object a)   = do
                         CommandError $ appError ("Unable to process command" :: T.Text))
         Just aType -> 
             case aType of 
-                String "UserBanned" -> do
-                        c <- return $ (parse parseJSON aValue :: Result UserBanned)
-                        case c of
-                            Success u@(UserJoined.UserBanned a1) -> do
-                                bConns <- atomically $ getClientState a1 app 
-                                mapM_ (\bconn -> WSConn.sendClose (connection bconn)
-                                        ("Bye"
-                                            :: T.Text) `catch` (
-                                            \c@(ConnectionClosed) -> atomically $ deleteConnection app a1                    
-                                            )) bConns  -- To handle multiple connections to a client.
-                                return (GroupCommunication.Broadcast, ser u)
-                            Error s ->  return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ appError $ "parse manage user failed " ++ s )
-
                 String "CCARUpload" ->
                         case (parse parseJSON aValue :: Result CCARUpload) of
                             Success r -> do  
@@ -410,10 +408,8 @@ processCommandValue app nickName aValue@(Object a)   = do
                                     , ser $ 
                                         CommandError $ appError $ "parse ccar upload failed " ++ s ++ (show a))
                 String "KeepAlive" ->
-                        case (parse parseKeepAlive a) of
-                            Success r -> do 
-                                    (d, c) <- processCommand $ Just $ CommandKeepAlive r 
-                                    return (d, ser c)
+                        case (parse parseJSON aValue :: Result KeepAliveCommand) of
+                            Success r -> return (GroupCommunication.Reply, ser r)
                             Error s -> 
                                 return (
                                     GroupCommunication.Reply, 
@@ -488,7 +484,19 @@ processCommandValue app nickName aValue@(Object a)   = do
                             >>= \(gc, either) ->
                                 return(gc, Util.serialize 
                                         (either :: Either ApplicationError UserOperations))
-
+                String "UserBanned" -> do
+                        c <- return $ (parse parseJSON aValue :: Result UserBanned)
+                        case c of
+                            Success u@(UserJoined.UserBanned a1) -> do
+                                bConns <- atomically $ getClientState a1 app 
+                                mapM_ (\bconn -> WSConn.sendClose (connection bconn)
+                                        ("Bye"
+                                            :: T.Text) `catch` (
+                                            \c@(ConnectionClosed) -> atomically $ deleteConnection app a1                    
+                                            )) bConns  -- To handle multiple connections to a client.
+                                return (GroupCommunication.Broadcast, ser u)
+                            Error s ->  return (GroupCommunication.Reply 
+                                    , ser $ CommandError $ appError $ "parse manage user failed " ++ s )
                 _ ->                                                
                     return 
                          ( GroupCommunication.Reply
