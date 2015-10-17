@@ -61,6 +61,7 @@ import CCAR.Model.Portfolio as Portfolio
 import CCAR.Model.PortfolioSymbol as PortfolioSymbol
 import CCAR.Entitlements.Entitlements as Entitlements
 import CCAR.Model.Login as Login
+import CCAR.Model.UserOperations as UserOperations
 -- logging
 import System.Log.Formatter as LogFormatter
 import System.Log.Handler(setFormatter)
@@ -95,8 +96,6 @@ instance FromJSON CheckPassword
 
 
 
-data UserOperations = UserOperations{operation :: Us.CRUD, person :: Maybe Person} 
-                deriving (Show, Eq)
 data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD
                                         , terms :: Maybe TermsAndConditions} 
                                                 deriving(Show, Eq)
@@ -128,8 +127,7 @@ type To = T.Text
 
 -- Chose not to name the Message component as Message and left as T.Text ??
 -- Will bite me.
-data Command = CommandUO UserOperations 
-                | CommandUTO UserTermsOperations
+data Command = CommandUTO UserTermsOperations
                 | CommandCCARUpload CCARUpload
                 | CommandError ApplicationError 
                 | CommandKeepAlive KeepAliveCommand
@@ -157,10 +155,6 @@ genCCARUpload (CCARUpload a b c d ) = object["uploadedBy" .= a
                                     , "ccarResultSet" .= d
                                     , "commandType" .= (String "CCARUpload")]
 
-genUserOperations (UserOperations o p) = object [
-                        "operation" .= o
-                        , "person" .= p
-                        , "commandType" .= (String "ManageUser")]
 genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "terms" .= t]
 
 genTermsAndConditions (TermsAndConditions t des accept) = object ["title" .= t
@@ -170,8 +164,6 @@ genCommandKeepAlive a  = object ["KeepAlive" .= a
                                 , "commandType" .= ("KeepAlive" :: T.Text)]
 
 
-instance ToJSON UserOperations where
-    toJSON = genUserOperations
 
 instance ToJSON UserTermsOperations where
     toJSON = genUserTermsOperations
@@ -187,7 +179,6 @@ instance ToJSON Command where
     toJSON aCommand = 
         case aCommand of
             CommandError e -> toJSON e
-            CommandUO e -> genUserOperations e
             CommandCCARUpload a  -> genCCARUpload a
             CommandKeepAlive a -> genCommandKeepAlive a
             ParseCCARText a -> toJSON a
@@ -202,7 +193,6 @@ parseCommand value = do
             Nothing -> CommandError <$> (pure $ appError value)
             Just cType -> 
                 case (cType) of 
-                    "ManageUser" -> CommandUO <$> parseCreateUser value
                     "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
                     "KeepAlive" -> CommandKeepAlive <$> parseKeepAlive value
                     "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
@@ -234,9 +224,6 @@ parsePerson v = do
                 return $ Person firstName lastName nickName password time deleted
 
 
-parseCreateUser v = UserOperations <$>
-                        v .: "operation" <*> 
-                        v .: "person"
 
 parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "title" <*>
@@ -261,9 +248,6 @@ instance FromJSON CCARText where
     parseJSON (Object v) = parseCCARText  v 
     parseJSON _          = Appl.empty
 
-instance FromJSON UserOperations where 
-    parseJSON (Object v) = parseCreateUser v 
-    parseJSON _          = Appl.empty
 
 instance FromJSON CCARUpload where 
     parseJSON (Object v) = parseCCARUpload v 
@@ -357,29 +341,6 @@ processCommand Nothing = return $
 processCommand (Just (CommandKeepAlive a)) = 
         return $ (GroupCommunication.Reply, CommandKeepAlive a)
 
-processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
-    infoM iModuleName $ show $ "Processing processCommand " ++ (show uo)
-    person <- case aPerson of
-                Just a -> return a        
-    case uo of
-        Us.Create  -> do
-                personId <- insertPerson person
-                Logger.infoM iModuleName $ show $ "Person inserted " ++ (show personId)
-                return $ (GroupCommunication.Reply, CommandUO $ UserOperations Us.Create (Just person))
-        Us.Update personId -> do
-                updatePerson personId person
-                return $ (GroupCommunication.Reply, CommandUO 
-                            $ UserOperations (Us.Update personId) (Just person))
-        Us.Delete personId -> do 
-                deletePerson personId person
-                return $ (GroupCommunication.Reply, CommandUO $ UserOperations (Us.Delete personId) (Just person))
-        Us.Query personId -> do 
-                maybePerson <- queryPerson (personId)
-                case maybePerson of
-                    Nothing -> 
-                        return $ (GroupCommunication.Reply, CommandUO  $ UserOperations (Us.Query personId) Nothing)
-                    Just (p) -> 
-                        return $ (GroupCommunication.Reply, CommandUO  $ UserOperations (Us.Query personId) (Just p))
 
 -- | Query operations are replies and db operations are broadcast. | --
 processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
@@ -425,15 +386,6 @@ processCommandValue app nickName aValue@(Object a)   = do
                         CommandError $ appError ("Unable to process command" :: T.Text))
         Just aType -> 
             case aType of 
-                String "ManageUser" ->
-                        case (parse parseJSON aValue :: Result UserOperations) of
-                            -- Assert that the user operation is not an insert for the person table.
-                            Success r -> do
-                                    (d, c) <- processCommand $ Just $ CommandUO r
-                                    return (d, ser c)
-                            Error s -> 
-                                return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ appError $ "parse manage user failed " ++ s )
                 String "UserBanned" -> do
                         c <- return $ (parse parseJSON aValue :: Result UserBanned)
                         case c of
@@ -531,7 +483,11 @@ processCommandValue app nickName aValue@(Object a)   = do
                                     return (gc, 
                                             Util.serialize
                                             (result ::Either ApplicationError Login))
-
+                String "ManageUser" ->
+                        UserOperations.manage nickName aValue 
+                            >>= \(gc, either) ->
+                                return(gc, Util.serialize 
+                                        (either :: Either ApplicationError UserOperations))
 
                 _ ->                                                
                     return 
@@ -666,18 +622,10 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                                 appError 
                                                     ("Invalid command during login" :: T.Text))
                     String "ManageUser"-> do 
-                        c2 <- return $ (parse parseCreateUser a)
-                        case c2 of 
-                            Success r -> do
-                                    (d, cuo@(
-                                            CommandUO (UserOperations opType (Just c1)))) <- do 
-                                        processCommand $ Just $ CommandUO r
-                                    atomically $ addConnection app aConn $ personNickName c1
-                                    return (d, ser cuo)
-                            Error s -> 
-                                return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ appError 
-                                            $ "parse manage user failed " ++ s )
+                        g@(gc, res) <- UserOperations.manage aText o 
+                        case res of 
+                            Right x -> atomically $ addConnection app aConn aText            
+                        return (gc, ser (res :: Either ApplicationError UserOperations )) 
                     String "GuestUser" -> do 
                         result <- return $ (parse parseGuestUser a)
                         case result of 
@@ -832,7 +780,7 @@ handleDisconnects app connecction nickN c = do
                         writeTChan(writeChan cs) $ 
                             UserJoined.userLeft nickN )restOfUs
             [] -> return ()
-        
+
 readerThread :: App -> T.Text -> Bool -> IO ()
 readerThread app nickN terminate = do
     if (terminate == True) 

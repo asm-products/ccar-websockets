@@ -10,8 +10,7 @@ module CCAR.Model.Person
     , queryPerson 
     , fixPreferences 
     , getMessageCount 
-    , createGuestLogin
-    , CRUD(..))
+    , createGuestLogin)
 where
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -133,6 +132,9 @@ createGuestLogin aNickName = do
             person <- DB.getBy $ UniqueNickName aNickName 
             case person of 
                 Just (Entity personId _ ) -> insert $ GuestLogin currentTime personId 
+
+
+
 
 
 instance ToJSON CRUD
