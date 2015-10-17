@@ -820,6 +820,19 @@ handleDisconnects app connection nickN (CloseRequest a b) = do
                                     UserJoined.userLeft nickN )restOfUs
                     [] -> return ()
             
+handleDisconnects app connecction nickN c = do 
+    Logger.errorM iModuleName $ T.unpack $ 
+                    ("Bye nickname " :: T.Text) `mappend` nickN 
+    atomically $ do 
+        deleteConnection app nickN 
+        restOfUs <- getAllClients app nickN
+        case restOfUs of 
+            x  : _ -> do  
+                mapM_ (\cs -> 
+                        writeTChan(writeChan cs) $ 
+                            UserJoined.userLeft nickN )restOfUs
+            [] -> return ()
+        
 readerThread :: App -> T.Text -> Bool -> IO ()
 readerThread app nickN terminate = do
     if (terminate == True) 
