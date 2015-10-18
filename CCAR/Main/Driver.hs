@@ -35,7 +35,7 @@ import Data.Text.Lazy as L hiding(foldl, foldr)
 import System.IO
 import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 import qualified CCAR.Model.Person as Us 
-import qualified CCAR.Model.CCAR as CC 
+import qualified CCAR.Model.CCAR as CCAR
 import qualified CCAR.Model.UserTermsAndConditions as Ust 
 import qualified CCAR.Model.Survey as Survey 
 import Data.ByteString as DBS 
@@ -100,17 +100,6 @@ data UserTermsOperations = UserTermsOperations {utOperation :: Ust.CRUD
                                         , terms :: Maybe TermsAndConditions} 
                                                 deriving(Show, Eq)
 
--- There an absence of symmetry in this object: the result set can never be populated
--- as part of the request. Another clever thought.
-data CCARUpload = CCARUpload {uploadedBy :: T.Text 
-                            , ccarOperation :: CC.CRUD
-                            , ccarData :: Maybe CCAR
-                            , ccarResultSet :: [Maybe CCAR]} 
-                    deriving (Show, Eq)
-
-data CCARText = CCARText { textUploadedBy :: T.Text 
-                            , scenarioName :: T.Text
-                           , ccarText :: T.Text} deriving  (Show, Eq)
 
 data KeepAliveCommand = KeepAliveCommand {
         kaNickName :: T.Text
@@ -131,25 +120,12 @@ instance FromJSON KeepAliveCommand where
     parseJSON _ = Appl.empty
 
 
--- Clever code warning: the json parsing does the parse (need to fix this)
-instance ToJSON CCARText where 
-    toJSON (CCARText u s cc) = object ["textUploadedBy" .= u 
-                                        , "scenarioName" .= s
-                                        , "ccarText" .= (readExpr cc)
-                                        , "commandType" .= ("ParsedCCARText" :: T.Text)]
 
 
 type From = T.Text
 type To = T.Text
 
 
--- Chose not to name the Message component as Message and left as T.Text ??
--- Will bite me.
-data Command = CommandUTO UserTermsOperations
-                | CommandCCARUpload CCARUpload
-                | CommandError ApplicationError 
-                | ParseCCARText CCARText
-                deriving(Show, Eq)
 
 data UserPreferences = UserPreferences {prefs :: T.Text} deriving (Show, Eq, Generic)
 
@@ -161,16 +137,6 @@ genPerson (Person a b c d e f) = object ["firstName" .= a
                                        , "locale" .= e
                                        , "lastLoginTime" .= f]
 
-genCCAR (CCAR a b person del)  = object ["scenarioName" .= a 
-                                    , "scenarioText" .= b
-                                    , "creator" .= person
-                                    , "deleted" .= del]
-
-genCCARUpload (CCARUpload a b c d ) = object["uploadedBy" .= a 
-                                    , "ccarOperation" .= b 
-                                    , "ccarData" .= c
-                                    , "ccarResultSet" .= d
-                                    , "commandType" .= (String "CCARUpload")]
 
 genUserTermsOperations (UserTermsOperations o t) = object ["utOperation" .= o, "terms" .= t]
 
@@ -186,48 +152,17 @@ instance ToJSON UserTermsOperations where
     toJSON = genUserTermsOperations
 
 
-instance ToJSON CCARUpload where
-    toJSON = genCCARUpload 
 
-instance ToJSON CCAR where
-    toJSON = genCCAR 
 
-instance ToJSON Command where
-    toJSON aCommand = 
-        case aCommand of
-            CommandError e -> toJSON e
-            CommandCCARUpload a  -> genCCARUpload a
-            ParseCCARText a -> toJSON a
-            _ -> toJSON $ ApplicationError {errorCode = "Unknown" :: T.Text , 
-                        message = T.pack (show aCommand)}
 
 commandType :: HashMap T.Text Value -> Maybe Value
 commandType = LH.lookup "commandType"
-
-parseCommand value = do
-        case (commandType value) of
-            Nothing -> CommandError <$> (pure $ appError value)
-            Just cType -> 
-                case (cType) of 
-                    "CCARUpload" -> CommandCCARUpload <$> parseCCARUpload value
-                    "ParsedCCARText" -> ParseCCARText <$> parseCCARText value
-                    _       -> CommandError <$>  (pure $ appError value)
 
 
 parseKeepAlive v = v .: "keepAlive"
 
 -- The upload 
-parseCCARUpload v = CCARUpload <$>
-                        v .: "uploadedBy" <*>
-                        v .: "ccarOperation" <*>
-                        v .: "ccarData" <*>
-                        (pure [])
 
-parseCCAR v = CCAR <$>
-                v .: "scenarioName" <*>
-                v .: "scenarioText" <*>
-                v .: "creator" <*>
-                v .: "deleted"
 
 parsePerson v = do 
                 firstName <- v .: "firstName"
@@ -245,28 +180,11 @@ parseTermsAndConditions v = TermsAndConditions <$>
                         v .: "description" <*>
                         v .: "acceptDate"
 
-parseCCARText v = CCARText <$>
-                    v .: "uploadedBy" <*>
-                    v .: "scenarioName" <*>
-                    v .: "ccarText"
 
 
-instance FromJSON CCAR where 
-    parseJSON (Object v) = parseCCAR v
-    parseJSON _          = Appl.empty
-
-instance FromJSON Command where
-    parseJSON (Object v) = parseCommand v
-    parseJSON _         = Appl.empty
-
-instance FromJSON CCARText where
-    parseJSON (Object v) = parseCCARText  v 
-    parseJSON _          = Appl.empty
 
 
-instance FromJSON CCARUpload where 
-    parseJSON (Object v) = parseCCARUpload v 
-    parseJSON _          = Appl.empty
+
 
 
 iParseJSON :: (FromJSON a) => T.Text -> Either String (Maybe a)
@@ -277,9 +195,6 @@ pJSON  aText = do
     Logger.infoM  iModuleName ( T.unpack aText)
     return $ iParseJSON aText
 
-decoder :: Command -> T.Text 
-decoder = L.toStrict . E.decodeUtf8 . En.encode        
-decoderM a = return $ L.toStrict $ E.decodeUtf8 $ En.encode a
 
 
 
@@ -315,116 +230,24 @@ validatePassword :: T.Text -> CheckPassword -> Maybe Bool
 validatePassword dbPassword input = Just $ dbPassword == (pwPassword input)
 
 
-insertCCAR :: CCAR -> IO (Key CCAR) 
-insertCCAR c = dbOps $ do 
-            cid <- DB.insert c
-            $(logInfo) $ T.pack $ show ("Returning " ++ (show cid))
-            return cid
-
-updateCCAR :: CCAR -> IO (Maybe CCAR)
-updateCCAR c = dbOps $ do
-            DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARScenarioText =. (cCARScenarioText c)]
-            return $ Just c 
-
-queryAllCCAR :: T.Text -> IO [Entity CCAR]
-queryAllCCAR aNickName = dbOps $ selectList [] []
-
-type ScenarioName = T.Text 
-queryCCAR :: ScenarioName -> IO (Maybe CCAR) 
-queryCCAR scenarioName =  dbOps $ do 
-                r <- getBy $ CCARUniqueName scenarioName 
-                case r of 
-                    Just (Entity k v) -> return $ Just v
-                    Nothing -> return Nothing
-
-deleteCCAR :: CCAR -> IO (Maybe CCAR)
-deleteCCAR c = dbOps $ do
-            DB.updateWhere [CCARScenarioName ==. (cCARScenarioName c)] [CCARDeleted =. True]
-            return $ Just $ c {cCARDeleted = True} 
 
 
-
-processCommand :: Maybe Command  -> IO (DestinationType, Command)
-processCommand (Just (CommandError error)) = 
-        return $ (GroupCommunication.Reply, CommandError error)
-
-processCommand Nothing = return $  
-                        (GroupCommunication.Reply, CommandError $ 
-                            appError ("Unable to process command" :: T.Text))
-
-
-
--- | Query operations are replies and db operations are broadcast. | --
-processCommand (Just (CommandCCARUpload (CCARUpload nickName operation aCCAR aList))) = do
-    Logger.infoM iModuleName $ show $ "Processing command ccar upload " ++ (show ccar)
-    case operation of 
-        CC.Create -> do 
-                ccarId <- insertCCAR ccar
-                Logger.infoM iModuleName $ show $ "CCAR created " ++ (show ccar)
-                return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation 
-                                (Just ccar) [])
-        CC.Update  -> do
-                updateCCAR ccar 
-                return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation (Just ccar) [])
-        CC.Delete  -> do 
-                res <- deleteCCAR ccar 
-                return $ (Broadcast, CommandCCARUpload $ CCARUpload nickName operation (res) [])
-        CC.Query -> do 
-                case aCCAR of 
-                    Just x -> do 
-                        maybeCCAR <- queryCCAR (cCARScenarioName x)
-                        case maybeCCAR of 
-                            Nothing -> return $ (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName CC.Query Nothing [])
-                            Just x -> return $  (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName CC.Query (Just x) []) 
-        CC.QueryAll nickName -> do
-                maybeCCAR <- queryAllCCAR nickName
-                case maybeCCAR of 
-                    [] -> return $ (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing [])
-                    aList -> return $ 
-                            (GroupCommunication.Reply, CommandCCARUpload $ CCARUpload nickName (CC.QueryAll nickName) Nothing (ccarList aList))
-                    where
-                        ccarList aList = Prelude.map( \(Entity y  x) -> Just x) aList
-        where
-            ccar = case aCCAR of
-                    Just a -> a
-
-
-processCommand (Just a) = return (GroupCommunication.Reply, a)
 
 processCommandValue :: App -> T.Text -> Value -> IO (DestinationType, T.Text)
 processCommandValue app nickName aValue@(Object a)   = do  
     case cType of 
         Nothing -> return $ (GroupCommunication.Reply, ser $ 
-                        CommandError $ appError ("Unable to process command" :: T.Text))
+                                appError ("Unable to process command" :: T.Text))
         Just aType -> 
             case aType of 
-                String "CCARUpload" ->
-                        case (parse parseJSON aValue :: Result CCARUpload) of
-                            Success r -> do  
-                                    (d, c) <- processCommand $ Just $ CommandCCARUpload r 
-                                    return (d, ser c)
-                            Error s -> 
-                                return (GroupCommunication.Reply 
-                                    , ser $ 
-                                        CommandError $ appError $ "parse ccar upload failed " ++ s ++ (show a))
                 String "KeepAlive" ->
                         case (parse parseJSON aValue :: Result KeepAliveCommand) of
                             Success r -> return (GroupCommunication.Reply, ser r)
                             Error s -> 
                                 return (
                                     GroupCommunication.Reply, 
-                                    ser $ CommandError $ appError $ 
+                                    ser $ appError $ 
                                         "Parse Keep alive failed" ++ s ++ (show a))
-                String "ParsedCCARText" ->
-                        case (parse parseJSON aValue :: Result CCARText) of
-                            Success r -> do 
-                                    (d, c) <- processCommand $ Just $ ParseCCARText r 
-                                    return (d, ser c)
-                            Error s -> 
-                                return (
-                                    GroupCommunication.Reply
-                                    , ser $ CommandError $ appError $ "Parse CCAR Text " ++ s ++ (show a)
-                                )
                 String "SendMessage" -> do 
                         (dType, value) <- processSendMessage (Object a)
                         return (dType, ser value)
@@ -484,6 +307,16 @@ processCommandValue app nickName aValue@(Object a)   = do
                             >>= \(gc, either) ->
                                 return(gc, Util.serialize 
                                         (either :: Either ApplicationError UserOperations))
+                String "CCARUpload" -> 
+                        CCAR.manage nickName aValue
+                            >>= \(gc, either) -> 
+                                return (gc, Util.serialize 
+                                        (either :: Either ApplicationError CCAR.CCARUpload)) 
+                String "ParsedCCARText" ->
+                        CCAR.parseCCMessage nickName aValue
+                            >>= \(gc, either) -> 
+                                return(gc, Util.serialize 
+                                        (either :: Either ApplicationError CCAR.CCARText))
                 String "UserBanned" -> do
                         c <- return $ (parse parseJSON aValue :: Result UserBanned)
                         case c of
@@ -496,11 +329,11 @@ processCommandValue app nickName aValue@(Object a)   = do
                                             )) bConns  -- To handle multiple connections to a client.
                                 return (GroupCommunication.Broadcast, ser u)
                             Error s ->  return (GroupCommunication.Reply 
-                                    , ser $ CommandError $ appError $ "parse manage user failed " ++ s )
+                                    , ser $ appError $ "parse manage user failed " ++ s )
                 _ ->                                                
                     return 
                          ( GroupCommunication.Reply
-                         , ser $ CommandError $ appError ("Unable to process command " ++ (show aType)))
+                         , ser $ appError ("Unable to process command " ++ (show aType)))
     where 
         cType =  LH.lookup "commandType" a
         ser a = L.toStrict $ E.decodeUtf8 $ En.encode a 
@@ -517,7 +350,7 @@ getNickName aCommand =
         case aCommand of
             Nothing -> return $ 
                 (Nothing, L.toStrict $ E.decodeUtf8 $ En.encode $ 
-                    CommandError $ appError ("Unknown error" :: T.Text))
+                    appError ("Unknown error" :: T.Text))
             Just (Object a) -> 
                   case nn of
                     Nothing -> return (Nothing, "Nickname tag not found")
@@ -533,7 +366,7 @@ processIncomingMessage app conn aNickName aCommand = do
     case aCommand of 
         Nothing -> do
                 Logger.infoM iModuleName $ "Processing error..."
-                result <- return (CommandError $ appError ("Unknown error" :: T.Text)) 
+                result <- return (appError ("Unknown error" :: T.Text)) 
                 return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
                     
         Just (Object a) -> do 
@@ -586,7 +419,7 @@ authenticate aConn aText app@(App a c) =
     do 
         case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
-                        L.toStrict $ E.decodeUtf8 $ En.encode $ CommandError 
+                        L.toStrict $ E.decodeUtf8 $ En.encode 
                                 $ appError ("Invalid command during login" :: T.Text))
             Just o@(Object a) -> do                
                 result <- return $ (parse parseJSON o :: Result Login)
@@ -607,7 +440,7 @@ processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType
 processUserLoggedIn aConn aText app@(App a c) = do
     case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
-                    ser $ CommandError $ appError ("Login has errors" :: T.Text))
+                    ser $ appError ("Login has errors" :: T.Text))
             Just o@(Object a) -> do
                 Just commandType <- return $ LH.lookup "commandType" a
                 case commandType of 
@@ -618,16 +451,14 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                         atomically $ addConnection app aConn a 
                                         return $ (Broadcast, ser u)
                             _ -> return $ (GroupCommunication.Reply, ser  
-                                                $ CommandError $ 
-                                                appError ("Invalid command during login" :: T.Text))                                
+                                                $ appError ("Invalid command during login" :: T.Text))                                
                     String "UserJoined" -> do 
                         c <- return $ (parse parseJSON o :: Result UserJoined)
                         case c of 
                             Success u@(UserJoined.UserJoined a) -> do 
                                         return $ (Broadcast, ser u)
                             _ -> return $ (GroupCommunication.Reply, ser  
-                                                $ CommandError $ 
-                                                appError 
+                                                $ appError 
                                                     ("Invalid command during login" :: T.Text))
                     String "ManageUser"-> do 
                         g@(gc, res) <- UserOperations.manage aText o 
@@ -643,10 +474,10 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                     return $ (GroupCommunication.Broadcast, ser g)                          
                             Error errMessage ->  
                                     return (GroupCommunication.Reply 
-                                        , ser $ CommandError $ appError
+                                        , ser $ appError
                                                 $ ("Guest login failed ") `mappend`  errMessage )
                     _ -> return (GroupCommunication.Reply 
-                                , ser $ CommandError $ appError 
+                                , ser $ appError 
                                         $ "process user logged in failed :  " ++ (show aText) )
 
             where 

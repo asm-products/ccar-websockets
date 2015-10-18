@@ -221,7 +221,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             description Text
             acceptDate UTCTime
             deriving Show Eq 
-        CCAR 
+        CCAR json
             scenarioName Text
             scenarioText Text
             creator Text -- This needs to be the unique name from the person table.
