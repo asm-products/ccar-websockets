@@ -121,6 +121,7 @@ executable ccar-websockets
     -O2
     -threaded
     -eventlog
+--    -ddump-simpl
     -fprof-auto
     "-with-rtsopts=-N "
 
