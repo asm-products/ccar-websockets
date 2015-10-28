@@ -26,9 +26,15 @@ import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Network.HTTP.Conduit
 import Data.Conduit
-import Data.Conduit.Attoparsec
+{-import Data.Conduit.Attoparsec
+-}
 import GHC.Generics
 import GHC.IO.Exception
+import Control.Monad.Lift 
+import Control.Monad.Lift.IO 
+import Control.Monad.Lift.Layer 
+import Control.Monad.Lift.Top 
+import Monad.Error 
 
 import Data.Data
 import Data.Monoid (mappend)
@@ -80,8 +86,26 @@ testCase2 aCount = do
 		Left _ ->  return $ [Left $ "Failed inserting portfolio symbol"]
 
 
+
 {-testCase3 :: IO ()
 testCase3 = withManager $ \manager -> do
 			value <- liftIO makeValue
 			valueBS <- return $ encode value
 			req' <- liftIO $ -}
+
+
+testCase4 = do 
+	p <- Portfolio.testInsertPortfolio 
+	case p of 
+		Right pid -> PortfolioSymbol.testInsertNew pid 
+		{-Left _ -> return $ Left $ "Failed insert"-}
+
+{-type AppState = Int 
+newtype ApplicationLayera = Application (StateT AppState IO a) 
+	deriving(Functor, Applicative, Monad, MonadState)
+
+instance MonadLayer ApplicationLayer where 
+	type Inner Application = IO 
+	layer = Application . layer 
+
+-}

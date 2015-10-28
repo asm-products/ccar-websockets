@@ -3,12 +3,14 @@ module CCAR.Model.PortfolioSymbol (
 	, readPortfolioSymbol
 	, manageSearch
 	, testInsert
+	, testInsertNew 
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
 import Data.Aeson as J
 import Yesod.Core
 
+import Control.Monad.Reader
 import Control.Monad.IO.Class(liftIO)
 import Control.Concurrent
 import Control.Concurrent.STM.Lifted
@@ -17,11 +19,12 @@ import Control.Exception
 import qualified  Data.Map as IMap
 import Control.Exception
 import Control.Monad
+import Control.Monad.Trans.Maybe
 import Control.Monad.Logger(runStderrLoggingT)
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
 import Data.Text.Lazy as L 
-import Database.Persist.Postgresql as DB
+
 import Data.Aeson.Encode as En
 import Data.Text.Lazy.Encoding as E
 import Data.Aeson as J
@@ -29,6 +32,10 @@ import Data.HashMap.Lazy as LH (HashMap, lookup)
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
+
+import Database.Persist 
+import Database.Persist.Postgresql as DB
+import Database.Persist.TH
 
 import GHC.Generics
 import GHC.IO.Exception
@@ -372,6 +379,47 @@ testInsert index portfolioID = dbOps $ do
 												(personNickName userFound)
 		_ -> return $ Left $ "testInsert failed"										
 
+{-testInsertNew :: Integer -> Key Portfolio -> IO (Either T.Text (Key PortfolioSymbol, (P_Creator, P_Updator, 
+					P_PortfolioId))) 
+-}
+
+testInsertNew pId = do 
+		xo <- dbOps $ do 
+			x <- runMaybeT $ do 
+					--Entity portfolio <- return $ lift $ get pId 
+					u <- liftIO nextUUID 			
+					currentTime <- liftIO $ getCurrentTime
+					Just portfolio <- lift $ get pId 
+					Just companyUser <- lift $ get $ portfolioCompanyUserId portfolio 
+					Just user <- lift $ get $ companyUserUserId companyUser 
+					Just (Entity userId uIgnore) <- lift $ getBy $ UniqueNickName $ personNickName user 
+					lift $ insert $ 
+								PortfolioSymbol pId
+												"ABC"
+												314.14
+												EnTypes.Buy
+												EnTypes.Equity
+												userId 
+												currentTime
+												userId
+												currentTime
+
+{-					pCompanyUserId <- lift $ portfolioCompanyUserId portfolio
+					Just user <- lift $  get pCompanyUserId 
+					lift $ insert $ 
+								PortfolioSymbol pId
+												("ABC" `mappend` (T.pack $ show index))
+												"ABC"
+												314.14
+												EnTypes.Buy
+												EnTypes.Equity
+												user
+												currentTime
+												user
+												currentTime 
+-}
+			return x 
+		return xo
 instance ToJSON CRUD 
 instance FromJSON CRUD
 

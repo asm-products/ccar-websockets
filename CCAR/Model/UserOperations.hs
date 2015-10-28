@@ -6,6 +6,10 @@ module CCAR.Model.UserOperations (
 where
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
+import Control.Monad.Trans.Error 
+import Control.Monad.Trans.State 
+import Control.Monad.Trans.Maybe
+import Control.Monad.Trans 
 import Control.Applicative as Appl
 import Database.Persist
 import Database.Persist.Postgresql as Postgresql 
@@ -99,6 +103,13 @@ processCommand (Just ( CommandUO (UserOperations uo aPerson))) = do
 iModuleName = "CCAR.Model.UserOperations"
 
 
+--testUserOperations :: NickName -> Value -> Either String String 
+testUserOperations a v = do 
+	x <- Left $ "test"
+	y <- case x of 
+		Left x -> Left x 
+		Right x -> Right x
+	return y 
 
 manageUserOperations :: NickName -> Value -> IO (GC.DestinationType, Either ApplicationError UserOperations)
 manageUserOperations aNickName aValue@(Object a) = do
@@ -120,7 +131,8 @@ createUO (Just aPerson) = do
 		return (GC.Reply, Right $ UserOperations Create (Just aPerson))
 updateUO (Just aPerson) = do 
 		personId <- dbOps $ getBy $ UniqueNickName (personNickName aPerson)
-		x <- case personId of 
+{-		y <- runMaybeT $ lift $ dbOps $ getBy $ UniqueNickName (personNickName aPerson)
+-}		x <- case personId of 
 				Nothing -> return $ 
 					Left $ appError ("Person not found " `mappend` (personNickName aPerson))
 				Just (Entity pid per) -> do 
