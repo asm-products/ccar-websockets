@@ -25,6 +25,7 @@ import Control.Exception
 import qualified  Data.Map as IMap
 import Control.Exception
 import Control.Monad
+import Control.Monad.Trans.Maybe
 import Control.Monad.Logger(runStderrLoggingT)
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
@@ -232,28 +233,23 @@ assign aNickName aValue = do
 
 {- | NOTE: This will query all the entitlements that match a company id. -}
 queryCompanyEntitlements comType cName userNickName = 
-		dbOps $ do 
-		company <- getBy $  UniqueCompanyId cName 
-		userId <- getBy $ UniqueNickName userNickName 
-		liftIO $ Logger.debugM iModuleName $ "User " ++ (show userId)
-		resultSet <- case (company, userId) of 
-						((Just (Entity cKey c)), (Just (Entity uKey u))) -> do 
-							companyUserId <- getBy $ UniqueCompanyUser cKey uKey
-							case companyUserId of 
-								Just (Entity cuKey cuE) -> 
-										selectList [CompanyUserEntitlementCompanyUserId ==. cuKey] 
-														[Asc CompanyUserEntitlementCompanyUserId]
-								Nothing -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
-						(_, _) -> selectList [] [Asc CompanyUserEntitlementCompanyUserId]
+		dbOps $
+			runMaybeT $ do  
+			Just (Entity cKey c) <- lift $ getBy $  UniqueCompanyId cName 
+			Just (Entity uKey u) <- lift $ getBy $ UniqueNickName userNickName 
+			liftIO $ Logger.debugM iModuleName $ "User " ++ (show u)
+			Just (Entity cuKey cuE) <- lift $ getBy $ UniqueCompanyUser cKey uKey 
+			resultSet <- lift $ selectList 
+							[CompanyUserEntitlementCompanyUserId ==. cuKey] 
+							[Asc CompanyUserEntitlementCompanyUserId]
+			mapM (\a@(Entity k x) -> do 
+				entitlement <- lift $ get $ companyUserEntitlementEntitlement x 
+				case entitlement of 
+					Just entitlement->  
+							return $ CompanyEntitlementT comType Read userNickName cName 
+										(entitlementSectionName entitlement) 
+									 	(entitlementTabName entitlement)) resultSet
 
-
-		mapM (\a@(Entity k x) -> do 
-			entitlement <- get $ companyUserEntitlementEntitlement x 
-			case entitlement of 
-				Just entitlement->  
-						return $ CompanyEntitlementT comType Read userNickName cName 
-									(entitlementSectionName entitlement) 
-								 	(entitlementTabName entitlement)) resultSet 
 
 {- | Return all the entitlements setup for this user for this company.
 -}
@@ -262,7 +258,7 @@ queryQCE aNickName aValue@(Object a) = do
 	Logger.debugM iModuleName $ "Query company entitlements " 
 	x <- case (parse parseJSON aValue) of 
 		Success query@(QueryCompanyEntitlementT cType nn cName userId qP r) -> do 
-			ents <- queryCompanyEntitlements cType cName userId 
+			Just ents <- queryCompanyEntitlements cType cName userId 
 			return $ Right $ QueryCompanyEntitlementT cType nn cName userId qP ents
 	return (GC.Reply, x)
 
@@ -360,24 +356,19 @@ deleteE e@(EntitlementT c co tab sec _) = do
 {- | Create an entitlement for a user for a company.  -}
 createCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
 	dbOps $ do 
-		chk <- getBy $ UniqueEntitlement tab section 
-		company <- getBy $ UniqueCompanyId companyId
-		user <- getBy $ UniqueNickName userId 
-		case (chk, company, user)  of 
-			(
-				Just (Entity eid entitlement)
-				, (Just (Entity cid cEntity))
-				, (Just (Entity uid uEntity))
-				) -> do 
-					companyUser <- getBy $ UniqueCompanyUser cid uid
-					case companyUser of 
-						Nothing -> return (GC.Reply, Left $ appError $ T.intercalate "-" ["User not assigneg" 
-																		, userId 
-																		, companyId])
-						Just (Entity cuId cu) -> do 
-							insert $ CompanyUserEntitlement eid cuId
-							return (GC.Reply, Right ce)
-			_ -> return (GC.Reply, Left $ appError $ "Need to use traverse here" `mappend` (T.pack $ show ce))
+		x <- runMaybeT $ do 
+			Just (Entity eid entitlement) <- lift $ getBy $ UniqueEntitlement tab section 
+			Just (Entity cid cEntity) <- lift $ getBy $ UniqueCompanyId companyId
+			Just (Entity uid uEntity ) <- lift $  getBy $ UniqueNickName userId 
+			Just (Entity cuId cu) <- lift $ getBy $ UniqueCompanyUser cid uid
+			lift $ insert $ CompanyUserEntitlement eid cuId
+			return ce  
+		z <- case x of 
+				Nothing -> 
+					return (GC.Reply, Left $ appError $ "Need to use traverse here" `mappend` (T.pack $ show ce))
+				Just y -> 
+					return (GC.Reply, Right y)
+		return z
 
 
 {- | Updates an entitlement for a user for a company. Not implemented. We remove and add

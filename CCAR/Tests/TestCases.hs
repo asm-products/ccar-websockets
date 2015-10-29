@@ -59,6 +59,7 @@ class ModelHeader a where
 
 data TestModel = TestModel {uuid :: Maybe UUID
 							, uuidAsString :: T.Text} deriving (Eq, Show)
+
 instance ModelHeader TestModel where
 	updateUUID p = do 
 		uuid <- nextUUID
