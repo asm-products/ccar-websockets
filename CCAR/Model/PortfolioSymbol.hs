@@ -308,15 +308,7 @@ updatePortfolioSymbol a@(PortfolioSymbolT crType commandType
 				return portfolioSymbol
 
 deletePortfolioSymbol :: PortfolioSymbolT -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text)))
-deletePortfolioSymbol a@(PortfolioSymbolT crType commandType 
-								portfolioId 
-								symbol 
-								quantity
-								side 
-								symbolType 
-								creator
-								updator
-								requestor) = dbOps $ do
+deletePortfolioSymbol a = dbOps $ do
 	portfolioSymbol <- liftIO $ readPortfolioSymbol a 
 	case portfolioSymbol of 
 		Right (psID, _) -> do 
@@ -348,7 +340,7 @@ readPortfolioSymbol a@(PortfolioSymbolT crType commandType
 					return $ Right (psID, (creator, updator, portfolioId))
 				Nothing -> do 
 					liftIO $ Logger.errorM iModuleName $ "Portfolio symbol not found " `mappend` (show a) 
-					return $ Left $ T.pack $ "Error deleting " `mappend` (show a)
+					return $ Left $ T.pack $ "Error reading " `mappend` (show a)
 
 uuidAsString = UUID.toString 
 
@@ -383,43 +375,29 @@ testInsert index portfolioID = dbOps $ do
 					P_PortfolioId))) 
 -}
 
-testInsertNew pId = do 
-		xo <- dbOps $ do 
-			x <- runMaybeT $ do 
-					--Entity portfolio <- return $ lift $ get pId 
-					u <- liftIO nextUUID 			
-					currentTime <- liftIO $ getCurrentTime
-					Just portfolio <- lift $ get pId 
-					Just companyUser <- lift $ get $ portfolioCompanyUserId portfolio 
-					Just user <- lift $ get $ companyUserUserId companyUser 
-					Just (Entity userId uIgnore) <- lift $ getBy $ UniqueNickName $ personNickName user 
-					lift $ insert $ 
-								PortfolioSymbol pId
-												"ABC"
-												314.14
-												EnTypes.Buy
-												EnTypes.Equity
-												userId 
-												currentTime
-												userId
-												currentTime
+testInsertNew index pId = do 
+	xo <- dbOps $ do 
+		x <- runMaybeT $ do 
+				x <- return Nothing
+				u <- liftIO nextUUID 			
+				currentTime <- liftIO $ getCurrentTime
+				Just portfolio <- lift $ get pId 
+				Just companyUser <- lift $ get $ portfolioCompanyUserId portfolio 
+				Just user <- lift $ get $ companyUserUserId companyUser 
+				Just (Entity userId uIgnore) <- lift $ getBy $ UniqueNickName $ personNickName user 
+				lift $ insert $ 
+							PortfolioSymbol pId
+								("ABC" `mappend` (T.pack $ show index))
+								314.14
+								EnTypes.Buy
+								EnTypes.Equity
+								userId 
+								currentTime
+								userId
+								currentTime
 
-{-					pCompanyUserId <- lift $ portfolioCompanyUserId portfolio
-					Just user <- lift $  get pCompanyUserId 
-					lift $ insert $ 
-								PortfolioSymbol pId
-												("ABC" `mappend` (T.pack $ show index))
-												"ABC"
-												314.14
-												EnTypes.Buy
-												EnTypes.Equity
-												user
-												currentTime
-												user
-												currentTime 
--}
-			return x 
-		return xo
+		return x 
+	return xo
 instance ToJSON CRUD 
 instance FromJSON CRUD
 

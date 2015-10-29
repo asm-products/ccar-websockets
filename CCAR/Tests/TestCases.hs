@@ -87,25 +87,10 @@ testCase2 aCount = do
 
 
 
-{-testCase3 :: IO ()
-testCase3 = withManager $ \manager -> do
-			value <- liftIO makeValue
-			valueBS <- return $ encode value
-			req' <- liftIO $ -}
-
 
 testCase4 = do 
 	p <- Portfolio.testInsertPortfolio 
 	case p of 
-		Right pid -> PortfolioSymbol.testInsertNew pid 
+		Right pid -> PortfolioSymbol.testInsertNew 1 pid 
 		{-Left _ -> return $ Left $ "Failed insert"-}
 
-{-type AppState = Int 
-newtype ApplicationLayera = Application (StateT AppState IO a) 
-	deriving(Functor, Applicative, Monad, MonadState)
-
-instance MonadLayer ApplicationLayer where 
-	type Inner Application = IO 
-	layer = Application . layer 
-
--}
