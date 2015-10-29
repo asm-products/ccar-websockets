@@ -345,8 +345,33 @@ readPortfolioSymbol a@(PortfolioSymbolT crType commandType
 uuidAsString = UUID.toString 
 
 
-testInsert :: Integer -> Key Portfolio -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text))) 
-testInsert index portfolioID = dbOps $ do
+
+{-- | This method as one could no doubt notice is a much better representation of the same code. --}
+testInsert index portfolioID = dbOps $ do 
+	x <- runMaybeT $ do 
+		Just u <- liftIO nextUUID 
+		currentTime <- liftIO getCurrentTime
+		Just portfolio <- lift $ get portfolioID 
+		Just companyUser <- lift $ get $ portfolioCompanyUserId portfolio 
+		Just user <- lift $ get $ companyUserUserId companyUser 
+		liftIO $ insertPortfolioSymbol $ PortfolioSymbolT Create 
+												managePortfolioSymbolCommand
+												(portfolioUuid portfolio)
+												{-("ABC" `mappend` (T.pack $ show index))-}
+												"ABC"
+												"314.14"
+												EnTypes.Buy
+												EnTypes.Equity
+												(personNickName user)
+												(personNickName user)
+												(personNickName user)
+	case x of 
+		Just x -> return x 
+		Nothing -> return $ Left $ "testInsert failed"
+{-- | This method is mainly as an example of how non monadic code can create the dreaded 
+staircase. --}
+testInsertNonM :: Integer -> Key Portfolio -> IO (Either T.Text (Key PortfolioSymbol, (T.Text, T.Text, T.Text))) 
+testInsertNonM index portfolioID = dbOps $ do
 	u <- liftIO $ nextUUID
 	currentTime <- liftIO $ getCurrentTime
 	portfolio <- get portfolioID 
@@ -378,7 +403,6 @@ testInsert index portfolioID = dbOps $ do
 testInsertNew index pId = do 
 	xo <- dbOps $ do 
 		x <- runMaybeT $ do 
-				x <- return Nothing
 				u <- liftIO nextUUID 			
 				currentTime <- liftIO $ getCurrentTime
 				Just portfolio <- lift $ get pId 
