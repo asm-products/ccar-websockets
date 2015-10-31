@@ -311,6 +311,19 @@ manageCompanyEntitlement aNickName aValue = do
 retrieve e@(EntitlementT c co tab sec a) = do 
 	Logger.debugM iModuleName $ show $ T.intercalate "-" ["Returning entitlements", tab, sec]
 	dbOps $ do 
+		x <- runMaybeT $ do 
+				Just(Entity k value) <- lift $ getBy $ UniqueEntitlement tab sec
+				return $ EntitlementT c co (entitlementTabName value) 
+					(entitlementSectionName value) a 
+		case x of 
+			Nothing -> return $ (GC.Reply, Left $ 
+									appError $ 
+										T.intercalate "->" 
+											["Entitlement", tab, sec, "Not found"])
+
+			Just y -> return (GC.Reply, Right y)
+{-			 
+
 		chk <- getBy $ UniqueEntitlement tab sec 
 		case chk of 
 			Nothing -> return $ (GC.Reply, Left $ 
@@ -320,32 +333,27 @@ retrieve e@(EntitlementT c co tab sec a) = do
 			Just (Entity k value) -> do 
 					res <- return $ EntitlementT c co (entitlementTabName value) (entitlementSectionName value) a 
 					return (GC.Reply, Right res)
-
+-}
 
 create e@(EntitlementT  c co tab sec _) = do 
 	dbOps $ do
-		chk <- getBy $ UniqueEntitlement tab sec 
-
-		case chk of 
-			Nothing -> do 
-					insert $ Entitlement tab sec 
-					return (GC.Reply, Right e)
-			Just (Entity p ent1) -> do 
-					Postgresql.replace p $ Entitlement tab sec
-					return (GC.Reply, Right e)
-
+		x <- runMaybeT $ do 
+			Just (Entity p ent1) <- lift $ getBy $ UniqueEntitlement tab sec 
+			lift $ Postgresql.replace p $ Entitlement tab sec 
+		case x of 
+			Nothing -> return (GC.Reply, Left $ appError $ T.intercalate "->" [tab, sec])
+			Just y -> return (GC.Reply, Right e)
 
 
 updateE e@(EntitlementT c co tab sec _) = do 
-	dbOps $ do 
-		chk <- getBy $ UniqueEntitlement tab sec 
-		case chk of 
-			Nothing -> return (GC.Reply, Left $ appError 
-						$ T.intercalate "->" [tab, sec])
-			Just (Entity pid entity) -> do 
-				Postgresql.replace pid $ Entitlement tab sec 
-				return (GC.Reply, Right e)
-
+	dbOps $ do
+		x <- runMaybeT $ do 
+			Just (Entity pid entity) <- lift $ getBy $ UniqueEntitlement tab sec 
+			lift $ Postgresql.replace pid $ Entitlement tab sec 
+		case x of 
+			Nothing -> return (GC.Reply, Left $ 
+										appError $ T.intercalate "->" [tab, sec])
+			Just y -> return (GC.Reply, Right e) 
 		
 
 deleteE e@(EntitlementT c co tab sec _) = do 
@@ -378,54 +386,39 @@ updateCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab s
 {- | Retrieves an entitlement for a user for a company. -}
 retrieveCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
 	dbOps $ do 
-		ent <- getBy $ UniqueEntitlement tab section 
-		company <- getBy $ UniqueCompanyId companyId 
-		user <- getBy $ UniqueNickName userId
-		case (ent, company, user) of 
-			(	Just (Entity eid entitlement) 
-				, Just (Entity cid cEntity)
-				, Just (Entity uid uEntity) ) -> do 
-				companyUser <- getBy $ UniqueCompanyUser cid uid 
-				case companyUser of 
-					Just (Entity cuId cu) -> do 
-						cet <- getBy $ UniqueCompanyUserEntitlement eid cuId 
-						case cet of 
-							Just (Entity cueId cuEntitlement) -> do 
-								return (GC.Reply, Right $ 
-											CompanyEntitlementT c crType 
-												companyId 
-												userId 
-												(entitlementTabName entitlement)
-												(entitlementSectionName entitlement)
-									)
-							Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
-					Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
-			_ -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+		x <- runMaybeT $ do 
+			Just (Entity eid entitlement) <- lift $  getBy $ UniqueEntitlement tab section 
+			Just (Entity cid company) <-lift $ getBy $ UniqueCompanyId companyId 
+			Just (Entity uid user)  <- lift $ getBy $ UniqueNickName userId
+			Just (Entity cuId companyUser) <- lift $ getBy $ UniqueCompanyUser cid uid
+			Just (Entity cueId cet) <- lift $ getBy $ UniqueCompanyUserEntitlement eid cuId 
+			return (GC.Reply, Right $ 
+						CompanyEntitlementT c crType 
+							companyId 
+							userId 
+							(entitlementTabName entitlement)
+							(entitlementSectionName entitlement)
+										)
+		case x of Nothing -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
 
 
 {- | Delete an entitlement for a company for a user. -}
 deleteCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
 	dbOps $ do 
-		ent <- getBy $ UniqueEntitlement tab section 
-		company <- getBy $ UniqueCompanyId companyId 
-		user <- getBy $ UniqueNickName userId 
-		case (ent, company, user) of 
-			(	Just (Entity eid entitlement) 
-				, Just (Entity cid cEntity)
-				, Just (Entity uid uEntity) ) -> do 
-				companyUser <- getBy $ UniqueCompanyUser cid uid 
-				case companyUser of 
-					Just (Entity cuId cu) -> do 
-						cet <- Postgresql.deleteBy $ UniqueCompanyUserEntitlement eid cuId
-						return (GC.Reply, Right $ 
-									CompanyEntitlementT c crType 
-										companyId 
-										userId 
-										(entitlementTabName entitlement)
-										(entitlementSectionName entitlement)
-							)
-					Nothing -> return (GC.Reply, Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
-			_ -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
+		x <- runMaybeT $ do 
+			Just (Entity eid entitlement) <- lift $ getBy $ UniqueEntitlement tab section 
+			Just (Entity cid cEntity)  <- lift $ getBy $ UniqueCompanyId companyId 
+			Just (Entity uid uEntity) <- lift $ getBy $ UniqueNickName userId 
+			Just (Entity cuId cu) <- lift $ getBy $ UniqueCompanyUser cid uid 
+			cet <- lift $ Postgresql.deleteBy $ UniqueCompanyUserEntitlement eid cuId
+			return (GC.Reply, Right $ 
+						CompanyEntitlementT c crType 
+							companyId 
+							userId 
+							(entitlementTabName entitlement)
+							(entitlementSectionName entitlement))
+
+		case x of Nothing -> return (GC.Reply,  Left $ appError $ "Record not found " `mappend` (T.pack $ show ce))
 
 
 
