@@ -64,5 +64,6 @@ Self signing certificates
   Url [https://www.digitalocean.com/community/tutorials/how-to-set-up-an-ssl-tunnel-using-stunnel-on-ubuntu]
   openssl genrsa -out /etc/stunnel/key.pem 4096
   openssl req -new -x509 -key /etc/stunnel/key.pem -out /etc/stunnel/cert.pem -days 1826
+
 To find out which version of ubuntu I am running
  lsb_release -a 

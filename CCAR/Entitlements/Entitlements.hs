@@ -338,12 +338,14 @@ retrieve e@(EntitlementT c co tab sec a) = do
 
 create e@(EntitlementT  c co tab sec _) = do 
 	dbOps $ do
-		x <- runMaybeT $ do 
-			Just (Entity p ent1) <- lift $ getBy $ UniqueEntitlement tab sec 
-			lift $ Postgresql.replace p $ Entitlement tab sec 
+		x <- getBy $ UniqueEntitlement tab sec 			
 		case x of 
-			Nothing -> return (GC.Reply, Left $ appError $ T.intercalate "->" [tab, sec])
-			Just y -> return (GC.Reply, Right e)
+			Nothing -> do 
+				 Postgresql.insert $ Entitlement tab sec 
+				 return (GC.Reply, Right e)
+			Just (Entity p ent1) -> do 
+				Postgresql.replace p $ Entitlement tab sec
+				return (GC.Reply, Right e)
 
 
 updateE e@(EntitlementT c co tab sec _) = do 
