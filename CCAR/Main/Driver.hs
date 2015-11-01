@@ -345,22 +345,23 @@ lookupTag aCommand aTag = do
     case aCommand of 
         Just (Object a) -> return $ LH.lookup aTag  a 
 
+
 getNickName :: Maybe Value -> IO (Maybe T.Text, T.Text)
 getNickName aCommand = 
     do
-        case aCommand of
-            Nothing -> return $ 
-                (Nothing, L.toStrict $ E.decodeUtf8 $ En.encode $ 
-                    appError ("Unknown error" :: T.Text))
-            Just (Object a) -> 
-                  case nn of
-                    Nothing -> return (Nothing, "Nickname tag not found")
-                    Just x -> 
-                        case x of
-                            String x -> return (Just "found nickName", x)
-                            _ -> return (Nothing, T.pack $ "Invalid " ++ (show x))
-                where 
-                    nn = LH.lookup "nickName" a 
+    case aCommand of
+        Nothing -> return $ 
+            (Nothing, L.toStrict $ E.decodeUtf8 $ En.encode $ 
+                appError ("Unknown error" :: T.Text))
+        Just (Object a) -> 
+              case nn of
+                Nothing -> return (Nothing, "Nickname tag not found")
+                Just x -> 
+                    case x of
+                        String x -> return (Just "found nickName", x)
+                        _ -> return (Nothing, T.pack $ "Invalid " ++ (show x))
+            where 
+                nn = LH.lookup "nickName" a 
 
 processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
 processIncomingMessage app conn aNickName aCommand = do 
@@ -427,7 +428,7 @@ authenticate aConn aText app@(App a c) =
                     Success (r@(Login a b)) -> do 
                             x <- runMaybeT $ do 
                                 Just nickName <- return $ getPersonNickName a 
-                                return $ UserJoined.userJoined nickName 
+                                return $ UserJoined.userJoined nickName
                             case x of 
                                 Nothing -> return(GroupCommunication.Reply, 
                                     ser $ appError ("Invalid user name" :: T.Text))

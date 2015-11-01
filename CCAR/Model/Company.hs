@@ -12,6 +12,8 @@ module CCAR.Model.Company
 	) where 
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
+import Control.Monad.Trans(lift)
+import Control.Monad.Trans.Maybe
 import Control.Applicative as Appl
 import Database.Persist
 import Database.Persist.Postgresql as Postgresql 
@@ -120,15 +122,14 @@ insertCompany aNickName aCompany = do
 
 deleteCompany :: CompanyT -> IO (Maybe Company)
 deleteCompany aCompanyId = dbOps $ 
-	do 
-		company <- getBy $ UniqueCompanyId (companyID aCompanyId)
-		liftIO $ Logger.debugM iModuleName $ 
-				"Deleting " `mappend` (show company)
-		case company of 
-			Just (Entity k v) -> 
-				do 
-					delete k 
-					return $ Just v
+	do
+		x <- runMaybeT $ do 
+			Just (Entity k v) <- lift $ getBy $ UniqueCompanyId (companyID aCompanyId) 
+			liftIO $ Logger.debugM iModuleName $ 
+					"Deleting " `mappend` (show aCompanyId) 
+			lift $ delete k 
+			return v 
+		return x
 
 selectAllCompanies :: IO [Entity Company]
 selectAllCompanies = dbOps $ do 
@@ -140,22 +141,20 @@ updateCompany :: NickName -> CompanyT -> IO (Maybe Company)
 updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 
 	currentTime <- getCurrentTime
 	x <- dbOps $ do 
-		person <- getBy $ UniqueNickName aNickName 
-		liftIO $ Logger.debugM iModuleName $ 
-						"Updating company " `mappend` (show person)
-		case person of 
-			Just (Entity p _ ) -> do 
-				company <- getBy $  UniqueCompanyId (companyID aCompany)
-				case company of
-					Just (Entity k v) -> do 
-							res <- return v { companyCompanyName = tName
-									, companyCompanyImage = tImage
-									, companyGeneralMailbox = tGen
-									, companyUpdatedTime = currentTime
-									, companyUpdatedBy = p } -- XXX: Change it back to p
-							Postgresql.replace k res
-							return res
-	return $ Just x 
+		runMaybeT $ do 
+			Just (Entity p person) <- lift $ getBy $ UniqueNickName aNickName 
+			liftIO $ Logger.debugM iModuleName $ 
+							"Updating company " `mappend` (show person)
+			Just (Entity k v) <- lift $ getBy $ UniqueCompanyId tID 
+			res <- return $ v { companyCompanyName = tName
+					, companyCompanyImage = tImage
+					, companyGeneralMailbox = tGen
+					, companyUpdatedTime = currentTime
+					, companyUpdatedBy = p } -- XXX: Change it back to p
+			lift $ Postgresql.replace k res
+			return res
+	return x 
+
 
 
 queryCompany aNickName aCompany = do 

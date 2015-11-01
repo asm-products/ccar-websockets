@@ -25,6 +25,7 @@ import Control.Exception
 import qualified  Data.Map as IMap
 import Control.Exception
 import Control.Monad
+import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import Control.Monad.Logger(runStderrLoggingT)
 import Network.WebSockets.Connection as WSConn
