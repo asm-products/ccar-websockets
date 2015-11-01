@@ -16,6 +16,7 @@ import qualified GHC.Conc as GHCConc
 import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
+import Control.Monad.Trans.Maybe
 import Control.Monad.Error
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth, waitAny
@@ -408,11 +409,10 @@ getClientState nickName app@(App a c) = do
         else 
             return [] 
 
-getPersonNickName :: Maybe Person -> IO T.Text
+getPersonNickName :: Maybe Person -> Maybe T.Text
 getPersonNickName a = do
     case a of 
         Just x -> return $  personNickName x
-        Nothing -> return "Invalid nick name"
 
 authenticate :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text)
 authenticate aConn aText app@(App a c) = 
@@ -425,9 +425,13 @@ authenticate aConn aText app@(App a c) =
                 result <- return $ (parse parseJSON o :: Result Login)
                 case result of 
                     Success (r@(Login a b)) -> do 
-                            nickName <- getPersonNickName a 
-                            userJoined <- return $ UserJoined.userJoined nickName 
-                            return (GroupCommunication.Reply, userJoined)
+                            x <- runMaybeT $ do 
+                                Just nickName <- return $ getPersonNickName a 
+                                return $ UserJoined.userJoined nickName 
+                            case x of 
+                                Nothing -> return(GroupCommunication.Reply, 
+                                    ser $ appError ("Invalid user name" :: T.Text))
+                                Just y -> return (GroupCommunication.Reply, y)
                     Error s -> 
                         return (GroupCommunication.Reply, T.pack s)
         where 
@@ -435,6 +439,7 @@ authenticate aConn aText app@(App a c) =
 
 
 
+ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
 
 processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
 processUserLoggedIn aConn aText app@(App a c) = do
@@ -482,7 +487,7 @@ processUserLoggedIn aConn aText app@(App a c) = do
 
             where 
                 aCommand = (J.decode  $ E.encodeUtf8 (L.fromStrict aText)) :: Maybe Value
-                ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
+
 
 instance Show WSConn.Connection where
     show (WSConn.Connection o cType proto msgIn msgOut cl) = show proto 
@@ -513,7 +518,8 @@ ccarApp = do
                     Nothing -> do 
                             $(logInfo) command 
                             liftIO $ do  
-                                        _ <- WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
+                                        _ <- WSConn.sendClose connection 
+                                            ("Nick name tag is mandatory. Bye" :: T.Text)
                                         return "Close sent"
                     Just _ -> liftIO $ do 
                             (processClientLost app connection nickNameV command)
@@ -530,7 +536,8 @@ ccarApp = do
                                             return "Threads had exception") 
                             return ("All threads exited" :: T.Text)
                 return () 
-            _ -> liftIO $ WSConn.sendClose connection ("Active connection. Multiple logins not allowed. " `mappend` nickNameV)
+            _ -> liftIO $ WSConn.sendClose connection 
+                    ("Active connection. Multiple logins not allowed. " `mappend` nickNameV)
 
 
 
