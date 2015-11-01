@@ -323,18 +323,6 @@ retrieve e@(EntitlementT c co tab sec a) = do
 											["Entitlement", tab, sec, "Not found"])
 
 			Just y -> return (GC.Reply, Right y)
-{-			 
-
-		chk <- getBy $ UniqueEntitlement tab sec 
-		case chk of 
-			Nothing -> return $ (GC.Reply, Left $ 
-									appError $ 
-										T.intercalate "->" 
-											["Entitlement", tab, sec, "Not found"])
-			Just (Entity k value) -> do 
-					res <- return $ EntitlementT c co (entitlementTabName value) (entitlementSectionName value) a 
-					return (GC.Reply, Right res)
--}
 
 create e@(EntitlementT  c co tab sec _) = do 
 	dbOps $ do
