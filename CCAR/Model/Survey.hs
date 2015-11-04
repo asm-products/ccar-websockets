@@ -76,9 +76,9 @@ readSurvey aNick survey = dbOps $ rSurvey nickName survey
 deleteSurvey aNick survey = dbOps $ dSurvey nickName survey 
 
 
+-- "ad","and","Andorra",".ad"
 
-defaultCountry = insert $ Country "Albania" "ABA" "AB"
-defaultGeoLocation = insert $ GeoLocation "Somewhere" 10 10 
+defaultCountry = insert $ Country "and" "ad" "Andorra" ".ad"
 
 defaultIdentificationZone = do 
     country <- defaultCountry

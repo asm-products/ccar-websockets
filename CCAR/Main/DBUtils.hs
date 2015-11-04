@@ -130,11 +130,13 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             support Bool
             locale Text Maybe
             UniqueCompanyUser companyId userId
+            deriving Eq Show 
         CompanyUserRole json 
-            companyUserId CompanyUserId 
+            cuId CompanyUserId 
             companyRole RoleType
             permissionScope PermissionId 
-
+            UniqueCompanyUserRole cuId companyRole permissionScope
+            deriving Eq Show 
         Person json
             firstName Text 
             lastName Text 
@@ -173,6 +175,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             name Text 
             iso_3 Text
             iso_2 Text
+            top_domain Text
             deriving Show Eq
             UniqueISO3 iso_3
         Language json 
@@ -530,10 +533,12 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
             jobErrors Text Maybe 
             deriving Show Eq
 
+        -- A user can be allowed to read or write.
+        -- The code would be true or false
         Permission json 
             permission Text -- Read/Write
             permissionCode Bool -- True/False
-            UniquePermission permissionCode
+            UniquePermission permission permissionCode
             deriving Show Eq
 
         |]

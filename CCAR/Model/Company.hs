@@ -11,6 +11,7 @@ module CCAR.Model.Company
 	, assignUserToCompany
 	) where 
 import Control.Monad.IO.Class 
+import Control.Monad
 import Control.Monad.Logger 
 import Control.Monad.Trans(lift)
 import Control.Monad.Trans.Maybe
@@ -61,7 +62,15 @@ data QueryCompany = QueryCompany {
 	qNickName :: T.Text
 	, commandType :: T.Text
 	, qCompany :: [CompanyT] 
-}
+} deriving (Show, Eq)
+
+data QueryCompanyUsers = QueryCompanyUsers {
+	qcNickName :: T.Text 
+	, qcCommandType :: T.Text 
+	, qcCompanyName :: T.Text 
+	, qcCompanyUsers :: [Person]
+} deriving (Show, Eq)
+
 
 data ManageCompany = ManageCompany {
         nickName :: T.Text
@@ -131,11 +140,82 @@ deleteCompany aCompanyId = dbOps $
 			return v 
 		return x
 
+
+--isAdmin :: [EnumeratedTypes.RoleType] -> Maybe EnumeratedTypes.RoleType 
+isAdmin = \aList -> filterM  (\(Entity i x)-> return $ 
+				companyUserRoleCompanyRole x == EnumeratedTypes.Admin) aList
+
+
+{-- | 
+	Permissions maaintain a permission text. Could be 
+	one of Read or Write.
+	code : true or false
+--}
+addPermission :: T.Text -> Bool -> IO (Key Permission)
+addPermission aPerm aCode  = dbOps $ do 
+	x <- getBy $ UniquePermission aPerm aCode
+	case x of 
+		Nothing -> 
+				return (Permission aPerm aCode) >>= \y -> 
+							insert y
+		Just a@(Entity p per1) -> 
+				return (Permission aPerm aCode) >>= \x -> 
+					Postgresql.replace p x >> return p  			
+
+setupPermissions = dbOps $  do 
+	liftIO $ addPermission "Write" True 
+	liftIO $ addPermission "Write" False 
+	liftIO $ addPermission "Read" True 
+	liftIO $ addPermission "Read" False
+
+--addRoleType :: NickName -> CompanyID -> RoleType
+addRoleType aNickName companyText rType permText permCode =do 
+	print "Before insert"
+	dbOps $ do 
+		x <- runMaybeT $ do 
+			liftIO $ Logger.debugM iModuleName "Inside maybeT"
+			Just (Entity cId company) <- lift $ getBy $ UniqueCompanyId companyText 
+			liftIO $ Logger.debugM iModuleName "Query nickName"
+			Just (Entity nick nickName) <- lift $ getBy $ UniqueNickName aNickName 
+			liftIO $ Logger.debugM iModuleName "Before company user"
+			Just (Entity cuId _) <- lift $ getBy $ UniqueCompanyUser cId nick
+			liftIO $ Logger.debugM iModuleName  "Before permission" 
+			Just (Entity perId perm) <- lift $ getBy $ UniquePermission permText permCode
+			liftIO $ Logger.debugM  iModuleName "Before insert cu" 
+			x <- lift $ insert $ CompanyUserRole cuId rType perId 
+			return (x, cId, nick, cuId, perId)
+		return x
+{--| Select all the users for a given company text.
+   | The nickName should have administrative rights.
+--}
+selectCompanyUsers :: NickName -> CompanyID -> IO [Person]
+selectCompanyUsers aNickName  = \companyText -> 
+	dbOps $ do 
+	x <- runMaybeT $ do 			
+			Just (Entity cId company) <- lift $ getBy $ UniqueCompanyId companyText
+			Just (Entity nick nickName) <- lift $ getBy $ UniqueNickName aNickName
+			Just (Entity nickCompanyUserId nickNameCompanyUser) <- lift $ getBy $ UniqueCompanyUser cId nick 
+			roleTypes <- lift $ selectList [CompanyUserRoleCuId ==. nickCompanyUserId] []
+			Just admin <- return $ isAdmin roleTypes 
+			liftIO $ Logger.debugM iModuleName "Selecting all users for a company"
+			y <- lift $ selectList [CompanyUserCompanyId ==. cId] [LimitTo 200 ]
+			z <- lift $ forM y (\(Entity id x) -> do 
+				Just a <- get (companyUserUserId x)
+				return a
+				)
+			return z
+
+	case x of 
+		Nothing -> return [] 
+		Just y -> return y 
+
 selectAllCompanies :: IO [Entity Company]
 selectAllCompanies = dbOps $ do 
 	liftIO $ Logger.debugM iModuleName "Selecting all companies"
 	selectList [] [LimitTo resultsPerPage]
 					where resultsPerPage = 100
+
+
 
 updateCompany :: NickName -> CompanyT -> IO (Maybe Company)
 updateCompany aNickName aCompany@(CompanyT tName tID tImage tGen) = do 
@@ -163,6 +243,7 @@ queryCompany aNickName aCompany = do
 		Just (Entity p v) -> return $ Just v
 		Nothing -> return Nothing
 	return y 
+
 
 
 
@@ -302,6 +383,22 @@ parseQueryCompany v = do
 					pure []
 					
 
+
+parseQueryCompanyUsers v = QueryCompanyUsers <$> 
+				v .: "nickName" <*>
+				v .: "commandType" <*> 
+				v .: "companyID" <*> 
+				v .: "users"
+
+genQueryCompanyUsers (QueryCompanyUsers n c ci res) = 
+		object [
+			"nickName" .= n 
+			, "commandType" .= c 
+			, "companyID" .= ci 
+			, "users" .= res 
+
+		]
+
 genQueryCompany (QueryCompany n cType com) = 
 				object 
 				["nickName" .= n 
@@ -392,4 +489,11 @@ instance FromJSON QueryCompany where
 	parseJSON (Object v) = parseQueryCompany v 
 	parseJSON _ 		 = Appl.empty
 
+
+instance ToJSON QueryCompanyUsers where 
+	toJSON = genQueryCompanyUsers 
+
+instance FromJSON QueryCompanyUsers where 
+	parseJSON (Object v) = parseQueryCompanyUsers v 
+	parseJSON _ 		 = Appl.empty
 
