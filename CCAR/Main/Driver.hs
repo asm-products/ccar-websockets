@@ -55,6 +55,7 @@ import CCAR.Main.GroupCommunication as GroupCommunication
 import CCAR.Main.UserJoined as UserJoined 
 import CCAR.Command.ApplicationError 
 import CCAR.Model.Person
+import CCAR.Model.Country as Country
 import CCAR.Model.Company as Company 
 import CCAR.Model.Project as Project
 import CCAR.Model.ProjectWorkbench as ProjectWorkbench
@@ -296,7 +297,13 @@ processCommandValue app nickName aValue@(Object a)   = do
                                                     >>= \(gc, either) ->
                                                         return (gc, Util.serialize
                                                                 (either :: 
-                                                                    Either ApplicationError Entitlements.QueryCompanyEntitlementT))
+                                                                    Either ApplicationError 
+                                                                        Entitlements.QueryCompanyEntitlementT))
+                String "QueryCompanyUsers" -> Company.query nickName aValue 
+                            >>= \(gc, either) -> 
+                                return (gc, Util.serialize 
+                                        (either :: Either ApplicationError 
+                                                    Company.QueryCompanyUsers))
                 String "Login" -> 
                             Login.query nickName aValue 
                                 >>= \(gc, result) -> 
@@ -805,7 +812,7 @@ driver = do
         liftIO $ do
             flip runSqlPersistMPool pool $ do
                 runMigration migrateAll
-    Logger.debugM "CCAR.Main.Driver" "Closing connection"
+    Country.startup
     chan <- atomically newBroadcastTChan
 --    static@(Static settings) <- static "static"
     nickNameMap <- newTVarIO $ IMap.empty

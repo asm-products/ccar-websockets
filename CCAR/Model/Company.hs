@@ -9,6 +9,8 @@ module CCAR.Model.Company
 	, ManageCompany
 	, CompanyT
 	, assignUserToCompany
+	, QueryCompanyUsers
+	, query 
 	) where 
 import Control.Monad.IO.Class 
 import Control.Monad
@@ -37,6 +39,7 @@ import Data.Typeable
 import Data.Time
 import CCAR.Main.Util 
 import System.Log.Logger as Logger
+import CCAR.Main.DBOperations (Query, query, manage, Manager)
 
 data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
@@ -72,6 +75,8 @@ data QueryCompanyUsers = QueryCompanyUsers {
 } deriving (Show, Eq)
 
 
+
+
 data ManageCompany = ManageCompany {
         nickName :: T.Text
         , crudType :: CRUD 
@@ -80,6 +85,11 @@ data ManageCompany = ManageCompany {
 
 
 type CompanyID = T.Text 
+
+
+instance Query QueryCompanyUsers where 
+	query = queryCompanyUsers 
+
 
 
 createQueryCompanyDTO :: NickName -> Company -> CompanyT
@@ -208,6 +218,8 @@ selectCompanyUsers aNickName  = \companyText ->
 	case x of 
 		Nothing -> return [] 
 		Just y -> return y 
+
+
 
 selectAllCompanies :: IO [Entity Company]
 selectAllCompanies = dbOps $ do 
@@ -358,6 +370,15 @@ queryAllCompanies aNickName o@(Object a) = do
 				    	serialize $ appError $ 
 				    		"Query all companies failed " ++ s)
 
+
+queryCompanyUsers aNickName o = do 
+	x <- case (parse parseJSON o :: Result QueryCompanyUsers) of 
+		Success r@(QueryCompanyUsers ni cType cName _) -> do 
+			companyUsers <- selectCompanyUsers ni cName 
+			return $ Right $ 
+				QueryCompanyUsers ni cType cName companyUsers
+		Error s ->  return $ Left $ appError $ "Query users for a company failed  " ++ s
+	return (GC.Reply, x)
 
 assignUserToCompany aNickName aValue = do 
 	case (parse parseJSON aValue :: Result AssignUser) of 

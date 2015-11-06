@@ -280,8 +280,7 @@ queryEntitlements limit = dbOps $ selectList [] [LimitTo limit]
 {--  Manage : add/update/delete --}
 manageEntitlement :: NickName -> Value -> IO (GC.DestinationType, Either ApplicationError EntitlementT)
 manageEntitlement aNickName aValue@(Object a) = do
-	Logger.debugM iModuleName $ show $ T.intercalate "-" ["inside manage", aNickName, 
-				T.pack $ show aValue] 
+	Logger.debugM iModuleName $ show $ T.intercalate "-" ["inside manage entitlement", aNickName] 
 	case (parse parseJSON aValue) of 
 		Success e@(EntitlementT c co tab sec _) -> do 			
 			case c of 
@@ -292,6 +291,7 @@ manageEntitlement aNickName aValue@(Object a) = do
 		Error s -> return (GC.Reply, Left $ appError s)
 
 
+{-- | Manage entitlements for a user for a company --}
 manageCompanyEntitlement :: NickName -> Value -> IO (GC.DestinationType, Either ApplicationError CompanyEntitlementT) 
 manageCompanyEntitlement aNickName aValue = do 
 	Logger.debugM iModuleName $ show $ T.intercalate "-" ["Inside manage", aNickName

@@ -1,6 +1,8 @@
 module CCAR.Model.Country 
 	( 
 		setupCountries
+		, cleanupCountries
+		, startup
 	)
 where
 
@@ -33,7 +35,7 @@ import CCAR.Main.Util
 import System.Log.Logger as Logger
 import CCAR.Parser.CSVParser as CSVParser
 import System.IO 
-
+import System.Environment(getEnv)
 
 data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
@@ -55,27 +57,46 @@ add a b c d = dbOps $ do
 					("Country " ++ (T.unpack c)  ++ " already exists")
 			return k
 
+remove aCountryCode	= dbOps $ deleteBy $ UniqueISO3 aCountryCode
+
+
 iModuleName = "CCAR.Model.Country"
-parseLine aLine =  
+
+deleteLine aLine = remove (T.pack $ aLine !! 2)
+
+insertLine aLine =  
 	add (T.pack $ aLine !! 2) 
 		(T.pack $ aLine !! 1) 
 		(T.pack $ aLine !! 3) 
 		(T.pack $ aLine !! 4)
 --setupCountries :: FilePath -> IO [Key Country]
-parseCountries aHandle = do 
+parseCountries aHandle dbFunction = do 
 	inputLine <- hGetContents aHandle 
 	parsedOutput <- return $ CSVParser.parseCSV inputLine
 	x <- case parsedOutput of 
 		Left e -> do 
 					putStrLn "Error processing file" 
 					print e
-		Right r ->  mapM_ (\line -> do 
+		Right (h:r) ->  mapM_ (\line -> do 
 							print line
-							parseLine line) r  
+							dbFunction line) r  
 	return x
+
+deleteCountries aHandle = do 
+	inputLine <- hGetContents aHandle 
+	parseCountries aHandle deleteLine
+
 
 setupCountries aFileName = do 
 	handle <- openFile aFileName ReadMode 
-	parseCountries handle
+	parseCountries handle insertLine
 
 
+cleanupCountries aFileName = do 
+	handle <- openFile aFileName ReadMode 
+	print "Opening handle" 
+	parseCountries handle deleteLine 
+
+startup = do 
+	dataDirectory <- getEnv("DATA_DIRECTORY");
+	setupCountries (dataDirectory ++ "/" ++ "Country.csv")
