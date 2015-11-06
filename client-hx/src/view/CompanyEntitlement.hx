@@ -37,6 +37,9 @@ import model.Entitlement;
 * Manage entitlements for a company. 
 * 
 */
+
+
+
 class CompanyEntitlement {
 
 	//Prefixes for the list manager.
@@ -44,7 +47,7 @@ class CompanyEntitlement {
 	private static var MANAGE_COMPANY_USER_ENTS = "companyUserEntitlements";
 
 	private static var SEARCH_USER_ELEMENT : String = "searchUsers";
-	private static var ALL_COMPANY_USER_SEARCH_LIST : String = "allCompanyUsersSearchList";
+	private static var COMPANY_USERS : String = "companyUsers";
 	private static var PENDING_APPROVAL_REQUESTS : 	String = "pendingApprovalRequests";
 	private static var AVAILABLE_ENTITLEMENTS  : String = "availableEntitlements";
 	private static var USER_ENTITLEMENTS : String = "userEntitlements";
@@ -55,12 +58,71 @@ class CompanyEntitlement {
 	private var removeUserEntitlement : ButtonElement;
 	private var userEntitlementsList : SelectElement;
 	private var entitlementsManager : ListManager<EntitlementT>;
-	public function new (view : view.Entitlement){
+	private var userListManager : ListManager<model.Person>;
+	private var users : SelectElement;
+
+	public var userListResponse(default, null) : Deferred<QueryCompanyUsers>;
+
+	public function new (view : view.Entitlement
+			, companyStream : Deferred<Dynamic> ){		
 		userEntitlementsList = cast (Browser.document.getElementById(USER_ENTITLEMENTS));
 		view.queryEntitlementResponse.then(handleQueryEntitlementResponse);
-		entitlementsManager = new ListManager<EntitlementT>(userEntitlementsList, MANAGE_COMPANY_USER_ENTS, Entitlement.optionId, Entitlement.listDisplay);
+		entitlementsManager = 
+				new ListManager<EntitlementT>(userEntitlementsList, 
+					MANAGE_COMPANY_USER_ENTS, 
+					Entitlement.optionId, Entitlement.listDisplay);
+		users = cast (Browser.document.getElementById(COMPANY_USERS));
+		userListManager = 
+				new ListManager<model.Person>(
+					users
+					, COMPANY_USERS
+					, model.Person.optionId 
+					, model.Person.listDisplay
+				);
 		view.modelResponseStream.then(handleModelResponse);
+		//active company stream 
+		companyStream.then(getCompanyUsers);
+		userListResponse = new Deferred<model.QueryCompanyUsers>();
+		userListResponse.then(handleQueryCompanyUsers);
+
+
 	}	
+
+	private function getCompanyUsers(aCompanyId : Dynamic) {
+		trace("Query all company users for " + aCompanyId);
+		var queryCompanyUsers : QueryCompanyUsers = {
+			nickName : MBooks_im.getSingleton().getNickName()
+			, commandType : "QueryCompanyUsers"
+			, companyID : aCompanyId
+			, users : new Array<model.Person>()
+		}
+		MBooks_im.getSingleton().doSendJSON(queryCompanyUsers);
+
+	}
+
+	private function handleQueryCompanyUsers(incoming : Dynamic){
+		trace("Handle query company users " + incoming);
+		if(incoming == null){
+			MBooks_im.getSingleton().incomingMessageNull("QueryEntitlement");
+			return;
+		}if(incoming.Left != null){
+			MBooks_im.getSingleton().applicationErrorStream.resolve(incoming);
+		}else if(incoming.Right != null){
+			updateCompanyUsers(incoming.Right);
+		}		
+	}
+
+	private function updateCompanyUsers(queryUserResult : model.QueryCompanyUsers){
+		trace("Update company users list");
+		for(user in queryUserResult.users){
+			trace("Adding element to the list." + user);
+			var stream = userListManager.add(user);
+			stream.then(userAdded);
+		}
+
+	}
+
+
 	private function handleQueryEntitlementResponse(incoming : Dynamic){
 		trace("Query entitlements ");
 		if(incoming == null){
@@ -84,6 +146,9 @@ class CompanyEntitlement {
 	}
 	private function entitlementAdded(ev : Event) {
 		trace("Entitlement " + ev);
+	}
+	private function userAdded(ev : Event) {
+		trace("User added " + ev);
 	}
 
 	private function handleModelResponse(incoming : Dynamic) {

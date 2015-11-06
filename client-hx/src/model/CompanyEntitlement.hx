@@ -51,6 +51,13 @@ typedef CompanyEntitlementT = {
 	var sectionName : String;
 	}
 
+
+typedef QueryCompanyUsers = {
+	var nickName : String;
+	var commandType : String;
+	var companyID : String;
+	var users : Array<Person>;
+}
 class CompanyEntitlement {
 	private var payload : CompanyEntitlementT;
 

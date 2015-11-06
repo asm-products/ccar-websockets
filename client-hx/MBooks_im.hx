@@ -118,7 +118,9 @@ class MBooks_im {
 			initializeElementStream(getGmailOauthButton() , "click");
 		oauthStream.then(performGmailOauth);
 		entitlements = new view.Entitlement();
-		companyEntitlements = new view.CompanyEntitlement(entitlements);
+		companyEntitlements = new view.CompanyEntitlement(entitlements, 
+			selectedCompanyStream);
+
 	}
 
 	private static var GOAUTH_URL = "gmail_oauthrequest";
@@ -131,6 +133,7 @@ class MBooks_im {
 		oauthRequest.onloadend = oauthRequestData;
 		oauthRequest.send();
 	}
+
 	private function oauthRequestData(data : Event) {
 		var message : MessageEvent = cast data;
 		trace("Data " + message.data);
@@ -395,6 +398,9 @@ class MBooks_im {
 			}
 			case QueryEntitlements : {
 				entitlements.queryEntitlementResponse.resolve(incomingMessage);
+			}
+			case QueryCompanyUsers : {
+				companyEntitlements.userListResponse.resolve(incomingMessage);
 			}
 			case Undefined : {
 				processUndefinedCommandType(incomingMessage);

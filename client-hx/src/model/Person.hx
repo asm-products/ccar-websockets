@@ -47,6 +47,12 @@ class Person {
 	public function setPassword (n : String) : Void {
 		this.password = n;
 	}
+	public static function listDisplay(person : model.Person ) : String {
+		return (person.firstName + " " + person.lastName);
+	}	
+	public static function optionId(person : model.Person) : String {
+		return person.nickName;
+	}
 
 
 }

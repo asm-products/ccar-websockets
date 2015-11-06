@@ -37,4 +37,5 @@ enum CommandType {
 	QueryPortfolioSymbol;
 	ManageEntitlements;
 	QueryEntitlements;
+	QueryCompanyUsers;
 }
