@@ -451,8 +451,8 @@ authenticate aConn aText app@(App a c) =
 
 ser  = (L.toStrict) . (E.decodeUtf8) . (En.encode)
 
-processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> IO (DestinationType, T.Text) 
-processUserLoggedIn aConn aText app@(App a c) = do
+processUserLoggedIn :: WSConn.Connection -> T.Text -> App -> T.Text -> IO (DestinationType, T.Text) 
+processUserLoggedIn aConn aText app@(App a c) nickName = do
     case aCommand of 
             Nothing -> return (GroupCommunication.Reply, 
                     ser $ appError ("Login has errors" :: T.Text))
@@ -475,10 +475,12 @@ processUserLoggedIn aConn aText app@(App a c) = do
                             _ -> return $ (GroupCommunication.Reply, ser  
                                                 $ appError 
                                                     ("Invalid command during login" :: T.Text))
-                    String "ManageUser"-> do 
+                    String "ManageUser"-> do
+                        Logger.debugM iModuleName  ("Manage user " `mappend`   
+                                                        (T.unpack $ aText))
                         g@(gc, res) <- UserOperations.manage aText o 
                         case res of 
-                            Right x -> atomically $ addConnection app aConn aText                                        
+                            Right x -> atomically $ addConnection app aConn nickName
                         return (gc, ser (res :: Either ApplicationError UserOperations )) 
                     String "GuestUser" -> do 
                         result <- return $ (parse parseGuestUser a)
@@ -578,7 +580,7 @@ processUserPassword connection app nickNameV = undefined
 {-- Client hits a refresh or loses connection --}
 processClientLeft connection app nickNameV = do
             command <- WSConn.receiveData connection
-            (dest, text) <- liftIO $ processUserLoggedIn connection command app 
+            (dest, text) <- liftIO $ processUserLoggedIn connection command app nickNameV
             Logger.debugM iModuleName $ "User logged in " ++ (show text)
             messageLimit <- liftIO $ getMessageCount nickNameV
             Logger.debugM iModuleName  $ "Using message limit " ++ (show messageLimit)
