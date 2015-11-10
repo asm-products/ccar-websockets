@@ -115,7 +115,7 @@ manageUserOperations :: NickName -> Value -> IO (GC.DestinationType, Either Appl
 manageUserOperations aNickName aValue@(Object a) = do
 	Logger.debugM iModuleName $ show $ T.intercalate "-" ["inside manage", aNickName, 
 				T.pack $ show aValue] 
-	case (parse parseJSON aValue) of 
+	case (parse parseJSON aValue :: Result UserOperations) of 
 		Success e@(UserOperations a b) -> do 			
 			case a  of 
 				Create -> createUO b 

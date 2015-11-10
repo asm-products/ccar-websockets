@@ -277,28 +277,30 @@ processCommandValue app nickName aValue@(Object a)   = do
                 String "ManagePortfolioSymbol" -> PortfolioSymbol.manage nickName (Object a)
                 String "QueryPortfolioSymbol" -> PortfolioSymbol.manageSearch nickName (Object a)
                 String "ManageEntitlements" -> Entitlements.manage nickName aValue 
-                                                            >>= \(gc, either) -> 
-                                                                return (gc, Util.serialize 
-                                                                    (either :: Either ApplicationError Entitlements.EntitlementT)
-                                                                    )
+                            >>= \(gc, either) -> 
+                            return (gc, Util.serialize 
+                                (either :: Either ApplicationError 
+                                    Entitlements.EntitlementT)
+                                )
                 String "QueryEntitlements" -> Entitlements.query nickName aValue 
-                                                            >>= \(gc, either) -> 
-                                                                return (gc, 
-                                                                    Util.serialize 
-                                                                    (either :: 
-                                                                            Either ApplicationError Entitlements.QueryEntitlementT))
+                            >>= \(gc, either) -> 
+                                    return (gc, 
+                                        Util.serialize 
+                                        (either :: 
+                                                Either ApplicationError 
+                                                Entitlements.QueryEntitlementT))
                 String "ManageCompanyEntitlements" -> Entitlements.manage nickName aValue 
-                                                        >>= \(gc, either) ->
-                                                            return (gc , 
-                                                                Util.serialize 
-                                                                    (either :: Either ApplicationError 
-                                                                                Entitlements.CompanyEntitlementT))
+                            >>= \(gc, either) ->
+                            return (gc , 
+                            Util.serialize 
+                            (either :: Either ApplicationError 
+                                        Entitlements.CompanyEntitlementT))
                 String "QueryCompanyEntitlements" -> Entitlements.query nickName aValue 
-                                                    >>= \(gc, either) ->
-                                                        return (gc, Util.serialize
-                                                                (either :: 
-                                                                    Either ApplicationError 
-                                                                        Entitlements.QueryCompanyEntitlementT))
+                            >>= \(gc, either) ->
+                        return (gc, Util.serialize
+                                (either :: 
+                                    Either ApplicationError 
+                                        Entitlements.QueryCompanyEntitlementT))
                 String "QueryCompanyUsers" -> Company.query nickName aValue 
                             >>= \(gc, either) -> 
                                 return (gc, Util.serialize 
@@ -476,7 +478,7 @@ processUserLoggedIn aConn aText app@(App a c) = do
                     String "ManageUser"-> do 
                         g@(gc, res) <- UserOperations.manage aText o 
                         case res of 
-                            Right x -> atomically $ addConnection app aConn aText            
+                            Right x -> atomically $ addConnection app aConn aText                                        
                         return (gc, ser (res :: Either ApplicationError UserOperations )) 
                     String "GuestUser" -> do 
                         result <- return $ (parse parseGuestUser a)
@@ -489,6 +491,8 @@ processUserLoggedIn aConn aText app@(App a c) = do
                                     return (GroupCommunication.Reply 
                                         , ser $ appError
                                                 $ ("Guest login failed ") `mappend`  errMessage )
+
+                    String "Login" -> return (GroupCommunication.Reply, aText) -- tuple the input up
                     _ -> return (GroupCommunication.Reply 
                                 , ser $ appError 
                                         $ "process user logged in failed :  " ++ (show aText) )

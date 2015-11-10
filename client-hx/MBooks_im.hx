@@ -76,7 +76,7 @@ class MBooks_im {
 		getNickNameElement().disabled = false;
 		clearValue(cast getMessageHistoryElement());
 		clearValue(cast getPasswordElement());
-		clearValue(cast getRegisterElement());
+		
 		clearValue(cast getFirstNameElement());
 		clearValue(cast getLastNameElement());
 	}
@@ -95,7 +95,7 @@ class MBooks_im {
 		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
 		pStream.then(validatePassword);
 
-		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "keyup");
+		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "click");
 		rStream.then(registerUser);
 
 		var kStream : Stream<Dynamic> = initializeElementStream(cast getKickUserElement(), "keyup");
@@ -617,9 +617,9 @@ class MBooks_im {
 		var inputElement : InputElement = cast Browser.document.getElementById(LAST_NAME);
 		return inputElement;
 	}
-	private function getRegisterElement (): InputElement {
-		var inputElement : InputElement = cast Browser.document.getElementById(REGISTER);
-		return inputElement;
+	private function getRegisterElement (): ButtonElement {
+		var buttonElement : ButtonElement = cast Browser.document.getElementById(REGISTER);
+		return buttonElement;
 
 	}
 
@@ -786,29 +786,22 @@ class MBooks_im {
 		}
 
 	}
-	private function registerUser(ev: KeyboardEvent){
-		trace("Register user " + ev.keyCode);
-		if(Util.isSignificantWS(ev.keyCode)){		
-			var commandType : String = "ManageUser";
-			var operation : UserOperation = new UserOperation("Create");
-			var modelPerson = new Person(getFirstName()
-					, getLastName()
-					, getNickName()
-					, getPassword());
-			var uo : Dynamic = {
-				commandType : "ManageUser"
-				, nickName : getNickName()
-				, operation:  {
-					tag : "Create", 
-					contents : []
-				}
-				, person : modelPerson
-			};
-			doSendJSON(uo);
-			this.initializeKeepAlive();
-		}else {
-			trace("Not a terminator " + ev.keyCode);
-		}
+
+	private function registerUser(ev: Event){
+		var commandType : String = "ManageUser";
+		var operation : UserOperation = new UserOperation("Create");
+		var modelPerson = new Person(getFirstName()
+				, getLastName()
+				, getNickName()
+				, getPassword());
+		var uo : Dynamic = {
+			commandType : "ManageUser"
+			, nickName : getNickName()
+			, operation: "Create"			
+			, person : modelPerson
+		};
+		doSendJSON(uo);
+		this.initializeKeepAlive();
 	}
 
 	private function clearValue(inputElement : InputElement) {

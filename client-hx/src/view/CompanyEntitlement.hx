@@ -84,10 +84,32 @@ class CompanyEntitlement {
 		companyStream.then(getCompanyUsers);
 		userListResponse = new Deferred<model.QueryCompanyUsers>();
 		userListResponse.then(handleQueryCompanyUsers);
-
-
+		addUserEntitlement = cast (Browser.document.getElementById(ADD_USER_ENTITLEMENTS));
+		removeUserEntitlement = cast (Browser.document.getElementById(REMOVE_USER_ENTITLEMENTS));
 	}	
 
+	public function initializeStreams(){
+		trace("Adding user entitlement stream");
+		var addUserEntitlementStream : Stream<Dynamic> =
+				MBooks_im.getSingleton().initializeElementStream(
+					cast addUserEntitlement
+					, "click"
+			); 
+		addUserEntitlementStream.then(addUserEntitlementF);	
+		var removeUserEntitlementStream : Stream <Dynamic> = 
+				MBooks_im.getSingleton().initializeElementStream(
+				cast removeUserEntitlement 
+				, "click"
+				); 
+		removeUserEntitlementStream.then(removeUserEntitlementF);
+	}
+
+	private function addUserEntitlementF(event : Dynamic) {
+		trace("Add user entitlement " + event);
+	}
+	private function removeUserEntitlementF(event : Dynamic){
+		trace("Remove user entitlement " + event);
+	}
 	private function getCompanyUsers(aCompanyId : Dynamic) {
 		trace("Query all company users for " + aCompanyId);
 		var queryCompanyUsers : QueryCompanyUsers = {
@@ -117,7 +139,7 @@ class CompanyEntitlement {
 		for(user in queryUserResult.users){
 			trace("Adding element to the list." + user);
 			var stream = userListManager.add(user);
-			stream.then(userAdded);
+			stream.then(userSelected);
 		}
 
 	}
@@ -139,16 +161,16 @@ class CompanyEntitlement {
 	private function updateEntitlementList(queryEntitlement : model.QueryEntitlement) {
 		trace("Update entitlement list element");
 		for(entitlement in queryEntitlement.resultSet){
-			trace("Adding element to the list." + entitlement);
+			trace("Adding element to the list." + entitlement);			
 			var stream = entitlementsManager.add(entitlement);
-			stream.then(entitlementAdded);
+			stream.then(entitlementSelected);
 		}
 	}
-	private function entitlementAdded(ev : Event) {
+	private function entitlementSelected(ev : Event) {
 		trace("Entitlement " + ev);
 	}
-	private function userAdded(ev : Event) {
-		trace("User added " + ev);
+	private function userSelected(ev : Event) {
+		trace("User selected " + ev);
 	}
 
 	private function handleModelResponse(incoming : Dynamic) {

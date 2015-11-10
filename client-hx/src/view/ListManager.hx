@@ -60,6 +60,12 @@ class ListManager<T> {
 	public function upsert(element : T) : Stream<Dynamic> {
 		return add(element);
 	}
+
+	
+	
+	//Adding an element returns the selection stream
+	//for the element. We need to add 
+	//methods to merge streams for the selecction event.
 	public function add(element : T ) : Stream<Dynamic>{
 		trace("Adding element " + element);
 		var optionElement : OptionElement 
