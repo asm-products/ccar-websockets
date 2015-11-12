@@ -46,7 +46,7 @@ import js.d3.D3;
 import js.d3.D3;
 import js.d3.scale.Scale;
 
-import js.d3.selection.Selection;
+	import js.d3.selection.Selection;
 import js.d3.selection.Selection;
 import js.d3.layout.Layout;
 import view.Portfolio;
@@ -68,9 +68,30 @@ class MBooks_im {
 	private static var SECURITY_DIV : String = "workbench-security";
 	private static var PORTFOLIO_DIV : String = "workbench-portfolio";
 	private static var SETUP_GMAIL  : String = "setupGmailOauth";
+	//UI
+	private static var NICK_NAME = "nickName";
+	private static var PASSWORD = "password";
+	private static var FIRST_NAME = "firstName";
+	private static var LAST_NAME = "lastName";
+	private static var DIV_PASSWORD = "passwordDiv";
+	private static var DIV_FIRST_NAME = "firstNameDiv";
+	private static var DIV_LAST_NAME = "lastNameDiv";
+	private static var DIV_REGISTER = "registerDiv";
+	private static var USERS_ONLINE = "usersOnline";
+	private static var REGISTER = "registerInput";
+	private static var MESSAGE_HISTORY = "messageHistory";
+	private static var MESSAGE_INPUT = "messageInput";
+	private static var STATUS_MESSAGE = "statusMessage";
+	private static var KICK_USER = "kickUser";
+	private static var KICK_USER_DIV = "kickUserDiv";
+	private static var INIT_WELCOME_MESSAGE_DIV = "initWelcomeMessageDiv";
+	private static var INIT_WELCOME_MESSAGE = "initWelcomeMessage";
+
+
 	public static function getSingleton() {
 		return singleton;
 	}
+
 	function reset() {
 		clearValue(cast getNickNameElement());
 		getNickNameElement().disabled = false;
@@ -119,6 +140,7 @@ class MBooks_im {
 			selectedCompanyStream);
 
 	}
+
 
 	private static var GOAUTH_URL = "gmail_oauthrequest";
 	
@@ -471,9 +493,28 @@ class MBooks_im {
 
 
 	}
+
+	private function setInitWelcome(p: Person){
+		try {
+			var person : Person = p;
+			var inputElement : Element = 
+				getInitWelcomeElement();
+			inputElement.innerHTML = inputElement.innerHTML 
+						+ "," + person.nickName;
+			showDivField(INIT_WELCOME_MESSAGE_DIV);		
+		}catch(err : Dynamic){
+			trace(err);
+			setError(err);
+		}
+	}
 	private function processManageUser(p : Dynamic) {
-		var person : Person = p.person;
-		trace("Manage person");
+		if(p.Right != null) {
+			var person : Person = p.Right.person;
+			setInitWelcome(person);
+		}else {
+			trace("Error processing manage user " + p);
+			setError(p);
+		}
 	}
 	private function processSendMessage(incomingMessage) {
 		var textAreaElement : TextAreaElement = cast Browser.document.getElementById(MESSAGE_HISTORY);
@@ -556,23 +597,11 @@ class MBooks_im {
 	}
 
 
+	private function getInitWelcomeElement() : Element {
+		return (cast Browser.document.getElementById(INIT_WELCOME_MESSAGE));
+	}
 
-	//UI
-	private static var NICK_NAME = "nickName";
-	private static var PASSWORD = "password";
-	private static var FIRST_NAME = "firstName";
-	private static var LAST_NAME = "lastName";
-	private static var DIV_PASSWORD = "passwordDiv";
-	private static var DIV_FIRST_NAME = "firstNameDiv";
-	private static var DIV_LAST_NAME = "lastNameDiv";
-	private static var DIV_REGISTER = "registerDiv";
-	private static var USERS_ONLINE = "usersOnline";
-	private static var REGISTER = "registerInput";
-	private static var MESSAGE_HISTORY = "messageHistory";
-	private static var MESSAGE_INPUT = "messageInput";
-	private static var STATUS_MESSAGE = "statusMessage";
-	private static var KICK_USER = "kickUser";
-	private static var KICK_USER_DIV = "kickUserDiv";
+
 	private function getKickUserElement() : InputElement {
 		return (cast Browser.document.getElementById(KICK_USER));
 	}

@@ -331,6 +331,9 @@ MBooks_im.prototype = {
 	,getKickUserElement: function() {
 		return js.Browser.document.getElementById(MBooks_im.KICK_USER);
 	}
+	,getInitWelcomeElement: function() {
+		return js.Browser.document.getElementById(MBooks_im.INIT_WELCOME_MESSAGE);
+	}
 	,sendEvents: function(aMessage) {
 		this.websocket.send(haxe.Json.stringify(aMessage));
 		console.log("Sent " + Std.string(aMessage));
@@ -385,8 +388,24 @@ MBooks_im.prototype = {
 		if(incomingMessage.privateMessage != "") textAreaElement.value = textAreaElement.value + incomingMessage.sentTime + "@" + incomingMessage.from + ":" + incomingMessage.privateMessage + "\n";
 	}
 	,processManageUser: function(p) {
-		var person = p.person;
-		console.log("Manage person");
+		if(p.Right != null) {
+			var person = p.Right.person;
+			this.setInitWelcome(person);
+		} else {
+			console.log("Error processing manage user " + Std.string(p));
+			this.setError(p);
+		}
+	}
+	,setInitWelcome: function(p) {
+		try {
+			var person = p;
+			var inputElement = this.getInitWelcomeElement();
+			inputElement.innerHTML = inputElement.innerHTML + "," + person.nickName;
+			this.showDivField(MBooks_im.INIT_WELCOME_MESSAGE_DIV);
+		} catch( err ) {
+			console.log(err);
+			this.setError(err);
+		}
 	}
 	,processLoginResponse: function(lR) {
 		console.log("Processing login object " + Std.string(lR));
@@ -5569,7 +5588,6 @@ MBooks_im.CCAR_DIV = "workbench-ccar";
 MBooks_im.SECURITY_DIV = "workbench-security";
 MBooks_im.PORTFOLIO_DIV = "workbench-portfolio";
 MBooks_im.SETUP_GMAIL = "setupGmailOauth";
-MBooks_im.GOAUTH_URL = "gmail_oauthrequest";
 MBooks_im.NICK_NAME = "nickName";
 MBooks_im.PASSWORD = "password";
 MBooks_im.FIRST_NAME = "firstName";
@@ -5585,6 +5603,9 @@ MBooks_im.MESSAGE_INPUT = "messageInput";
 MBooks_im.STATUS_MESSAGE = "statusMessage";
 MBooks_im.KICK_USER = "kickUser";
 MBooks_im.KICK_USER_DIV = "kickUserDiv";
+MBooks_im.INIT_WELCOME_MESSAGE_DIV = "initWelcomeMessageDiv";
+MBooks_im.INIT_WELCOME_MESSAGE = "initWelcomeMessage";
+MBooks_im.GOAUTH_URL = "gmail_oauthrequest";
 MBooks_im.SERVER_ERROR = "serverError";
 MBooks_im.APPLICATION_ERROR = "applicationError";
 format.csv.Reader.FETCH_SIZE = 4096;
