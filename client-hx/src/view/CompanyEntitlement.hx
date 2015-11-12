@@ -88,6 +88,26 @@ class CompanyEntitlement {
 		removeUserEntitlement = cast (Browser.document.getElementById(REMOVE_USER_ENTITLEMENTS));
 	}	
 
+	private function handleUserEntitlementSelect(userEv : Dynamic, entEv : Dynamic){
+		var userList : SelectElement = cast userEv.target;
+		var entList  : SelectElement  = cast entEv.target;
+		
+		for(user in userList.selectedOptions) {
+			var u : OptionElement = cast user;
+			trace("User " + u.id + " " + u.text);
+			for(entE in entList.selectedOptions) {
+				var ent : OptionElement = cast entE;
+				trace("Ent " + ent.id + " " + ent.text);
+			}
+		}
+	}
+	private function handleUserListChange(ev : Dynamic){
+		trace("Event received " + ev);
+	}
+	private function handleEntitlementsChange(ev : Dynamic){
+		trace("Event received " + ev);
+
+	}
 	public function initializeStreams(){
 		trace("Adding user entitlement stream");
 		var addUserEntitlementStream : Stream<Dynamic> =
@@ -102,10 +122,27 @@ class CompanyEntitlement {
 				, "click"
 				); 
 		removeUserEntitlementStream.then(removeUserEntitlementF);
+		var stream = MBooks_im.getSingleton().initializeElementStream(userListManager.listElement 
+			, "change"
+		);
+		stream.then(handleUserListChange);
+		var eStream = MBooks_im.getSingleton().initializeElementStream(entitlementsManager.listElement
+			, "change");
+		eStream.then(handleEntitlementsChange);
+		Stream.whenever(stream, eStream).then(handleUserEntitlementSelect);
+
 	}
 
 	private function addUserEntitlementF(event : Dynamic) {
-		trace("Add user entitlement " + event);
+		trace("Add user entitlements " + event);
+		for (userE in users) {
+			var user : OptionElement = cast userE;
+			for(entE in userEntitlementsList){
+				var ent : OptionElement = cast entE;
+				trace("Adding entitlements " + ent.id  + " to " + user.id);
+				model.CompanyEntitlement.addUserEntitlement(user.id, ent.id);
+			}
+		}		
 	}
 	private function removeUserEntitlementF(event : Dynamic){
 		trace("Remove user entitlement " + event);
@@ -139,7 +176,6 @@ class CompanyEntitlement {
 		for(user in queryUserResult.users){
 			trace("Adding element to the list." + user);
 			var stream = userListManager.add(user);
-			stream.then(userSelected);
 		}
 
 	}
@@ -163,14 +199,7 @@ class CompanyEntitlement {
 		for(entitlement in queryEntitlement.resultSet){
 			trace("Adding element to the list." + entitlement);			
 			var stream = entitlementsManager.add(entitlement);
-			stream.then(entitlementSelected);
 		}
-	}
-	private function entitlementSelected(ev : Event) {
-		trace("Entitlement " + ev);
-	}
-	private function userSelected(ev : Event) {
-		trace("User selected " + ev);
 	}
 
 	private function handleModelResponse(incoming : Dynamic) {

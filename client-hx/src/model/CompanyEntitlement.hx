@@ -81,6 +81,8 @@ class CompanyEntitlement {
 			}
 		MBooks_im.getSingleton().doSendJSON(queryEntitlements);
 	}
-	
+	public static function addUserEntitlement(userNickName : String, entitlementId : String){
+		trace("Adding user entitlement for " + userNickName + " -> " + entitlementId);
+	}	
 
 }

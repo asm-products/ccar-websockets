@@ -89,12 +89,11 @@ class MBooks_im {
 		person = new model.Person("", "", "", "");
 		outputEventStream = new Deferred<Dynamic>();
 		trace("Registering nickname");
-		var stream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "keyup");
-		stream.then(sendLogin);
+		var blurStream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "blur");
+		blurStream.then(sendLoginBlur);
 		trace("Registering password");
-		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "keyup");			
+		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "blur");			
 		pStream.then(validatePassword);
-
 		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "click");
 		rStream.then(registerUser);
 
@@ -454,9 +453,11 @@ class MBooks_im {
 			showDivField(DIV_LAST_NAME);
 			showDivField(DIV_REGISTER);
 			this.initializeKeepAlive();
+			this.getPasswordElement().focus();
 		}
 		if(lStatus == UserExists){
 			showDivField(DIV_PASSWORD);
+			this.getPasswordElement().focus();
 		}
 
 		if(lStatus == InvalidPassword){
@@ -465,6 +466,8 @@ class MBooks_im {
 		if(lStatus == Undefined){
 			throw ("Undefined status");			
 		}
+
+
 
 	}
 	private function processManageUser(p : Dynamic) {
@@ -693,6 +696,23 @@ class MBooks_im {
 
 	}
 
+
+	private function sendLoginBlur(ev : Event){
+		var inputElement : InputElement = cast ev.target;
+		var inputValue : String = StringTools.trim(inputElement.value);
+		trace("Sending login information: " +  inputValue + ":");
+		if((inputValue != "")) {
+			this.person.setNickName(inputElement.value);
+			var lStatus : LoginStatus = Undefined;			
+			var cType : String = Std.string(CommandType.Login);
+			var l : Login = new Login(cType, this.person, lStatus);
+			trace("Sending login status " + l);
+			doSendJSON(l);			
+		}else {
+			trace("Not sending any login");
+		}
+
+	}
 	//Login and other stuff
 	private function sendLogin (ev: KeyboardEvent){
 		var inputElement : InputElement = cast ev.target;
@@ -739,32 +759,31 @@ class MBooks_im {
 		}
 
 	}
+
 	private function validatePassword(ev : KeyboardEvent){
-		if(Util.isSignificantWS(ev.keyCode)){
-			trace("Password: " + getPassword() + ":");
-			if(getPassword() == ""){
-				trace("Not sending password");
-				return;
+		trace("Password: " + getPassword() + ":");
+		if(getPassword() == ""){
+			trace("Not sending password");
+			return;
+		}
+		if(getPassword() != this.person.password){
+			js.Lib.alert("Invalid password. Try again");
+			attempts++;
+			if(attempts > maxAttempts){
+				loginAsGuest();
+				trace("Logging in as guest");
 			}
-			if(getPassword() != this.person.password){
-				js.Lib.alert("Invalid password. Try again");
-				attempts++;
-				if(attempts > maxAttempts){
-					loginAsGuest();
-					trace("Logging in as guest");
-				}
-			}else {
-				trace("Password works!");
-				var userLoggedIn : Dynamic = {
-					userName : getNickName()
-					, commandType : "UserLoggedIn"
-				};
-				getNickNameElement().disabled = true;
-				doSendJSON(userLoggedIn);
-				addStatusMessage(getNickName());
-				showDivField("statusMessageDiv");
-				this.initializeKeepAlive();
-			}
+		}else {
+			trace("Password works!");
+			var userLoggedIn : Dynamic = {
+				userName : getNickName()
+				, commandType : "UserLoggedIn"
+			};
+			getNickNameElement().disabled = true;
+			doSendJSON(userLoggedIn);
+			addStatusMessage(getNickName());
+			showDivField("statusMessageDiv");
+			this.initializeKeepAlive();
 		}
 	}
 	private function addStatusMessage(userMessage : String) {
@@ -874,11 +893,13 @@ class MBooks_im {
 	public var applicationErrorStream(default, null) : Deferred<Dynamic>;
 	static function main() {
 		singleton = new MBooks_im();
-
+		singleton.setupStreams();
 		singleton.connect();
 	}
 	
-	
+	private function setupStreams() {
+		//to deal with circular dependencies
+	}
 	private function authenticationChecks(incoming : Dynamic){
 		//Get user entitlements
 		//if user is admin, then query all entitlements.

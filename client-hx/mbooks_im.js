@@ -93,10 +93,10 @@ var MBooks_im = function() {
 	this.person = new model.Person("","","","");
 	this.outputEventStream = new promhx.Deferred();
 	console.log("Registering nickname");
-	var stream = this.initializeElementStream(this.getNickNameElement(),"keyup");
-	stream.then($bind(this,this.sendLogin));
+	var blurStream = this.initializeElementStream(this.getNickNameElement(),"blur");
+	blurStream.then($bind(this,this.sendLoginBlur));
 	console.log("Registering password");
-	var pStream = this.initializeElementStream(this.getPasswordElement(),"keyup");
+	var pStream = this.initializeElementStream(this.getPasswordElement(),"blur");
 	pStream.then($bind(this,this.validatePassword));
 	var rStream = this.initializeElementStream(this.getRegisterElement(),"click");
 	rStream.then($bind(this,this.registerUser));
@@ -125,6 +125,7 @@ MBooks_im.getSingleton = function() {
 }
 MBooks_im.main = function() {
 	MBooks_im.singleton = new MBooks_im();
+	MBooks_im.singleton.setupStreams();
 	MBooks_im.singleton.connect();
 }
 MBooks_im.getDynamic = function(name) {
@@ -134,6 +135,8 @@ MBooks_im.prototype = {
 	authenticationChecks: function(incoming) {
 		console.log("Processing " + Std.string(incoming));
 		this.entitlements.queryAllEntitlements();
+	}
+	,setupStreams: function() {
 	}
 	,getUserLoggedInStream: function() {
 		return this.userLoggedIn;
@@ -175,28 +178,26 @@ MBooks_im.prototype = {
 		this.getStatusMessageElement().innerHTML = this.getStatusMessageElement().innerHTML + " : " + userMessage;
 	}
 	,validatePassword: function(ev) {
-		if(util.Util.isSignificantWS(ev.keyCode)) {
-			console.log("Password: " + this.getPassword() + ":");
-			if(this.getPassword() == "") {
-				console.log("Not sending password");
-				return;
+		console.log("Password: " + this.getPassword() + ":");
+		if(this.getPassword() == "") {
+			console.log("Not sending password");
+			return;
+		}
+		if(this.getPassword() != this.person.password) {
+			js.Lib.alert("Invalid password. Try again");
+			this.attempts++;
+			if(this.attempts > this.maxAttempts) {
+				this.loginAsGuest();
+				console.log("Logging in as guest");
 			}
-			if(this.getPassword() != this.person.password) {
-				js.Lib.alert("Invalid password. Try again");
-				this.attempts++;
-				if(this.attempts > this.maxAttempts) {
-					this.loginAsGuest();
-					console.log("Logging in as guest");
-				}
-			} else {
-				console.log("Password works!");
-				var userLoggedIn = { userName : this.getNickName(), commandType : "UserLoggedIn"};
-				this.getNickNameElement().disabled = true;
-				this.doSendJSON(userLoggedIn);
-				this.addStatusMessage(this.getNickName());
-				this.showDivField("statusMessageDiv");
-				this.initializeKeepAlive();
-			}
+		} else {
+			console.log("Password works!");
+			var userLoggedIn = { userName : this.getNickName(), commandType : "UserLoggedIn"};
+			this.getNickNameElement().disabled = true;
+			this.doSendJSON(userLoggedIn);
+			this.addStatusMessage(this.getNickName());
+			this.showDivField("statusMessageDiv");
+			this.initializeKeepAlive();
 		}
 	}
 	,sendMessage: function(ev) {
@@ -226,6 +227,19 @@ MBooks_im.prototype = {
 				this.doSendJSON(l);
 			} else console.log("Not sending any login");
 		}
+	}
+	,sendLoginBlur: function(ev) {
+		var inputElement = ev.target;
+		var inputValue = StringTools.trim(inputElement.value);
+		console.log("Sending login information: " + inputValue + ":");
+		if(inputValue != "") {
+			this.person.setNickName(inputElement.value);
+			var lStatus = model.LoginStatus.Undefined;
+			var cType = Std.string(model.CommandType.Login);
+			var l = new model.Login(cType,this.person,lStatus);
+			console.log("Sending login status " + Std.string(l));
+			this.doSendJSON(l);
+		} else console.log("Not sending any login");
 	}
 	,getLoginRequest: function(nickName,status) {
 		var lStatus = status;
@@ -396,8 +410,12 @@ MBooks_im.prototype = {
 			this.showDivField(MBooks_im.DIV_LAST_NAME);
 			this.showDivField(MBooks_im.DIV_REGISTER);
 			this.initializeKeepAlive();
+			this.getPasswordElement().focus();
 		}
-		if(lStatus == model.LoginStatus.UserExists) this.showDivField(MBooks_im.DIV_PASSWORD);
+		if(lStatus == model.LoginStatus.UserExists) {
+			this.showDivField(MBooks_im.DIV_PASSWORD);
+			this.getPasswordElement().focus();
+		}
 		if(lStatus == model.LoginStatus.InvalidPassword) {
 		}
 		if(lStatus == model.LoginStatus.Undefined) throw "Undefined status";
@@ -2645,6 +2663,9 @@ model.CompanyEntitlement = function(stream) {
 	stream.then($bind(this,this.updateModel));
 };
 model.CompanyEntitlement.__name__ = ["model","CompanyEntitlement"];
+model.CompanyEntitlement.addUserEntitlement = function(userNickName,entitlementId) {
+	console.log("Adding user entitlement for " + userNickName + " -> " + entitlementId);
+}
 model.CompanyEntitlement.prototype = {
 	queryAllEntitlements: function() {
 		console.log("Query all the entitlements");
@@ -4413,12 +4434,6 @@ view.CompanyEntitlement.prototype = {
 		}
 		if(incoming.Left != null) MBooks_im.getSingleton().applicationErrorStream.resolve(incoming); else if(incoming.Right != null) this.updateSelf(incoming.Right);
 	}
-	,userSelected: function(ev) {
-		console.log("User selected " + Std.string(ev));
-	}
-	,entitlementSelected: function(ev) {
-		console.log("Entitlement " + Std.string(ev));
-	}
 	,updateEntitlementList: function(queryEntitlement) {
 		console.log("Update entitlement list element");
 		var _g = 0, _g1 = queryEntitlement.resultSet;
@@ -4427,7 +4442,6 @@ view.CompanyEntitlement.prototype = {
 			++_g;
 			console.log("Adding element to the list." + Std.string(entitlement));
 			var stream = this.entitlementsManager.add(entitlement);
-			stream.then($bind(this,this.entitlementSelected));
 		}
 	}
 	,handleQueryEntitlementResponse: function(incoming) {
@@ -4446,7 +4460,6 @@ view.CompanyEntitlement.prototype = {
 			++_g;
 			console.log("Adding element to the list." + Std.string(user));
 			var stream = this.userListManager.add(user);
-			stream.then($bind(this,this.userSelected));
 		}
 	}
 	,handleQueryCompanyUsers: function(incoming) {
@@ -4466,7 +4479,21 @@ view.CompanyEntitlement.prototype = {
 		console.log("Remove user entitlement " + Std.string(event));
 	}
 	,addUserEntitlementF: function(event) {
-		console.log("Add user entitlement " + Std.string(event));
+		console.log("Add user entitlements " + Std.string(event));
+		var _g = 0, _g1 = this.users;
+		while(_g < _g1.length) {
+			var userE = _g1[_g];
+			++_g;
+			var user = userE;
+			var _g2 = 0, _g3 = this.userEntitlementsList;
+			while(_g2 < _g3.length) {
+				var entE = _g3[_g2];
+				++_g2;
+				var ent = entE;
+				console.log("Adding entitlements " + ent.id + " to " + user.id);
+				model.CompanyEntitlement.addUserEntitlement(user.id,ent.id);
+			}
+		}
 	}
 	,initializeStreams: function() {
 		console.log("Adding user entitlement stream");
@@ -4474,6 +4501,48 @@ view.CompanyEntitlement.prototype = {
 		addUserEntitlementStream.then($bind(this,this.addUserEntitlementF));
 		var removeUserEntitlementStream = MBooks_im.getSingleton().initializeElementStream(this.removeUserEntitlement,"click");
 		removeUserEntitlementStream.then($bind(this,this.removeUserEntitlementF));
+		var stream = MBooks_im.getSingleton().initializeElementStream(this.userListManager.listElement,"change");
+		stream.then($bind(this,this.handleUserListChange));
+		var eStream = MBooks_im.getSingleton().initializeElementStream(this.entitlementsManager.listElement,"change");
+		eStream.then($bind(this,this.handleEntitlementsChange));
+		((function($this) {
+			var $r;
+			var varargf = function(f) {
+				var ret = new promhx.Stream();
+				var arr = [stream,eStream];
+				var p = promhx.Stream.wheneverAll(arr);
+				p._update.push({ async : ret, linkf : function(x) {
+					ret.handleResolve(f(stream._val,eStream._val));
+				}});
+				return ret;
+			};
+			$r = { then : varargf};
+			return $r;
+		}(this))).then($bind(this,this.handleUserEntitlementSelect));
+	}
+	,handleEntitlementsChange: function(ev) {
+		console.log("Event received " + Std.string(ev));
+	}
+	,handleUserListChange: function(ev) {
+		console.log("Event received " + Std.string(ev));
+	}
+	,handleUserEntitlementSelect: function(userEv,entEv) {
+		var userList = userEv.target;
+		var entList = entEv.target;
+		var _g = 0, _g1 = userList.selectedOptions;
+		while(_g < _g1.length) {
+			var user = _g1[_g];
+			++_g;
+			var u = user;
+			console.log("User " + u.id + " " + u.text);
+			var _g2 = 0, _g3 = entList.selectedOptions;
+			while(_g2 < _g3.length) {
+				var entE = _g3[_g2];
+				++_g2;
+				var ent = entE;
+				console.log("Ent " + ent.id + " " + ent.text);
+			}
+		}
 	}
 	,__class__: view.CompanyEntitlement
 }

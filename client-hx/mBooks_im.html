@@ -55,17 +55,15 @@
 			<div id="passwordDiv" class="col_12" style="display:none">
 				<!-- Placeholder Text -->
 				<label for="password">Password</label>
-				<input id="password" type="password" placeholder="" 
-					   tabIndex="2"
-						/>
+				<input id="password" type="password" placeholder="" />
 			</div>
 			<div id="firstNameDiv" class="col_12" style="display:none">
 				<label for="firstName" >First Name</label>
-				<input id="firstName" type="text" />
+				<input id="firstName" type="text" tabIndex="3"/>
 			</div>
 			<div id="lastNameDiv" class="col_12" style="display:none">
 			<label for="lastName">Last Name </label>
-			<input id="lastName" type="text"/>
+			<input id="lastName" type="text" tabIndex="4"/>
 			</div>
  			<div id="registerDiv" class="col12" style="display:none">
 				
@@ -75,12 +73,11 @@
 				<h4 id="statusMessage">Welcome back!</h4>
 			</div>	
 		</form>
-
 		</div>
 	</div>
 	<div class="col_4" class="callout clearfix">
 		<label for="companyList"> Company </label>
-		<select id="companyList">
+		<select id="companyList" tabIndex = "6">
 			<option value="0">-- Choose </option>
 		</select>
 		<img id="companySplash" height="200"/>

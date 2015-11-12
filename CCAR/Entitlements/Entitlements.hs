@@ -370,9 +370,11 @@ createCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab s
 		return z
 
 
-{- | Updates an entitlement for a user for a company. Not implemented. We remove and add
+{- | Updates an entitlement for a user for a company. We remove and add
      entitlements for a company for a user. -}
-updateCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = undefined
+updateCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
+	deleteCompanyEntitlement ce 
+	createCompanyEntitlement ce
 
 {- | Retrieves an entitlement for a user for a company. -}
 retrieveCompanyEntitlement ce@(CompanyEntitlementT c crType companyId userId tab section) = do 
