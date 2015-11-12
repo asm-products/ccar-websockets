@@ -96,8 +96,6 @@ var MBooks_im = function() {
 	var blurStream = this.initializeElementStream(this.getNickNameElement(),"blur");
 	blurStream.then($bind(this,this.sendLoginBlur));
 	console.log("Registering password");
-	var pStream = this.initializeElementStream(this.getPasswordElement(),"blur");
-	pStream.then($bind(this,this.validatePassword));
 	var rStream = this.initializeElementStream(this.getRegisterElement(),"click");
 	rStream.then($bind(this,this.registerUser));
 	var kStream = this.initializeElementStream(this.getKickUserElement(),"keyup");
@@ -414,6 +412,8 @@ MBooks_im.prototype = {
 		}
 		if(lStatus == model.LoginStatus.UserExists) {
 			this.showDivField(MBooks_im.DIV_PASSWORD);
+			var pStream = this.initializeElementStream(this.getPasswordElement(),"blur");
+			pStream.then($bind(this,this.validatePassword));
 			this.getPasswordElement().focus();
 		}
 		if(lStatus == model.LoginStatus.InvalidPassword) {

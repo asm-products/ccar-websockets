@@ -92,8 +92,6 @@ class MBooks_im {
 		var blurStream : Stream<Dynamic> = initializeElementStream(cast getNickNameElement(), "blur");
 		blurStream.then(sendLoginBlur);
 		trace("Registering password");
-		var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "blur");			
-		pStream.then(validatePassword);
 		var rStream : Stream<Dynamic> = initializeElementStream(cast getRegisterElement(), "click");
 		rStream.then(registerUser);
 
@@ -454,9 +452,12 @@ class MBooks_im {
 			showDivField(DIV_REGISTER);
 			this.initializeKeepAlive();
 			this.getPasswordElement().focus();
+
 		}
 		if(lStatus == UserExists){
 			showDivField(DIV_PASSWORD);
+			var pStream : Stream<Dynamic> = initializeElementStream(cast getPasswordElement(), "blur");			
+			pStream.then(validatePassword);
 			this.getPasswordElement().focus();
 		}
 
