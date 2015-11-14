@@ -4856,14 +4856,7 @@ view.Portfolio = function() {
 };
 view.Portfolio.__name__ = ["view","Portfolio"];
 view.Portfolio.prototype = {
-	processPortfolioSelected: function(ev) {
-		console.log("Portfolio selected " + Std.string(ev.target));
-		var selectionElement = ev.target;
-		var selectionId = selectionElement.id;
-		this.readPortfolio(selectionId);
-		console.log("Returning symbols for portfolio " + selectionId);
-	}
-	,updatePortfolioList: function(portfolioObject) {
+	updatePortfolioList: function(portfolioObject) {
 		var portfolioList = this.getPortfolioList();
 		var portfolioId = portfolioObject.portfolioId;
 		var optionElement = js.Browser.document.getElementById(portfolioId);
@@ -4871,8 +4864,6 @@ view.Portfolio.prototype = {
 			optionElement = js.Browser.document.createElement("option");
 			optionElement.id = portfolioId;
 			optionElement.text = portfolioObject.summary;
-			var portfolioSelectedStream = MBooks_im.getSingleton().initializeElementStream(optionElement,"click");
-			portfolioSelectedStream.then($bind(this,this.processPortfolioSelected));
 			portfolioList.appendChild(optionElement);
 		} else optionElement.text = portfolioObject.summary;
 	}
@@ -4890,6 +4881,18 @@ view.Portfolio.prototype = {
 	,updatePortfolioEntry: function(update) {
 		var optionElement = js.Browser.document.getElementById(update.portfolioId);
 		if(optionElement != null) optionElement.selected = true; else throw "Option element for portfolio Id not found " + Std.string(update);
+	}
+	,portfolioListChanged: function(event) {
+		console.log("Portfolio list changed " + Std.string(event));
+		var portfolioList = event.target;
+		var _g = 0, _g1 = portfolioList.selectedOptions;
+		while(_g < _g1.length) {
+			var portfolio = _g1[_g];
+			++_g;
+			var pOption = portfolio;
+			if(pOption.text == "--Choose--") this.activePortfolio = null; else this.readPortfolio(pOption.id);
+			console.log("Handling " + pOption.id + "->" + pOption.text);
+		}
 	}
 	,getPortfoliosForUser: function() {
 		if(this.activeCompany == null) {
@@ -4993,6 +4996,8 @@ view.Portfolio.prototype = {
 		updateP.then($bind(this,this.updatePortfolio));
 		var deleteP = MBooks_im.getSingleton().initializeElementStream(this.getDeletePortfolioButton(),"click");
 		deleteP.then($bind(this,this.deletePortfolio));
+		var portfolioListEvent = MBooks_im.getSingleton().initializeElementStream(this.getPortfolioList(),"change");
+		portfolioListEvent.then($bind(this,this.portfolioListChanged));
 		MBooks_im.getSingleton().portfolioListStream.then($bind(this,this.processPortfolioList));
 		MBooks_im.getSingleton().activeCompanyStream.then($bind(this,this.processActiveCompany));
 		MBooks_im.getSingleton().portfolioStream.then($bind(this,this.processManagePortfolio));

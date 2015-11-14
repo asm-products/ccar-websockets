@@ -83,8 +83,9 @@ instance Show ClientState where
     show cs = (show $ nickName cs) ++  " Connected"
 type ClientIdentifierMap = TVar (IMap.Map ClientIdentifier ClientState)
 type GroupIdentifier = T.Text
-data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | PrivateMessage ClientIdentifier
-		deriving(Show, Typeable, Data, Generic, Eq)
+data DestinationType = Reply | GroupMessage GroupIdentifier | Broadcast | 
+                    PrivateMessage ClientIdentifier | Internal 
+		              deriving(Show, Typeable, Data, Generic, Eq)
 
 data SendMessage = SendMessage { from :: T.Text
                                 , to :: T.Text

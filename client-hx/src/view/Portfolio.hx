@@ -65,6 +65,12 @@ class Portfolio {
 				, "click"
 			);
 		deleteP.then(deletePortfolio);
+		var portfolioListEvent : Stream<Dynamic> = 
+			MBooks_im.getSingleton().initializeElementStream(
+				getPortfolioList()
+				, "change"
+			);
+		portfolioListEvent.then(portfolioListChanged);
 		MBooks_im.getSingleton().portfolioListStream.then(processPortfolioList);
 		MBooks_im.getSingleton().activeCompanyStream.then(processActiveCompany);
 		MBooks_im.getSingleton().portfolioStream.then(processManagePortfolio);
@@ -249,6 +255,19 @@ class Portfolio {
 		MBooks_im.getSingleton().doSendJSON(portfolioQuery);
 	}
 
+	private function portfolioListChanged(event : Dynamic){
+		trace("Portfolio list changed " + event);
+		var portfolioList : SelectElement = cast event.target;
+		for(portfolio in portfolioList.selectedOptions){
+			var pOption: OptionElement = cast portfolio;
+			if(pOption.text == "--Choose--") {
+				activePortfolio = null;		
+			}else {
+				readPortfolio(pOption.id);
+			}
+			trace("Handling " + pOption.id + "->" + pOption.text);
+		}
+	}
 	private function updatePortfolioEntry(update : PortfolioT){
 		var optionElement : OptionElement 
 			= cast (Browser.document.getElementById(update.portfolioId));
@@ -272,6 +291,7 @@ class Portfolio {
 	private function clearValues(){
 		setPortfolioSummary("");
 	}
+
 	private function updatePortfolioList(portfolioObject : PortfolioT){
 		var portfolioList = getPortfolioList();
 		var portfolioId = portfolioObject.portfolioId;
@@ -282,27 +302,14 @@ class Portfolio {
 				cast (Browser.document.createOptionElement());
 				optionElement.id = portfolioId;
 				optionElement.text = portfolioObject.summary;
-				var portfolioSelectedStream = 
-					MBooks_im.getSingleton().initializeElementStream(
-						cast optionElement,
-						"click"
-						);
-				portfolioSelectedStream.then(processPortfolioSelected);
 				portfolioList.appendChild(optionElement);
 		}else {
 			optionElement.text = portfolioObject.summary;
 		}
 	}
-	private function processPortfolioSelected(ev : Event){
-		trace ("Portfolio selected " + ev.target);
-		var selectionElement :OptionElement  = 
-			cast ev.target;
-		var selectionId = selectionElement.id;
-		readPortfolio(selectionId);
-		trace ("Returning symbols for portfolio " + selectionId);
-	}
+
 
 	private var activeCompany : model.Company;
 	private var activePortfolio : PortfolioT;
 
-}
+}	

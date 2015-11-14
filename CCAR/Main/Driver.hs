@@ -20,7 +20,7 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Error
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth, waitAny
-                        , concurrently)
+                        , concurrently,asyncThreadId)
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(runStderrLoggingT)
 import Data.Time
@@ -76,8 +76,8 @@ import Network.URI
 import Network.HTTP.Client as HttpClient
 import Network.HTTP.Conduit 
 import Network.HTTP.Types as W 
-
-
+import GHC.Conc(labelThread)
+import Debug.Trace(traceEventIO)
 
 
 iModuleName :: String 
@@ -235,6 +235,8 @@ validatePassword dbPassword input = Just $ dbPassword == (pwPassword input)
 
 
 
+
+
 processCommandValue :: App -> T.Text -> Value -> IO (DestinationType, T.Text)
 processCommandValue app nickName aValue@(Object a)   = do  
     case cType of 
@@ -372,17 +374,35 @@ getNickName aCommand =
             where 
                 nn = LH.lookup "nickName" a 
 
+
+
+
+processLoginMessages :: App -> WSConn.Connection -> T.Text -> Maybe Value -> IO (DestinationType, T.Text)
+processLoginMessages app conn aNickName aDictionary = do 
+    x <- runMaybeT $ do 
+        Just (Object a) <- return aDictionary
+        Just commandType <- return $ LH.lookup "commandType" a 
+        case commandType of 
+            String "Login" -> 
+                        liftIO $ Login.query aNickName (Object a)
+                        >>= \(gc, result) -> 
+                        return (gc, 
+                            Util.serialize
+                            (result ::Either ApplicationError Login))
+    case x of 
+        Just y -> return y
+        Nothing -> return (GroupCommunication.Reply, 
+                            ser $ appError ("Error processing login messages." :: String))
 processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
 processIncomingMessage app conn aNickName aCommand = do 
     case aCommand of 
         Nothing -> do
-                Logger.infoM iModuleName $ "Processing error..."
+                Logger.errorM iModuleName $ "Processing error..." ++ (show aNickName)
                 result <- return (appError ("Unknown error" :: T.Text)) 
                 return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
                     
         Just (Object a) -> do 
-                Logger.infoM iModuleName $ show $ "Processing command type " ++ (show (LH.lookup "commandType" a))
-                (processCommandValue app aNickName (Object a)) `catch`
+                 (processCommandValue app aNickName (Object a)) `catch`
                     (\e -> do
                             Logger.errorM iModuleName $  ("Exception "  ++ show (e :: PersistException)) 
                             atomically $ deleteConnection app aNickName
@@ -526,8 +546,7 @@ ccarApp = do
         case clientState of 
             [] -> do 
                 (destination, text) <- liftIO $ authenticate connection command app  
-                $(logInfo) $ "Incoming text " `mappend` (command :: T.Text)
-                $(logInfo) $ T.pack $ show $ incomingDictionary (command :: T.Text)
+                liftIO $ Logger.debugM iModuleName  $ "Incoming text " `mappend` (T.unpack(command :: T.Text))
                 processResult <- case result of 
                     Nothing -> do 
                             $(logInfo) command 
@@ -546,6 +565,12 @@ ccarApp = do
                                                 nickNameV False))
                                             b <- (A.async (liftIO $ readerThread app nickNameV False))
                                             c <- (A.async $ liftIO $ jobReaderThread app nickNameV False)
+                                            labelThread (A.asyncThreadId a) 
+                                                        ("Writer thread " ++ (T.unpack nickNameV))
+                                            labelThread (A.asyncThreadId b) 
+                                                    ("Reader thread " ++ (T.unpack nickNameV))
+                                            labelThread (A.asyncThreadId c) 
+                                                    ("Job thread " ++ (T.unpack nickNameV))
                                             A.waitAny [a,  b,  c]
                                             return "Threads had exception") 
                             return ("All threads exited" :: T.Text)
@@ -561,7 +586,7 @@ incomingDictionary aText = J.decode  $ E.encodeUtf8 $ L.fromStrict aText :: Mayb
 {-- Both these methods are part of pre-login handshake. --}
 {-- An exception while server is replying to client. --}
 processClientLost app connection nickNameV iText = do
-                    (command, nickNameFound) <- liftIO $ processIncomingMessage 
+                    (command, nickNameFound) <- liftIO $ processLoginMessages 
                                 app 
                                 connection 
                                 nickNameV
@@ -707,35 +732,40 @@ jobReaderThread app nickN terminate =
 {-- The main processing loop for incoming commands.--}
 writerThread :: App -> WSConn.Connection -> T.Text -> Bool -> IO ()
 writerThread app connection nickName terminate = do
+    Logger.debugM iModuleName $ 
+        (show connection) ++ "->" ++  (T.unpack nickName)
     if (terminate == True) 
         then do 
             Logger.infoM iModuleName "Writer thread exiting."
             return () 
         else do 
+            liftIO $ Logger.debugM iModuleName "Waiting for message writerThread..."
+            traceEventIO "Before reading connection data"
             msg <- WSConn.receiveData connection `catch` 
                 (\h -> 
                     case h of 
                         (CloseRequest a b ) -> 
                             do 
                             _ <- handleDisconnects app connection nickName h
-                            writerThread app connection nickName True
-                            return "Close request received"                        
+                            --writerThread app connection nickName True
+                            Logger.errorM iModuleName  "Close request received"                        
+                            return "Close request received"
                         x -> do 
                             handleDisconnects app connection nickName h 
-                            writerThread app connection nickName True 
-                            return $ T.pack $ show x     
+                            Logger.errorM iModuleName (show x)
+                            return $ T.pack $ show x
 
                 )
+            liftIO $ Logger.debugM iModuleName ("Reading message from the connection " ++ (T.unpack msg))
             (result, nickName) <- liftIO $ getNickName $ incomingDictionary (msg :: T.Text)
-            Logger.debugM iModuleName 
-                            $ show $ msg  `mappend` nickName
             case result of 
                 Nothing -> do 
                         liftIO $ WSConn.sendClose connection ("Nick name tag is mandatory. Bye" :: T.Text)
                 Just _ -> do 
-                    liftIO $ Logger.infoM iModuleName 
-                                $ "Writer thread :-> Message nickName " `mappend` (show nickName)
-                    (dest, x) <- liftIO $ processIncomingMessage app connection nickName$ incomingDictionary msg
+                    (dest, x) <- liftIO $ processIncomingMessage app connection nickName 
+                                                $ incomingDictionary msg
+                    
+                    liftIO $ Logger.debugM iModuleName ("Destination " ++ (show dest))
                     atomically $ do 
                                     clientStates <- case dest of 
                                         Broadcast -> getAllClients app nickName 
@@ -744,6 +774,7 @@ writerThread app connection nickName terminate = do
                                         _ ->
                                             getClientState nickName app                                        
                                     mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
+                    
                     writerThread app connection nickName terminate
 
 
@@ -807,9 +838,9 @@ driver = do
     hSetBuffering sH $ BlockBuffering $ Just 4096
     h <- SimpleLogger.streamHandler sH Log.DEBUG
     lh <- return $ setFormatter h (simpleLogFormatter "[$time : $loggername : $prio : $tid] $msg")
-    s <- SimpleLogger.streamHandler stderr Log.ERROR
+--    s <- SimpleLogger.streamHandler stderr Log.ERROR
     _ <- Logger.updateGlobalLogger "CCAR" $ Logger.setLevel 
-                                        Log.DEBUG . setHandlers[s, h, lh]
+                                        Log.DEBUG . setHandlers[lh]
     
     Logger.debugM "CCAR" "Starting yesod.."                                    
     connStr <- getConnectionString
