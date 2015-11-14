@@ -326,6 +326,7 @@ MBooks_im.prototype = {
 		return this.getNickNameElement().value;
 	}
 	,doSendJSON: function(aMessage) {
+		console.log("Sending " + Std.string(aMessage));
 		this.outputEventStream.resolve(aMessage);
 	}
 	,getKickUserElement: function() {
@@ -670,13 +671,15 @@ MBooks_im.prototype = {
 		return this.protocol + "://" + js.Browser.location.hostname + "/chat";
 	}
 	,processSuccessfulLogin: function(loginEvent) {
-		console.log("Initialize the rest of the instances");
-		MBooks_im.singleton.company = new view.Company();
-		MBooks_im.singleton.project = new model.Project(MBooks_im.singleton.company);
-		MBooks_im.singleton.ccar = new model.CCAR("","","");
-		MBooks_im.singleton.portfolio = new view.Portfolio();
-		MBooks_im.singleton.portfolioSymbolModel = new model.PortfolioSymbol();
-		MBooks_im.singleton.portfolioSymbolView = new view.PortfolioSymbol(MBooks_im.singleton.portfolioSymbolModel);
+		console.log("Process successful login " + Std.string(loginEvent));
+		if(loginEvent.userName == this.getNickName()) {
+			MBooks_im.singleton.company = new view.Company();
+			MBooks_im.singleton.project = new model.Project(MBooks_im.singleton.company);
+			MBooks_im.singleton.ccar = new model.CCAR("","","");
+			MBooks_im.singleton.portfolio = new view.Portfolio();
+			MBooks_im.singleton.portfolioSymbolModel = new model.PortfolioSymbol();
+			MBooks_im.singleton.portfolioSymbolView = new view.PortfolioSymbol(MBooks_im.singleton.portfolioSymbolModel);
+		} else console.log("A new user loddeg in " + Std.string(loginEvent));
 	}
 	,getGmailOauthButton: function() {
 		return js.Browser.document.getElementById(MBooks_im.SETUP_GMAIL);
@@ -4850,6 +4853,7 @@ view.ListManager.prototype = {
 	,__class__: view.ListManager
 }
 view.Portfolio = function() {
+	console.log("Creating new portfolio view");
 	this.activePortfolioStream = new promhx.Deferred();
 	this.setupEvents();
 	this.activePortfolioStream.then($bind(this,this.updateActivePortfolio));
@@ -4971,6 +4975,7 @@ view.Portfolio.prototype = {
 		if(this.activePortfolio == null) console.log("Selected portfolio null. Not updating"); else this.updatePortfolioI();
 	}
 	,savePortfolio: function(ev) {
+		console.log("Saving portfolio " + Std.string(ev));
 		if(this.activePortfolio == null) {
 			console.log("Inserting as no active portfolio selected");
 			this.insertPortfolioI();

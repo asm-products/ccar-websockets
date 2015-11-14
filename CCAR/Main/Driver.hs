@@ -28,12 +28,14 @@ import Data.Monoid ((<>), mappend)
 import Control.Concurrent.STM.Lifted
 import Data.Text as T  hiding(foldl, foldr)
 import Data.Aeson as J
+import Control.Exception(SomeException)
 import Control.Applicative as Appl
 import Data.Aeson.Encode as En
 import Data.Aeson.Types as AeTypes(Result(..), parse)
 import Data.Text.Lazy.Encoding as E
 import Data.Text.Lazy as L hiding(foldl, foldr)
 import System.IO
+import Data.Map as Map 
 import Data.HashMap.Lazy as LH (HashMap, lookup, member)
 import qualified CCAR.Model.Person as Us 
 import qualified CCAR.Model.CCAR as CCAR
@@ -426,6 +428,16 @@ addConnection app aConn nn = do
                 _ <- writeTVar (nickNameMap app) (IMap.insert nn clientState nMap)
                 return ()
 
+getAllClientIdentifiers :: App -> STM [ClientIdentifier]
+getAllClientIdentifiers app@(App a c) = do 
+    nMap <- readTVar c 
+    return $ Map.keys nMap
+
+
+countAllClients :: App ->  STM Int 
+countAllClients app@(App a c) = do
+    nMap <- readTVar c 
+    return $ Map.size nMap
 
 getAllClients :: App -> T.Text -> STM [ClientState]
 getAllClients app@(App a c) nn = do
@@ -741,19 +753,22 @@ writerThread app connection nickName terminate = do
         else do 
             liftIO $ Logger.debugM iModuleName "Waiting for message writerThread..."
             traceEventIO "Before reading connection data"
+            allClients <- atomically $ countAllClients app 
+            allClientIds <- atomically $ getAllClientIdentifiers app
+            liftIO $ Logger.debugM iModuleName $ ("Clients connected " ++ (show allClients))
+            liftIO $ Logger.debugM iModuleName $ ("Client identifiers " ++ (show allClientIds))
             msg <- WSConn.receiveData connection `catch` 
                 (\h -> 
                     case h of 
                         (CloseRequest a b ) -> 
                             do 
                             _ <- handleDisconnects app connection nickName h
-                            --writerThread app connection nickName True
                             Logger.errorM iModuleName  "Close request received"                        
                             return "Close request received"
-                        x -> do 
+                        _ -> do 
                             handleDisconnects app connection nickName h 
-                            Logger.errorM iModuleName (show x)
-                            return $ T.pack $ show x
+                            Logger.errorM iModuleName "Unknown exception"
+                            return $ T.pack $ "Unknown exception"
 
                 )
             liftIO $ Logger.debugM iModuleName ("Reading message from the connection " ++ (T.unpack msg))
@@ -774,7 +789,7 @@ writerThread app connection nickName terminate = do
                                         _ ->
                                             getClientState nickName app                                        
                                     mapM_ (\cs -> writeTChan (writeChan cs) (x)) clientStates
-                    
+                    WSConn.sendPing connection ("ping" :: T.Text)
                     writerThread app connection nickName terminate
 
 

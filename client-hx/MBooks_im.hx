@@ -163,14 +163,18 @@ class MBooks_im {
 
 	}
 	private function processSuccessfulLogin(loginEvent : Dynamic){
-		trace("Initialize the rest of the instances");
-		singleton.company = new view.Company();
-		singleton.project = new Project(singleton.company);
-		singleton.ccar = new CCAR("", "", "");
-		singleton.portfolio = new Portfolio();
-		singleton.portfolioSymbolModel = new model.PortfolioSymbol();
-		singleton.portfolioSymbolView = 
-			new view.PortfolioSymbol(singleton.portfolioSymbolModel);
+		trace("Process successful login " + loginEvent);
+		if(loginEvent.userName == getNickName()){
+			singleton.company = new view.Company();
+			singleton.project = new Project(singleton.company);
+			singleton.ccar = new CCAR("", "", "");
+			singleton.portfolio = new Portfolio();
+			singleton.portfolioSymbolModel = new model.PortfolioSymbol();
+			singleton.portfolioSymbolView = 
+				new view.PortfolioSymbol(singleton.portfolioSymbolModel);		
+		}else {
+			trace("A new user loddeg in " + loginEvent);
+		}
 	}
 	// Connection details
 	private function connectionString() : String {
@@ -612,6 +616,7 @@ class MBooks_im {
 	* Clients could be sending json 
 	*/
 	public  function doSendJSON(aMessage : Dynamic){
+		trace("Sending " + aMessage);
 		this.outputEventStream.resolve(aMessage);
 	}
 

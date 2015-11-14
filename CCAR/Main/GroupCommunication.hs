@@ -9,6 +9,7 @@ module CCAR.Main.GroupCommunication
     , getMessageHistory
 	, DestinationType(..) 
     , testMessages
+    , ClientIdentifier
     )
 where
 import Yesod.Core

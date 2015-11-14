@@ -78,6 +78,7 @@ class Portfolio {
 	}
 
 	public function new() {
+		trace("Creating new portfolio view");
 		activePortfolioStream = new Deferred<PortfolioT>();
 		setupEvents();
 		activePortfolioStream.then(updateActivePortfolio);
@@ -96,6 +97,7 @@ class Portfolio {
 	}
 
 	private function savePortfolio(ev : Event) {
+		trace("Saving portfolio " + ev);
 		if(activePortfolio == null) {
 			trace("Inserting as no active portfolio selected");
 			insertPortfolioI();
