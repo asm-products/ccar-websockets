@@ -893,7 +893,7 @@ class MBooks_im {
 
 	var attempts : Int = 0;
 	var serverHost : String = "localhost";
-	var protocol : String = "ws";
+	var protocol : String = "wss";
 	var portNumber : Int = 3000;
 	var keepAliveInterval : Int = 15000;
 	var websocket : WebSocket;
