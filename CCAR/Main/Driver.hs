@@ -598,7 +598,7 @@ incomingDictionary aText = J.decode  $ E.encodeUtf8 $ L.fromStrict aText :: Mayb
 {-- Both these methods are part of pre-login handshake. --}
 {-- An exception while server is replying to client. --}
 processClientLost app connection nickNameV iText = do
-                    (command, nickNameFound) <- liftIO $ processLoginMessages 
+                    (command, nickNameFound) <- liftIO $ processIncomingMessage
                                 app 
                                 connection 
                                 nickNameV
