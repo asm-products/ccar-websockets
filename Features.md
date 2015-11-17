@@ -416,3 +416,25 @@ Integrating with trading systems
 #### Get certificates to manage the tests.
 
 
+
+Reference data:
+Country code,
+SIC code
+NAICS code
+Company chart of accounts - import from existing public/private data.
+Establish relationship between desk and chart of accounts.
+Establish relationship between parent and subsidiary.
+
+For example: 
+Chase Business
+	RB1
+	RB2
+	Synthetic equity - OTC / Listed
+	OTC - collateral
+
+
+
+
+Hi 
+I have been trying to come up with an application in risk space and would like to bounce off some of the ideas.
+Will you have some time this week over a cup of coffee.

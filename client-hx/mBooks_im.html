@@ -47,6 +47,10 @@
 
 		</div>
 		<div class="col_4">
+		<p> Note: If this is the first time, enter your nickname or an email id and 
+			hit the tab key to follow the prompt.  </p>
+		<p> For returning users, please enter your nickname and <tab> out to 
+			follow the prompt </p>	
 		<form class="vertical">
 			<div id="nickNameDiv" class="col_12">
 				<label for="nickName">Enter email to login or signup</label>
@@ -86,20 +90,21 @@
 		<img id="companySplash" height="200"/>
 
 	</div>
-	<!-- Naming conventions: tabs are suffixes and without the tabs is the details -->
 	<ul id ="workbench" class="tabs col_12">
-	<li id="workbench-oauth-tab"><a href="#workbench-oauth"> User oauths </a></li>
+	<li id="workbench-oauth-tab" style="display:none"><a href="#workbench-oauth"> User oauths </a></li>
 	<li id="workbench-messaging-tab"><a href="#workbench-messaging">Messaging</a></li>
-	<li id ="workbench-general-tab"><a href="#workbench-general">General Info </a></li>
 	<li id = "workbench-company-tab"><a href="#workbench-company">Manage company</a></li>
 	<li id = "workbench-project-tab"><a href="#workbench-project">Manage projects</a></li>
 	<li id = "workbench-ccar-tab"><a href="#workbench-ccar">Manage CCAR</a></li>
-    <li id ="workbench-security-tab"><a href="#workbench-security"> Security notes </a> </li>
+    <li id ="workbench-security-tab"><a href="#workbench-security" style="display:none"> Security notes </a> </li>
     <li id ="workbench-portfolio-tab"><a href="#workbench-portfolio"> Portfolio analysis </a> </li>
-    <li id="user-entitlements-tab"><a href="#user-entitlements"> Entitlements (admin only) </a> </li>
-    <li id="manage-entitlements-tab"><a href="#manage-entitlements"> Manage entitlements </a> </li>
+    <li id="user-entitlements-tab"><a href="#user-entitlements" style="display:none"> Entitlements (admin only) </a> </li>
+    <li id="manage-entitlements-tab"><a href="#manage-entitlements"
+    			style="display:none"> Manage entitlements </a> </li>
     <li id="workbench-errors-tab"> <a href="#workbench-errors"> Errors </a> </li>
-    <li id="workbench-companyusers-tab"> <a href="#workbench-companyusers"> Assign users to a company </a> </li>
+    <li id="workbench-companyusers-tab" style="display:none"> <a href="#workbench-companyusers"> Assign users to a company </a> </li>
+	<li id ="workbench-general-tab"><a href="#workbench-general">General Info </a></li>
+
 	</ul>
 
 	<div id="workbench-messaging" class="tab-content col_12">
@@ -197,6 +202,32 @@
 	    </div>
 	 </div>
 
+	<div id="workbench-general" class="tab-content col_12"> 
+			<h3 align="center">
+				What can you do on this site: 
+			</h3>
+			<ul class="tabs-content">
+				<li> Create and save R (using pbdR) scripts to run computations </li>
+				<li> Create CCAR scenarios to test risks if you are so inclined </li>
+				<li> Create and manage projects of various kinds including 3d models </li>
+			</ul>
+
+			<h4 align="center"> 
+				Planned features.
+			</h4>
+			<ul>
+				<li> Realtime graphs </li>
+				<li> Gift/share scripts with other users. </li>
+				<li> Share results with other users </li>
+				<li> Private conversations with other users if you allow them to </li>
+				<li> Create and publish surveys </li>
+				<li> Create a market place for products </li>
+				<li> Create bids, trades for products </li>
+				<li> Send us feature requsets </li>
+				<li> Send us bug requests </li>
+				<li> View source </li>
+			</ul>
+	</div>
 
 	<div id="workbench-company" class="tab-content col_12">
 		<div class="col_12">	
@@ -317,6 +348,7 @@
 			</form>
 
 		</div>
+
 		<div id="workbench-security" class="tab-content col_12">
 				<div id="usage_stuff" class="callout">
 					<h3 align="center">
@@ -342,11 +374,6 @@
 						<p> We plan to integrate the site with Persona to keep your identity safe. The rest of the site will still be secure so your data, and algorithms, scripts are always safe. I am not a big fan of outh/oauth2 as they run the risk of become central stores of personal information, although, if you feel inclined, we do plan on adding support to commonly available oauth providers starting with google and facebook.
 						</p>
 					</ul>
-					<div class="security_status" display:none>
-						<p>
-							The site is not <strong>secure</strong>. You have been warned.
-						</p>
-					</div>
 				</div>
 				
 			<div id="project_notes">
