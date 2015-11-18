@@ -17,6 +17,7 @@ import CCAR.Parser.CCARParsec
 import Control.Monad (forever, void, when, liftM, filterM)
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Writer 
 import Control.Monad.Error
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async as A (waitSTM, wait, async, cancel, waitEither, waitBoth, waitAny
@@ -398,11 +399,14 @@ processLoginMessages app conn aNickName aDictionary = do
 processIncomingMessage :: App -> WSConn.Connection -> T.Text ->  Maybe Value -> IO (DestinationType , T.Text)
 processIncomingMessage app conn aNickName aCommand = do 
     case aCommand of 
-        Nothing -> do
-                Logger.errorM iModuleName $ "Processing error..." ++ (show aNickName)
-                result <- return (appError ("Unknown error" :: T.Text)) 
-                return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
+        Nothing -> do 
+                (x, y) <- runWriterT $ do 
+                    tell [("Processing error " ++ (show aNickName))]
                     
+                    result <- return (appError ("Unknown error" :: T.Text)) 
+                    return $ (GroupCommunication.Reply, L.toStrict $ E.decodeUtf8 $ En.encode  result)
+                Logger.errorM iModuleName  (show y)
+                return x                     
         Just (Object a) -> do 
                  (processCommandValue app aNickName (Object a)) `catch`
                     (\e -> do

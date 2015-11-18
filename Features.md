@@ -437,4 +437,6 @@ Chase Business
 
 Hi 
 I have been trying to come up with an application in risk space and would like to bounce off some of the ideas.
-Will you have some time this week over a cup of coffee.
+Will you have some time this week over a cup of coffee. A proof of concept is on ec2, but you will have to 
+update your hosts file entry and select a company to do a couple of useful things.
+

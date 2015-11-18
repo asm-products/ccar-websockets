@@ -1,17 +1,22 @@
 ## Todo list
 
 ### Check for the password at the server
-Server is currently sending the password as cleartext (which wont be an issue once the server is wss enabled), nevertheless,
-the server should do the validation of the password and send a result back to the client.
+Server is currently sending the password as cleartext (which wont be an issue once the server is wss enabled), nevertheless, the server should do the validation of the password and send a result back to the client.
 
 ### Add admin profile to a user and other entitlements
 Kick user text box should only be visible to users with appropriate permissions.
 
 ### Enable oauth2 login so user doesnt have to create a new account.
-This is controversial, as security experts dont seem to agree upon the utility of a concentrated small set of identity providers.
+Support oauth2
+
+
+### Setup an R server.
+The current process is not ideal, where the call to the r script happens in the same vm, although, the 
+pBD component takes care of distributing the load. We should look into creating an R server accepting 
+parameters to perform specific computation.
 
 ### Enable wss/https for nginx/yesod reverse proxy setup.
-This is a blocker.
+Done using self-signed certificates.
 
 ### Add group support
 Users can join/leave groups.
@@ -41,11 +46,4 @@ decode news and rank analysts for each symbol to establish a ranking for the ana
 	##### Implement the analysts rank entity and allow users to view it. This is a read-only entity for 
 		users.
 	##### Admin users should be able to tweak the ranks depending so input with an audit trail.
-
-
-
-
-
-
-
-
+	
