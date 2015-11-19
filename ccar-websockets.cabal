@@ -99,6 +99,7 @@ executable ccar-websockets
                      , http-types                    >= 0.8.6 && < 0.9
                      , network-uri                   >= 2.6.0.3 && < 2.7
                      , layers                        >= 1.0 && < 1.1
+                     , conduit-extra                 >= 1.1.9 && < 1.2
 
   -- Directories containing source files.
   -- hs-source-dirs:      

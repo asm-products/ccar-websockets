@@ -1,6 +1,8 @@
 module CCAR.Parser.CSVParser 
 	(
 		parseCSV
+		, parseLine
+		, ParseError
 	) where 
 import Text.ParserCombinators.Parsec
 import Control.Monad.Lift 
@@ -35,6 +37,7 @@ eol = try (string "\n\r")
 	<|> string "\r"
 	<?> "End of line"
 
-
+parseLine :: String -> Either ParseError [String]
+parseLine = \x -> parse line "Could not parse" x
 parseCSV :: String -> Either ParseError [[String]] 
 parseCSV input = parse csvFile "Could not parse" input 

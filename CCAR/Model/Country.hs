@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Monad.Logger 
 import Control.Monad.Trans(lift)
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Resource
 import Control.Applicative as Appl
 import Database.Persist
 import Database.Persist.Postgresql as Postgresql 
@@ -33,9 +34,44 @@ import Data.Typeable
 import Data.Time
 import CCAR.Main.Util 
 import System.Log.Logger as Logger
-import CCAR.Parser.CSVParser as CSVParser
+import CCAR.Parser.CSVParser as CSVParser(parseCSV, ParseError, parseLine)
 import System.IO 
 import System.Environment(getEnv)
+import Data.Conduit ( ($$), (=$=), (=$), Conduit, await, yield)
+import Data.Conduit.Binary as B (sinkFile, lines, sourceFile) 
+import Data.Conduit.List as CL 
+import Data.ByteString.Char8 as BS(ByteString, pack, unpack) 
+
+
+
+
+parseLine :: (Monad m, MonadIO m) => Conduit BS.ByteString m (Either ParseError [String])
+parseLine = do 
+	client <- await 
+	case client of 
+		Nothing -> return () 
+		Just aBS -> do 
+				yield $ CSVParser.parseLine $ BS.unpack aBS
+				CCAR.Model.Country.parseLine 
+ 
+saveLine :: (MonadIO m) => Conduit (Either ParseError [String]) m ByteString
+saveLine = do 
+	client <- await 
+	case client of 
+		Nothing -> return () 
+		Just oString -> do 
+			case oString of 				
+				Right x -> do 
+					_ <- liftIO $ insertLine x			
+					return x
+
+			yield $ BS.pack  $ (show oString) ++ "\n"
+			saveLine 
+
+conduitBasedSetup aFileName = runResourceT $ 
+	B.sourceFile aFileName 
+	$$ B.lines =$= CCAR.Model.Country.parseLine =$= saveLine =$ B.sinkFile "delete.me"
+
 
 data CRUD = Create | Read | C_Update | Delete
     deriving(Show, Eq, Read, Data, Generic, Typeable)
@@ -69,6 +105,9 @@ insertLine aLine =
 		(T.pack $ aLine !! 1) 
 		(T.pack $ aLine !! 3) 
 		(T.pack $ aLine !! 4)
+
+
+
 --setupCountries :: FilePath -> IO [Key Country]
 parseCountries aHandle dbFunction = do 
 	inputLine <- hGetContents aHandle 
@@ -77,7 +116,7 @@ parseCountries aHandle dbFunction = do
 		Left e -> do 
 					putStrLn "Error processing file" 
 					print e
-		Right (h:r) ->  mapM_ (\line -> do 
+		Right (h:r) ->  Control.Monad.mapM_ (\line -> do 
 							print line
 							dbFunction line) r  
 	return x
@@ -87,15 +126,18 @@ deleteCountries aHandle = do
 	parseCountries aHandle deleteLine
 
 
-setupCountries aFileName = do 
+setupCountriesOld aFileName = do 
 	handle <- openFile aFileName ReadMode 
 	parseCountries handle insertLine
+
+setupCountries = conduitBasedSetup
 
 
 cleanupCountries aFileName = do 
 	handle <- openFile aFileName ReadMode 
 	print "Opening handle" 
 	parseCountries handle deleteLine 
+
 
 startup = do 
 	dataDirectory <- getEnv("DATA_DIRECTORY");
