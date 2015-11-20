@@ -68,9 +68,28 @@ saveLine = do
 			yield $ BS.pack  $ (show oString) ++ "\n"
 			saveLine 
 
+deleteLine ::(MonadIO m) => Conduit (Either ParseError [String]) m ByteString
+deleteLine  = do 
+	client <- await 
+	case client of 
+		Nothing -> return () 
+		Just oString -> do 
+			case oString of 				
+				Right x -> do 
+					_ <- liftIO $ removeLine x			
+					return x
+
+			yield $ BS.pack  $ (show oString) ++ "\n"
+			saveLine 
+
+
 conduitBasedSetup aFileName = runResourceT $ 
 	B.sourceFile aFileName 
 	$$ B.lines =$= CCAR.Model.Country.parseLine =$= saveLine =$ B.sinkFile "delete.me"
+
+conduitBasedDelete aFileName = runResourceT $ 
+	B.sourceFile aFileName 
+		$$ B.lines =$= CCAR.Model.Country.parseLine =$= deleteLine =$ B.sinkFile "delete.me"
 
 
 data CRUD = Create | Read | C_Update | Delete
@@ -98,7 +117,7 @@ remove aCountryCode	= dbOps $ deleteBy $ UniqueISO3 aCountryCode
 
 iModuleName = "CCAR.Model.Country"
 
-deleteLine aLine = remove (T.pack $ aLine !! 2)
+removeLine aLine = remove (T.pack $ aLine !! 2)
 
 insertLine aLine =  
 	add (T.pack $ aLine !! 2) 
@@ -109,7 +128,7 @@ insertLine aLine =
 
 
 --setupCountries :: FilePath -> IO [Key Country]
-parseCountries aHandle dbFunction = do 
+{-parseCountries aHandle dbFunction = do 
 	inputLine <- hGetContents aHandle 
 	parsedOutput <- return $ CSVParser.parseCSV inputLine
 	x <- case parsedOutput of 
@@ -120,23 +139,20 @@ parseCountries aHandle dbFunction = do
 							print line
 							dbFunction line) r  
 	return x
-
-deleteCountries aHandle = do 
-	inputLine <- hGetContents aHandle 
-	parseCountries aHandle deleteLine
+-}
+deleteCountries = conduitBasedDelete
 
 
-setupCountriesOld aFileName = do 
+
+{-setupCountriesOld aFileName = do 
 	handle <- openFile aFileName ReadMode 
 	parseCountries handle insertLine
-
+-}
 setupCountries = conduitBasedSetup
 
 
-cleanupCountries aFileName = do 
-	handle <- openFile aFileName ReadMode 
-	print "Opening handle" 
-	parseCountries handle deleteLine 
+cleanupCountries aFileName = conduitBasedDelete
+	
 
 
 startup = do 
