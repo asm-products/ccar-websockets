@@ -31,3 +31,6 @@ Security, permissions, ownership for data need to be controlled. This can only b
 as mix of server and client interaction: server and client need to conclude that an interaction
 is allowed for the user.
 
+User passwords will need to be hashed and saved in the database, despite using ssl: use 
+Crypto.Hash module.
+

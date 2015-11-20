@@ -867,7 +867,7 @@ driver = do
     runStderrLoggingT $ withPostgresqlPool connStr poolSize $ \pool ->
         liftIO $ do
             flip runSqlPersistMPool pool $ do
-                runMigration migrateAll
+                runMigration ccarModel
     Country.startup
     chan <- atomically newBroadcastTChan
 --    static@(Static settings) <- static "static"

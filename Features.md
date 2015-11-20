@@ -424,6 +424,9 @@ NAICS code
 Company chart of accounts - import from existing public/private data.
 Establish relationship between desk and chart of accounts.
 Establish relationship between parent and subsidiary.
+Market data.
+Portfolio data model including benchmark accounts, strategies.
+
 
 For example: 
 Chase Business
@@ -435,8 +438,4 @@ Chase Business
 
 
 
-Hi 
-I have been trying to come up with an application in risk space and would like to bounce off some of the ideas.
-Will you have some time this week over a cup of coffee. A proof of concept is on ec2, but you will have to 
-update your hosts file entry and select a company to do a couple of useful things.
 

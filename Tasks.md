@@ -7,7 +7,8 @@ Server is currently sending the password as cleartext (which wont be an issue on
 Kick user text box should only be visible to users with appropriate permissions.
 
 ### Enable oauth2 login so user doesnt have to create a new account.
-Support oauth2
+Support oauth2.
+
 
 
 ### Setup an R server.
