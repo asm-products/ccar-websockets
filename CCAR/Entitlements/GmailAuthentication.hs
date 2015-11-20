@@ -5,25 +5,16 @@ import Data.Text.Encoding as E
 import Data.Time
 import Network.HTTP.Client as HttpClient
 import Network.HTTP.Conduit 
+import Data.Conduit 
+import Data.Conduit.Binary(sinkFile)
 import Network.HTTP.Types as W 
 import Control.Monad.IO.Class(liftIO)
 import Network.URI
 import Data.Monoid(mappend)
 import System.Environment(getEnv)
-{--
+import Control.Monad.Trans.Resource(runResourceT)
 
-		var goauthUrl : String = "https://accounts.google.com/o/oauth2/auth";
-		var oauthRequest : Http = new Http(goauthUrl);
-		oauthRequest.setParameter("client_id", "481504989252-nh8dddoljkd9inmu3c82jr4ll4cn0sfn.apps.googleusercontent.com");
-		oauthRequest.setParameter("redirect_uri", "http://chat.sarvabioremed.com/gmail_oauth2callback");
-		oauthRequest.setParameter("scope", "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile");
-		oauthRequest.setParameter("response_type", "token id_token");
-		trace("Request " + oauthRequest);
-		oauthRequest.onData = oauthRequestData;
-		oauthRequest.onError = oauthRequestData;
-		oauthRequest.request();
 
---}
 
 data ResponseType = Token | ID_Token
 
@@ -71,8 +62,13 @@ getDefaultRequest = do
 	res <- createRequest g 
 	return $ T.pack $ show $ getUri $ res
 
-testRequest = do 
-	req <- liftIO $ parseUrl "http://www.test.com"
-	uri <- return . getUri $ req
-	g <- return $ GmailOauth uri "test" uri [uri, uri] [Token]
-	createRequest g 
+
+testRequest = 
+	runResourceT $ do 
+		manager <- liftIO $ newManager 
+				$ tlsManagerSettings  {managerConnCount = 10}
+		req <- liftIO $ parseUrl "https://chat.sarvabioremed.com"
+		res <- http req manager 
+		responseBody res $$+- sinkFile "foo.txt"
+
+
