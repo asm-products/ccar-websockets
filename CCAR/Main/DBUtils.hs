@@ -83,6 +83,7 @@ dbOps f = do
         infoM "CCAR.Main.DBUtils" "Closing connection"
         return x
 
+
 share [mkPersist sqlSettings, mkMigrate "ccarModel"] 
     [persistLowerCase| 
         Company json 
