@@ -12,13 +12,12 @@ import Data.Monoid()
 
 baseUrl =  "https://sandbox.tradier.com/v1"
 
-authUrl =  "markets/quotes?symbols=spy"
+quotesUrl =  "markets/quotes"
+timeAndSales = "markets/timesales"
+optionChains = "markets/options/chains"
 
 
-makeUrl = S.unpackChars $ L.toStrict $ L.intercalate "/" [baseUrl, authUrl] 
-
-getState = "abcd"
-testTradier = do 
+getMarketData url queryString fName= do 
 	authBearerToken <- getEnv("TRADIER_BEARER_TOKEN") >>= 
 		\x ->  return $ S.packChars $ "Bearer " ++ x
 	runResourceT $ do 
@@ -29,7 +28,19 @@ testTradier = do
 				, ("Authorization", 
 					authBearerToken)]
 				}
-		liftIO $ print $ show req
+		req <- return $ setQueryString queryString req 
 		res <- http req manager
-		return $ responseBody res 
+		responseBody res $$+- sinkFile fName
+	where 
+		makeUrl = S.unpackChars $ L.toStrict $ L.intercalate "/" [baseUrl, url]
+
+
+getQuotes = \x y -> getMarketData quotesUrl [("symbols", Just x)] y
+
+getTimeAndSales y = \x y-> getMarketData timeAndSales [("symbol", Just x)]
+
+getOptionChains = \x y z-> do 
+	getMarketData optionChains [("symbol", Just x), ("expiration", Just y )] z
+
+
 

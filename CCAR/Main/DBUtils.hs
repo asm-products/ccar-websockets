@@ -442,6 +442,34 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             sourceName Text 
             realtimeInterval Double  
             deriving Show Eq 
+        MarketDataProvider json 
+            sourceName Text -- Tradier api
+            sourceBaseUrl Text 
+            authUrl Text 
+            timeAndSales Text 
+            optionChains Text 
+            deriving Show Eq 
+        -- Here we need to model the equity time and sales
+        TimeAndSales json 
+            marketDataProvider MarketDataProviderId
+            symbol Text
+            symbolType PortfolioSymbolType 
+            time UTCTime 
+            price Text -- So here we are using string and then figure out the number. 
+            volume Int 
+            createdOn UTCTime 
+            deriving Show Eq 
+        OptionChain json 
+            marketDataProvider MarketDataProviderId 
+            symbol Text -- The option symbol.
+            equitySymbol Text -- The equity symbol
+            strike Text -- strike price
+            lastPrice Text 
+            lastBid Text 
+            lastAsk Text 
+            change Text 
+            openInterest Text 
+            deriving Show Eq 
         Project json 
             identification Text 
             companyId CompanyId
