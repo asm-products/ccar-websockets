@@ -85,11 +85,11 @@ deleteLine  = do
 
 conduitBasedSetup aFileName = runResourceT $ 
 	B.sourceFile aFileName 
-	$$ B.lines =$= CCAR.Model.Country.parseLine =$= saveLine =$ B.sinkFile "delete.me"
+	$$ B.lines =$= CCAR.Model.Country.parseLine =$= saveLine =$ consume
 
 conduitBasedDelete aFileName = runResourceT $ 
 	B.sourceFile aFileName 
-		$$ B.lines =$= CCAR.Model.Country.parseLine =$= deleteLine =$ B.sinkFile "delete.me"
+		$$ B.lines =$= CCAR.Model.Country.parseLine =$= deleteLine =$ consume
 
 
 data CRUD = Create | Read | C_Update | Delete

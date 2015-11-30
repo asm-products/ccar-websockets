@@ -103,6 +103,14 @@ data TimeUnit = Millis | Seconds | Minutes
 getTimeUnits :: [TimeUnit]
 getTimeUnits = [minBound..maxBound]
 
+{-- | Is this a test issue --}
+data TestIssue = Yes | No 
+	deriving(Show, Read, Enum, Bounded, Eq, Data, Generic, Typeable) 
+
+getTestIssueTypes :: [TestIssue]
+getTestIssueTypes = [minBound..maxBound]
+
+derivePersistField "TestIssue"
 derivePersistField "SupportedScript"
 derivePersistField "SurveyResponse"
 derivePersistField "PortfolioSymbolType"

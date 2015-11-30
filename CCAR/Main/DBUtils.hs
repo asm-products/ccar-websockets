@@ -3,7 +3,7 @@
 
 module CCAR.Main.DBUtils where
 
-
+import Control.Applicative as Appl
 import Database.Persist
 import Database.Persist.Postgresql as DB
 import Database.Persist.TH
@@ -50,6 +50,7 @@ instance ToJSON PortfolioSymbolSide
 instance FromJSON PortfolioSymbolSide
 instance ToJSON PortfolioAnalysisResultType
 instance FromJSON PortfolioAnalysisResultType
+
 type NickName = Text
 type Base64Text = Text -- Base64 encoded text representing the image.
 
@@ -414,6 +415,7 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             updatedOn UTCTime default=CURRENT_TIMESTAMP
             UniquePortfolioSymbol portfolio symbol symbolType side 
             deriving Show Eq
+
         PortfolioAnalysis json 
             portfolioId PortfolioId 
             uuid Text
@@ -448,27 +450,36 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             authUrl Text 
             timeAndSales Text 
             optionChains Text 
+            UniqueProvider sourceName
             deriving Show Eq 
-        -- Here we need to model the equity time and sales
+        EquitySymbol json 
+            symbol Text -- 1
+            name Text -- 2
+            marketCategory Text -- 3
+            testIssue Text -- 4
+            financialStatus Text -- 5
+            roundLotSize Int -- 6
+            UniqueEquitySymbol symbol
+            deriving Show Eq 
         TimeAndSales json 
             marketDataProvider MarketDataProviderId
             symbol Text
             symbolType PortfolioSymbolType 
             time UTCTime 
-            price Text -- So here we are using string and then figure out the number. 
+            price Text 
             volume Int 
             createdOn UTCTime 
             deriving Show Eq 
         OptionChain json 
-            marketDataProvider MarketDataProviderId 
             symbol Text -- The option symbol.
-            equitySymbol Text -- The equity symbol
+            underlying Text -- The equity symbol
             strike Text -- strike price
             lastPrice Text 
             lastBid Text 
             lastAsk Text 
             change Text 
             openInterest Text 
+            marketDataProvider MarketDataProviderId 
             deriving Show Eq 
         Project json 
             identification Text 
