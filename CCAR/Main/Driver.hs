@@ -65,7 +65,7 @@ import CCAR.Model.ProjectWorkbench as ProjectWorkbench
 import CCAR.Model.Portfolio as Portfolio
 import CCAR.Model.PortfolioSymbol as PortfolioSymbol
 import CCAR.Entitlements.Entitlements as Entitlements
-import CCAR.Entitlements.TradierApi as TradierApi
+import CCAR.Data.TradierApi as TradierApi
 import CCAR.Model.Login as Login
 import CCAR.Model.UserOperations as UserOperations
 -- logging

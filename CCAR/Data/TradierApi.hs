@@ -1,4 +1,4 @@
-module CCAR.Entitlements.TradierApi 
+module CCAR.Data.TradierApi 
 	(startup)
 where 
 import Network.HTTP.Conduit 
@@ -30,7 +30,7 @@ import Database.Persist
 import Database.Persist.TH 
 
 import Database.Persist.Postgresql as DB
-
+import Data.Time
 import Control.Monad.IO.Class 
 import Control.Monad
 import Control.Monad.Logger 
@@ -56,7 +56,7 @@ import Data.Conduit.List as CL
 import Data.ByteString.Char8 as BS(ByteString, pack, unpack) 
 import Data.Conduit ( ($$), (=$=), (=$), Conduit, await, yield)
 
-iModuleName = "CCAR.Entitlements.TradierApi"
+iModuleName = "CCAR.Data.TradierApi"
 baseUrl =  "https://sandbox.tradier.com/v1"
 
 quotesUrl =  "markets/quotes"
@@ -70,8 +70,9 @@ insertTradierProvider =
 		y <- case get of 
 				Nothing -> do 
 					DB.insert $ MarketDataProvider 
-								provider baseUrl "" timeAndSales optionChains 
+							provider baseUrl "" timeAndSales optionChains 
 		return y 
+
 getMarketData url queryString = do 
 	authBearerToken <- getEnv("TRADIER_BEARER_TOKEN") >>= 
 		\x ->  return $ S.packChars $ "Bearer " `mappend` x
@@ -114,7 +115,7 @@ getOptionChains = \x y -> do
 		_ -> return $ Left "Nothing to process"
 		
 
-insertSingle x = dbOps $ do 
+insertOptionChain x = dbOps $ do 
 	liftIO $ Logger.debugM iModuleName ("inserting single " `mappend` (show x))
 	x <- runMaybeT $ do 
 		Just (Entity kId providerEntity) <- 
@@ -125,6 +126,7 @@ insertSingle x = dbOps $ do
 				(symbol x)
 				(underlying x)
 				(T.pack $ show $ strike x)
+				(expiration x)				
 				(T.pack $ show $ lastPrice x)
 				(T.pack $ show $ bidPrice x) 
 				(T.pack $ show $ askPrice x)
@@ -140,6 +142,7 @@ data OptionChainMarketData = OptionChainMarketData {
 		symbol :: T.Text 
 		, underlying :: T.Text 
 		, strike :: Scientific
+		, expiration :: T.Text
 		, lastPrice :: Maybe Scientific
 		, bidPrice :: Maybe Scientific
 		, askPrice :: Maybe Scientific
@@ -153,6 +156,7 @@ instance FromJSON OptionChainMarketData where
 								o .: "root_symbol" <*>
 								o .: "underlying" <*> 
 								o .: "strike" <*>
+								o .: "expiration_date" <*> 
 								o .: "last" <*> 
 								o .: "bid" <*> 
 								o .: "ask" <*> 
@@ -162,14 +166,31 @@ instance FromJSON OptionChainMarketData where
 instance ToJSON OptionChainMarketData
 						
 
-expirationDate = return $ BS.pack "2015-12-31"
+{-- | Returns the option expiration date for n months from now. --}
+expirationDate n = do 
+
+	x <- liftIO $ getCurrentTime >>= \l 
+				-> return $ utctDay l
+	(yy, m, d) <- return $ toGregorian x
+	-- Compute the number of days
+	y <- Control.Monad.foldM (\a b -> 
+				return $ 
+					a + (gregorianMonthLength yy (m + b)))
+				0 [0..n]
+	x2 <- return $ addDays (toInteger y) x
+	(yy2, m2, d2) <- return $ toGregorian x2 
+	monthLength <- return $ toInteger $ gregorianMonthLength yy m2
+	res <- return $ addDays (monthLength - (toInteger d2)) x2
+	return $ BS.pack $ show res
+
+defaultExpirationDate = expirationDate 0
 
 --TODO: Exception handling needs to be robust.
 insertAndSave :: [String] -> IO (Either T.Text T.Text)
 insertAndSave x = (dbOps $ do
 	symbol <- return $ T.pack $ x !! 0 
 	symbolExists <- getBy $ UniqueEquitySymbol symbol 
-	expirationDate <- expirationDate
+	expirationDate <- liftIO $ defaultExpirationDate
 	case symbolExists of 
 		Nothing ->  do
 				i <- DB.insert $ EquitySymbol symbol
@@ -241,7 +262,7 @@ insertIntoDb x y = do
 		Right x2 -> do 
 				liftIO $ Logger.debugM iModuleName ("Option chains " `mappend` (show x1))
 				x <- Data.Vector.forM x2 (\s -> case s of 
-						Success y -> insertSingle y
+						Success y -> insertOptionChain y
 							) 
 				return $ Right x
 		Left x -> do

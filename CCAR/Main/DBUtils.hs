@@ -474,6 +474,7 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             symbol Text -- The option symbol.
             underlying Text -- The equity symbol
             strike Text -- strike price
+            expiration Text
             lastPrice Text 
             lastBid Text 
             lastAsk Text 
