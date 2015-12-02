@@ -110,6 +110,11 @@ data TestIssue = Yes | No
 getTestIssueTypes :: [TestIssue]
 getTestIssueTypes = [minBound..maxBound]
 
+data OptionType = Call | Put 
+	deriving (Show, Enum, Bounded, Eq, Data, Generic, Typeable, Read)
+
+
+derivePersistField "OptionType"
 derivePersistField "TestIssue"
 derivePersistField "SupportedScript"
 derivePersistField "SurveyResponse"

@@ -22,6 +22,8 @@ import Control.Monad.Logger
 import Control.Monad.Trans.Resource(runResourceT) 
 import System.Log.Logger as Logger
 
+instance ToJSON OptionType
+instance FromJSON OptionType
 instance ToJSON SurveyPublicationState
 instance FromJSON SurveyPublicationState
 instance ToJSON MessageDestinationType
@@ -475,6 +477,7 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             underlying Text -- The equity symbol
             strike Text -- strike price
             expiration Text
+            optionType Text -- TODO: Replace with OptionType 
             lastPrice Text 
             lastBid Text 
             lastAsk Text 

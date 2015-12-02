@@ -122,9 +122,10 @@ insertOptionChain x = dbOps $ do
 				lift $ DB.getBy $ UniqueProvider provider
 		liftIO $ Logger.debugM iModuleName $ "Entity  " `mappend` (show providerEntity)
 		liftIO $ Prelude.putStrLn (show providerEntity)
-		lift $ DB.insert $ OptionChain  
+   		lift $ DB.insert $ OptionChain  
 				(symbol x)
 				(underlying x)
+				(optionType x)
 				(T.pack $ show $ strike x)
 				(expiration x)				
 				(T.pack $ show $ lastPrice x)
@@ -143,6 +144,7 @@ data OptionChainMarketData = OptionChainMarketData {
 		, underlying :: T.Text 
 		, strike :: Scientific
 		, expiration :: T.Text
+		, optionType :: T.Text
 		, lastPrice :: Maybe Scientific
 		, bidPrice :: Maybe Scientific
 		, askPrice :: Maybe Scientific
@@ -153,10 +155,11 @@ data OptionChainMarketData = OptionChainMarketData {
 
 instance FromJSON OptionChainMarketData where 
 	parseJSON (Object o) = OptionChainMarketData <$> 
-								o .: "root_symbol" <*>
-								o .: "underlying" <*> 
+								o .: "symbol" <*>
+								o .: "root_symbol" <*> 
 								o .: "strike" <*>
 								o .: "expiration_date" <*> 
+								o .: "option_type" <*>
 								o .: "last" <*> 
 								o .: "bid" <*> 
 								o .: "ask" <*> 
