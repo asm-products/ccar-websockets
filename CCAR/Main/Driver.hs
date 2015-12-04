@@ -312,6 +312,11 @@ processCommandValue app nickName aValue@(Object a)   = do
                                 return (gc, Util.serialize 
                                         (either :: Either ApplicationError 
                                                     Company.QueryCompanyUsers))
+                String "QueryOptionChain" -> TradierApi.query nickName aValue
+                            >>= \(gc, either) -> 
+                                return (gc, Util.serialize 
+                                        (either :: Either ApplicationError 
+                                                        TradierApi.QueryOptionChain))
                 String "Login" -> 
                             Login.query nickName aValue 
                                 >>= \(gc, result) -> 

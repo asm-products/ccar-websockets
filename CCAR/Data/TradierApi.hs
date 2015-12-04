@@ -1,15 +1,19 @@
 module CCAR.Data.TradierApi 
-	(startup)
+	(startup, query, QueryOptionChain)
 where 
+
+import CCAR.Main.DBOperations (Query, query, manage, Manager)
 import Network.HTTP.Conduit 
 
 -- The streaming interface
 import           Control.Monad.IO.Class  (liftIO)
-import           Data.Aeson              (Value (Object, String, Array), ToJSON, FromJSON)
-import           Data.Aeson              (encode, object, (.=), fromJSON, (.:), decode
+import           Data.Aeson              (Value (Object, String, Array) 
+										  , toJSON 
+										  , fromJSON)
+import           Data.Aeson              (encode, object, (.=), (.:), decode
 											, parseJSON)
 import           Data.Aeson.Parser       (json)
-import			 Data.Aeson.Types 		 (parse)
+import			 Data.Aeson.Types 		 (parse, ToJSON, FromJSON, toJSON)
 import           Data.Conduit            (($$+-))
 import           Data.Conduit.Attoparsec (sinkParser)
 import           Network.HTTP.Conduit    (RequestBody (RequestBodyLBS),
@@ -29,6 +33,7 @@ import 			Control.Exception hiding(Handler)
 import Database.Persist
 import Database.Persist.TH 
 
+import qualified CCAR.Main.GroupCommunication as GC
 import Database.Persist.Postgresql as DB
 import Data.Time
 import Control.Monad.IO.Class 
@@ -38,7 +43,10 @@ import Control.Monad.Trans(lift)
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Resource
 import Control.Applicative as Appl
+import Data.Monoid(mappend, (<>))
 import CCAR.Main.DBUtils
+import CCAR.Command.ApplicationError(appError)
+
 import System.Environment(getEnv)
 import GHC.Generics
 import GHC.IO.Exception
@@ -137,7 +145,39 @@ insertOptionChain x = dbOps $ do
 		
 	return x	
 
+data QueryOptionChain = QueryOptionChain {
+	qNickName :: T.Text
+	, qCommandType :: T.Text
+	, qUnderlying :: T.Text
+	, optionChain :: [OptionChain] 
+} deriving (Show, Eq)
 
+
+parseQueryOptionChain v = QueryOptionChain <$> 
+				v .: "nickName" <*>
+				v .: "commandType" <*> 
+				v .: "underlying" <*> 
+				v .: "optionChain"
+
+genQueryOptionChain (QueryOptionChain n c underlying res) = 
+		object [
+			"nickName" .= n 
+			, "commandType" .= c 
+			, "underlying" .= underlying 
+			, "optionChain" .= res 
+
+		]
+
+
+instance ToJSON QueryOptionChain where 
+	toJSON = genQueryOptionChain 
+
+instance FromJSON QueryOptionChain where
+	parseJSON (Object v) = parseQueryOptionChain v 
+	parseJSON _ 		 = Appl.empty
+
+instance Query QueryOptionChain where 
+	query = queryOptionChain
 
 data OptionChainMarketData = OptionChainMarketData {
 		symbol :: T.Text 
@@ -238,6 +278,17 @@ saveSymbol = do
 			saveSymbol
 
 
+
+queryOptionChain aNickName o = do 
+	x <- case (parse parseJSON o :: Result QueryOptionChain) of 
+		Success r@(QueryOptionChain ni cType underlying _) -> do 
+			optionChainE <- dbOps $ selectList [OptionChainUnderlying ==. underlying] []
+			optionChain <- Control.Monad.forM optionChainE (\(Entity id x) -> return x)
+			return $ Right $ 
+				QueryOptionChain ni cType underlying optionChain
+		Error s ->  return $ Left $ appError $ "Query users for a company failed  " `mappend` s
+	return (GC.Reply, x)
+
 saveOptionChains :: (MonadIO m) => Conduit (Either T.Text T.Text) m BS.ByteString
 saveOptionChains = do 
 	symbol <- await
@@ -290,3 +341,9 @@ startup_d = do
 	dataDirectory <- getEnv("DATA_DIRECTORY")
 	x <- return $ T.unpack $ T.intercalate "/" [(T.pack dataDirectory), "nasdaq_10.txt"]
 	setupSymbols x 
+
+
+-- test query option chain 
+
+testOptionChain aSymbol = queryOptionChain ("test"  :: String)
+						$ toJSON $ QueryOptionChain "test" "Read" aSymbol []

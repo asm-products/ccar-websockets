@@ -477,7 +477,7 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             underlying Text -- The equity symbol
             strike Text -- strike price
             expiration Text
-            optionType Text -- TODO: Replace with OptionType 
+            optionType Text default='tbd' -- TODO: Replace with OptionType 
             lastPrice Text 
             lastBid Text 
             lastAsk Text 

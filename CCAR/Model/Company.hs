@@ -22,7 +22,7 @@ import Database.Persist
 import Database.Persist.Postgresql as Postgresql 
 import Database.Persist.TH 
 import CCAR.Main.DBUtils
-import CCAR.Command.ApplicationError 
+import CCAR.Command.ApplicationError(appError)
 import Data.Text as T 
 import qualified CCAR.Main.EnumeratedTypes as EnumeratedTypes 
 import qualified CCAR.Main.GroupCommunication as GC
