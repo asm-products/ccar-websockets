@@ -297,7 +297,7 @@ process pT = case (crudType pT) of
 {-- | This gets all the symbols for a user registered in any company. Usually there should be 
 only one such company. Admins or super users could probably share or regulators for example.--}
 queryUniqueSymbols userId = dbOps $ do 
-	runMaybeT $ do 
+	x <- runMaybeT $ do 
 		Just (Entity p _ ) <- lift $ getBy $ UniqueNickName userId 
 		companies <- lift $ selectList [CompanyUserUserId ==. p] [] 
 		s2 <- lift $ foldM (\a x@(Entity i val) ->  do 
@@ -307,6 +307,9 @@ queryUniqueSymbols userId = dbOps $ do
 						uniqSymbols <- liftIO $ queryUniqueSymbolsForCompany (companyCompanyID co) userId
 						return (uniqSymbols : a)) [] companies
 		return s2
+	case x of 
+		Just y -> return y
+		
 {-- | Return all unique symbols across all the portfolios for a user --}
 --queryUniqueSymbols :: T.Text -> T.Text -> IO (Either T.Text [T.Text])
 queryUniqueSymbolsForCompany companyId userId = dbOps $ do
