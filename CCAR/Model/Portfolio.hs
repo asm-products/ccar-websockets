@@ -1,6 +1,7 @@
 module CCAR.Model.Portfolio (
 	queryPortfolioSymbolTypes
 	, queryPortfolioSymbolSides
+	, queryUniqueSymbols
 	, manage
 	, process
 	, PortfolioT(..)
@@ -14,6 +15,7 @@ import GHC.Generics
 import Data.Aeson as J
 import Yesod.Core
 
+import Data.Either(rights)
 import Control.Monad.IO.Class(liftIO)
 import Control.Concurrent
 import Control.Concurrent.STM.Lifted
@@ -23,6 +25,8 @@ import qualified  Data.Map as IMap
 import Control.Exception
 import Control.Monad
 import Control.Monad.Logger(runStderrLoggingT)
+import Control.Monad.Trans.Maybe(runMaybeT)
+import Control.Monad.Trans.State as State
 import Network.WebSockets.Connection as WSConn
 import Data.Text as T
 import Data.Text.Lazy as L 
@@ -212,16 +216,16 @@ daoToDto :: CRUD -> PortfolioId -> IO (Either T.Text PortfolioT)
 daoToDto crType pid = do 
 	currentTime <- getCurrentTime 
 	dbOps $ do
-		porKV <- get pid 
+		porKV <- Postgresql.get pid 
 		case porKV of 
 			Just v -> do 
-				comUser <- get (portfolioCompanyUserId v)
+				comUser <- Postgresql.get (portfolioCompanyUserId v)
 				case comUser of 
 					Just coUser1 -> do 				
-						company <- get (companyUserCompanyId coUser1)
-						cUser <- get (companyUserUserId coUser1) 
-						createdBy <- get (portfolioCreatedBy v) 
-						updatedBy <- get (portfolioUpdatedBy v)
+						company <- Postgresql.get (companyUserCompanyId coUser1)
+						cUser <- Postgresql.get (companyUserUserId coUser1) 
+						createdBy <- Postgresql.get (portfolioCreatedBy v) 
+						updatedBy <- Postgresql.get (portfolioUpdatedBy v)
 						case (comUser, company, cUser, createdBy, updatedBy) of
 							(Just coUser, Just com, Just cu, Just createdByObj, Just updby) -> 
 								return $ Right $ PortfolioT crType 
@@ -290,8 +294,33 @@ process pT = case (crudType pT) of
 	Delete -> deletePortfolio pT 		
 
 
+{-- | This gets all the symbols for a user registered in any company. Usually there should be 
+only one such company. Admins or super users could probably share or regulators for example.--}
+queryUniqueSymbols userId = dbOps $ do 
+	runMaybeT $ do 
+		Just (Entity p _ ) <- lift $ getBy $ UniqueNickName userId 
+		companies <- lift $ selectList [CompanyUserUserId ==. p] [] 
+		s2 <- lift $ foldM (\a x@(Entity i val) ->  do 
+						Just cid <- Postgresql.get i
+						company <- return $ companyUserCompanyId cid 
+						Just co <- Postgresql.get company
+						uniqSymbols <- liftIO $ queryUniqueSymbolsForCompany (companyCompanyID co) userId
+						return (uniqSymbols : a)) [] companies
+		return s2
+{-- | Return all unique symbols across all the portfolios for a user --}
+--queryUniqueSymbols :: T.Text -> T.Text -> IO (Either T.Text [T.Text])
+queryUniqueSymbolsForCompany companyId userId = dbOps $ do
+	runMaybeT $ do 
+		Just (Entity c _) <- lift $ getBy $ UniqueCompanyId companyId 
+		Just (Entity p _) <- lift $ getBy $ UniqueNickName userId 
+		Just (Entity cu _) <- lift $ getBy $ UniqueCompanyUser c p
+		portfolios <- lift $ selectList [(PortfolioCompanyUserId ==. cu)][]
+		s2 <- lift $ foldM (\a x@(Entity b _) -> do 
+				n <- selectList [PortfolioSymbolPortfolio ==. b] [] 
+				return (a `mappend` n)
+			) [] portfolios
 
-
+		mapM (\(Entity i b) -> return $ portfolioSymbolSymbol b) s2  
 
 insertPortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio) )
 insertPortfolio p@(PortfolioT cType 
@@ -422,14 +451,14 @@ testQueryPortfolios = do
 	portfolio <- testInsertPortfolio
 	case portfolio of 
 		Right pID -> do 
-			pEntity <- dbOps $ get pID 
+			pEntity <- dbOps $ Postgresql.get pID 
 			case pEntity of 
 				Just pEV -> do
-					user <- dbOps $ get (portfolioCreatedBy pEV)
-					companyUser <- dbOps $ get (portfolioCompanyUserId pEV)
+					user <- dbOps $ Postgresql.get (portfolioCreatedBy pEV)
+					companyUser <- dbOps $ Postgresql.get (portfolioCompanyUserId pEV)
 					case (user, companyUser) of 
 						(Just u, Just cu) -> do
-								com <- dbOps $ get (companyUserCompanyId cu)
+								com <- dbOps $ Postgresql.get (companyUserCompanyId cu)
 								case com of 
 									Just com1 -> do    
 										queryPortfolios $ PortfolioQuery queryPortfolio 

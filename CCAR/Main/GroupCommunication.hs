@@ -48,8 +48,7 @@ import CCAR.Main.Util as Util
 		- Private messages (members can send private messages to the group)
 		- Response messages (client requests and the server responds with a reply)
 	The client needs to handle async concurrent exceptions and mask them as mentioned in
-	Marlowe book.
-	Following the model in the above book, we can assume that each client spawns 4 threads 
+	Marlowe's book.	Following the model in the above book, we can assume that each client spawns 4 threads 
 	to write to and a corresponding read channel for each connection to do the write.
 -}
 

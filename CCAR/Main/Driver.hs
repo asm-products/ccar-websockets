@@ -230,7 +230,8 @@ checkPassword b@(CheckPassword personNickName password _ attempts) = do
     case chk of 
         Nothing -> return $ (GroupCommunication.Reply, b {passwordValid = (Just False)})
         Just (Entity aid a) -> do
-            return $ (Reply, b {passwordValid = validatePassword (personPassword a) b})
+            return $ (Reply, b {passwordValid = validatePassword (personPassword a) b
+                                , numberOfAttemmpts = attempts + 1 })
 
 validatePassword :: T.Text -> CheckPassword -> Maybe Bool 
 validatePassword dbPassword input = Just $ dbPassword == (pwPassword input)
@@ -587,13 +588,16 @@ ccarApp = do
                                                 nickNameV False))
                                             b <- (A.async (liftIO $ readerThread app nickNameV False))
                                             c <- (A.async $ liftIO $ jobReaderThread app nickNameV False)
+                                            d <- (A.async $ liftIO $ marketDataThread app nickNameV False)
                                             labelThread (A.asyncThreadId a) 
                                                         ("Writer thread " ++ (T.unpack nickNameV))
                                             labelThread (A.asyncThreadId b) 
                                                     ("Reader thread " ++ (T.unpack nickNameV))
                                             labelThread (A.asyncThreadId c) 
                                                     ("Job thread " ++ (T.unpack nickNameV))
-                                            A.waitAny [a,  b,  c]
+                                            labelThread (A.asyncThreadId d)
+                                                    ("Market data thread " ++ (T.unpack nickNameV))
+                                            A.waitAny [a,  b,  c, d ]
                                             return "Threads had exception") 
                             return ("All threads exited" :: T.Text)
                 return () 
@@ -750,6 +754,23 @@ jobReaderThread app nickN terminate =
             Nothing -> jobReaderThread app nickN True  
         Logger.infoM iModuleName "Finished processing job" 
 
+
+{-- | Market data thread polls for the market data values for all the symbols
+    | across all the portfolios for the user.
+ --}
+
+marketDataIntervals :: IO Int 
+marketDataIntervals = return $ 1000 * 10 ^ 6
+marketDataThread :: App -> T.Text -> Bool -> IO ()
+marketDataThread app nickName terminate = 
+    if(terminate == True) then do 
+        Logger.infoM iModuleName "Market data thread exiting" 
+        return ()
+    else do 
+        Logger.debugM iModuleName "Waiting for data"
+        marketDataIntervals >>= \x -> threadDelay x
+        marketDataSymbols <- CCAR.Model.Portfolio.queryUniqueSymbols nickName
+        marketDataThread app nickName False
 
 {-- The main processing loop for incoming commands.--}
 writerThread :: App -> WSConn.Connection -> T.Text -> Bool -> IO ()

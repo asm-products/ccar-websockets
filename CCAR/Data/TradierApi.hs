@@ -300,7 +300,7 @@ saveOptionChains = do
 			case x of 
 				(Right aSymbol) -> do 
 					liftIO $ Logger.debugM iModuleName ("Inserting into db " `mappend` (show x))
-					i <- liftIO $ insertIntoDb (BS.pack $ T.unpack aSymbol) (BS.pack "2015-12-31")
+					i <- liftIO $ insertOptionChainsIntoDb (BS.pack $ T.unpack aSymbol) (BS.pack "2015-12-31")
 					yield $ BS.pack $ "Option chains for " `mappend` 
 									(T.unpack aSymbol) `mappend` " retrieved: "
 									`mappend` (show i)					
@@ -309,7 +309,7 @@ saveOptionChains = do
 			 		yield $ BS.pack $ "Option chain not parsed for " `mappend` (show aSymbol)
 			saveOptionChains
 
-insertIntoDb x y = do 
+insertOptionChainsIntoDb x y = do 
 	Logger.debugM iModuleName ("Inserting " `mappend` show x `mappend` " " `mappend` show y)
 	x1 <- getOptionChains x y 
 	case x1 of 
@@ -322,6 +322,7 @@ insertIntoDb x y = do
 		Left x -> do
 				liftIO $ Logger.errorM iModuleName ("Error processing option chain " `mappend` (show x))
 				return $ Left x
+
 
 setupSymbols aFileName = runResourceT $ 
 			B.sourceFile aFileName $$ B.lines =$= parseSymbol =$= saveSymbol 

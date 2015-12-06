@@ -462,7 +462,18 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             financialStatus Text -- 5
             roundLotSize Int -- 6
             UniqueEquitySymbol symbol
-            deriving Show Eq 
+            deriving Show Eq
+        MarketData json 
+            symbol Text 
+            lastPrice Text 
+            askSize Text 
+            askPrice Text 
+            bidSize Text 
+            bidPrice Text 
+            lastUpdateTime UTCTime default=CURRENT_TIMESTAMP
+            marketDataProvider MarketDataProviderId 
+            deriving Show Eq
+
         TimeAndSales json 
             marketDataProvider MarketDataProviderId
             symbol Text
