@@ -1,5 +1,5 @@
 module CCAR.Data.TradierApi 
-	(startup, query, QueryOptionChain)
+	(startup, query, QueryOptionChain, queryMarketData)
 where 
 
 import CCAR.Main.DBOperations (Query, query, manage, Manager)
@@ -19,7 +19,7 @@ import           Data.Conduit.Attoparsec (sinkParser)
 import           Network.HTTP.Conduit    (RequestBody (RequestBodyLBS),
                                           Response (..), http, method, parseUrl,
                                           requestBody, withManager)
-import CCAR.Parser.CSVParser as CSVParser(parseCSV, ParseError, parseLine)
+import 			CCAR.Parser.CSVParser as CSVParser(parseCSV, ParseError, parseLine)
 import			Control.Concurrent(threadDelay)
 import 			Data.Text as T 
 import 			Data.Text.Lazy as L
@@ -30,12 +30,13 @@ import 			Data.ByteString.Internal 	 as S
 import			Data.HashMap.Strict 		 as M 
 import 			Control.Exception hiding(Handler)
 
-import Database.Persist
-import Database.Persist.TH 
+import 			Database.Persist
+import 			Database.Persist.TH 
 
-import qualified CCAR.Main.GroupCommunication as GC
-import Database.Persist.Postgresql as DB
-import Data.Time
+import 			qualified CCAR.Main.GroupCommunication as GC
+import 			Database.Persist.Postgresql as DB
+import 			Data.Time
+import			Data.Map
 import Control.Monad.IO.Class 
 import Control.Monad
 import Control.Monad.Logger 
@@ -228,6 +229,29 @@ expirationDate n = do
 
 defaultExpirationDate = expirationDate 0
 
+insertDummyMarketData = dbOps $ do
+	time <- liftIO $ getCurrentTime 
+	y <- runMaybeT $ do 
+		x <- lift $ selectList [][Asc EquitySymbolSymbol]
+		Just (Entity kid providerEntity) <- 
+				lift $ DB.getBy $ UniqueProvider provider
+		y <- Control.Monad.mapM (\a @(Entity k val) -> 
+				lift $ DB.insert $ MarketData (equitySymbolSymbol val) 
+									"1.0"
+									"1.0"
+									"1.0"
+									"1.0"
+									"1.0"
+									time 
+									kid) x 
+
+		return () 
+	return y
+queryMarketData :: IO (Map T.Text MarketData)
+queryMarketData = dbOps $ do 
+		x <- selectList [][Asc MarketDataSymbol]
+		y <- Control.Monad.mapM (\a@(Entity k val) -> return (marketDataSymbol val, val)) x 
+		return $ Data.Map.fromList y 
 --TODO: Exception handling needs to be robust.
 insertAndSave :: [String] -> IO (Either T.Text T.Text)
 insertAndSave x = (dbOps $ do
@@ -348,3 +372,6 @@ startup_d = do
 
 testOptionChain aSymbol = queryOptionChain ("test"  :: String)
 						$ toJSON $ QueryOptionChain "test" "Read" aSymbol []
+
+
+

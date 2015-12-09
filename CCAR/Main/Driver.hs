@@ -5,6 +5,7 @@ module CCAR.Main.Driver
     (driver)
 where 
 
+import Data.Ratio
 import Yesod.Core
 import Yesod.WebSockets as YWS
 import Control.Monad.Trans.Control    (MonadBaseControl (liftBaseWith, restoreM))
@@ -588,7 +589,7 @@ ccarApp = do
                                                 nickNameV False))
                                             b <- (A.async (liftIO $ readerThread app nickNameV False))
                                             c <- (A.async $ liftIO $ jobReaderThread app nickNameV False)
-                                            d <- (A.async $ liftIO $ marketDataThread app nickNameV False)
+                                            d <- (A.async $ liftIO $ runner TradierServer app nickNameV False)
                                             labelThread (A.asyncThreadId a) 
                                                         ("Writer thread " ++ (T.unpack nickNameV))
                                             labelThread (A.asyncThreadId b) 
@@ -759,19 +760,6 @@ jobReaderThread app nickN terminate =
     | across all the portfolios for the user.
  --}
 
-marketDataIntervals :: IO Int 
-marketDataIntervals = return $ 1000 * 10 ^ 6
-marketDataThread :: App -> T.Text -> Bool -> IO ()
-marketDataThread app nickName terminate = 
-    if(terminate == True) then do 
-        Logger.infoM iModuleName "Market data thread exiting" 
-        return ()
-    else do 
-        Logger.debugM iModuleName "Waiting for data"
-        marketDataIntervals >>= \x -> threadDelay x
-        marketDataSymbols <- CCAR.Model.Portfolio.queryUniqueSymbols nickName
-        marketDataThread app nickName False
-
 {-- The main processing loop for incoming commands.--}
 writerThread :: App -> WSConn.Connection -> T.Text -> Bool -> IO ()
 writerThread app connection nickName terminate = do
@@ -903,3 +891,52 @@ driver = do
     nickNameMap <- newTVarIO $ IMap.empty
     warp 3000 $ App chan  nickNameMap
 
+
+
+
+class MarketDataServer a where 
+    {-- | A polling interval to poll for data. Non real time threads.--}
+    realtime :: a -> IO Bool 
+    pollingInterval :: a -> IO Int 
+    runner :: a -> App -> T.Text -> Bool -> IO ()
+
+data TradierMarketDataServer = TradierServer 
+
+
+instance MarketDataServer TradierMarketDataServer where 
+    realtime a = return False
+    pollingInterval a = tradierPollingInterval 
+    runner i a n t = tradierRunner a n t 
+
+
+
+
+computeValue :: MarketData -> PortfolioSymbol -> IO T.Text
+computeValue a b = return $ "Test" 
+-- Refactoring note: move this to market data api.
+tradierPollingInterval :: IO Int 
+tradierPollingInterval = return $ 10 * 10 ^ 6
+tradierRunner :: App -> T.Text -> Bool -> IO ()
+tradierRunner app nickName terminate = 
+    if(terminate == True) then do 
+        Logger.infoM iModuleName "Market data thread exiting" 
+        return ()
+    else do 
+        Logger.debugM iModuleName "Waiting for data"
+        tradierPollingInterval >>= \x -> threadDelay x
+        mySymbols <- Portfolio.queryUniqueSymbols nickName
+        marketDataMap <- TradierApi.queryMarketData
+        upd <- mapM (\x -> do 
+                val <- return $ IMap.lookup (portfolioSymbolSymbol x) marketDataMap 
+                case val of 
+                    Just v -> do 
+                        c <- computeValue v x
+                        return $ x {portfolioSymbolValue = c}
+                    Nothing -> return x 
+            ) mySymbols
+
+        mapM_  (\p -> do
+                liftIO $ Logger.debugM iModuleName ("test" `mappend` (show p))
+                return p 
+                ) upd 
+        tradierRunner app nickName False

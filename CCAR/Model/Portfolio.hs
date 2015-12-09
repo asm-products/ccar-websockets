@@ -14,6 +14,7 @@ import CCAR.Main.DBUtils
 import GHC.Generics
 import Data.Aeson as J
 import Yesod.Core
+import Data.Time
 
 import Data.Either(rights)
 import Control.Monad.IO.Class(liftIO)
@@ -301,29 +302,33 @@ queryUniqueSymbols userId = dbOps $ do
 		Just (Entity p _ ) <- lift $ getBy $ UniqueNickName userId 
 		companies <- lift $ selectList [CompanyUserUserId ==. p] [] 
 		s2 <- lift $ foldM (\a x@(Entity i val) ->  do 
-						Just cid <- Postgresql.get i
-						company <- return $ companyUserCompanyId cid 
+						Just (cVal) <- Postgresql.get i
+						company <- return $ companyUserCompanyId cVal 
 						Just co <- Postgresql.get company
-						uniqSymbols <- liftIO $ queryUniqueSymbolsForCompany (companyCompanyID co) userId
-						return (uniqSymbols : a)) [] companies
-		return s2
+						companyId <- return $  companyCompanyID co 
+						uniqSymbols <- liftIO $ queryUniqueSymbolsForCompany companyId userId
+						return (uniqSymbols)) [] companies		
+		return s2 
 	case x of 
-		Just y -> return y
+		Just y -> mapM (\x@(Entity k v) -> return v) y 
 		
 {-- | Return all unique symbols across all the portfolios for a user --}
 --queryUniqueSymbols :: T.Text -> T.Text -> IO (Either T.Text [T.Text])
 queryUniqueSymbolsForCompany companyId userId = dbOps $ do
-	runMaybeT $ do 
+	x <- runMaybeT $ do 
 		Just (Entity c _) <- lift $ getBy $ UniqueCompanyId companyId 
 		Just (Entity p _) <- lift $ getBy $ UniqueNickName userId 
 		Just (Entity cu _) <- lift $ getBy $ UniqueCompanyUser c p
 		portfolios <- lift $ selectList [(PortfolioCompanyUserId ==. cu)][]
-		s2 <- lift $ foldM (\a x@(Entity b _) -> do 
-				n <- selectList [PortfolioSymbolPortfolio ==. b] [] 
-				return (a `mappend` n)
-			) [] portfolios
+		s2 <- foldM (\a x@(Entity b _)-> do 
+				n <- lift $ selectList [PortfolioSymbolPortfolio ==. b] [] 
+				return ( n `mappend` a) 
+					) [] portfolios
+		return s2
+	case x of 
+		Just y -> return y
+		Nothing -> return []
 
-		mapM (\(Entity i b) -> return $ portfolioSymbolSymbol b) s2  
 
 insertPortfolio :: PortfolioT -> IO (Either T.Text (Key Portfolio) )
 insertPortfolio p@(PortfolioT cType 

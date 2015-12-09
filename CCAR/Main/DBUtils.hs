@@ -408,9 +408,10 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
         PortfolioSymbol json
             portfolio PortfolioId
             symbol Text
-            quantity Double
+            quantity Text
             side PortfolioSymbolSide
             symbolType PortfolioSymbolType 
+            value Text default=0.0 -- Market data times quantity. 
             createdBy PersonId 
             createdOn UTCTime default=CURRENT_TIMESTAMP
             updatedBy PersonId
@@ -472,7 +473,8 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             bidPrice Text 
             lastUpdateTime UTCTime default=CURRENT_TIMESTAMP
             marketDataProvider MarketDataProviderId 
-            deriving Show Eq
+            MarketDataIdentifier symbol 
+            deriving Show Eq Ord
 
         TimeAndSales json 
             marketDataProvider MarketDataProviderId
