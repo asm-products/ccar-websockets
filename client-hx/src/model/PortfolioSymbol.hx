@@ -4,6 +4,7 @@ import promhx.Deferred;
 import promhx.base.EventLoop;
 import model.Portfolio;
 
+
 typedef PortfolioSymbolT =  {
 	  var crudType : String;
 	  var commandType : String;
@@ -12,6 +13,7 @@ typedef PortfolioSymbolT =  {
 	  var quantity : String;
 	  var side : String;
 	  var symbolType : String;
+	  var value : String;
 	  var creator : String;
 	  var updator : String;
 	  var nickName : String;

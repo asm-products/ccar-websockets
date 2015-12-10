@@ -34,7 +34,10 @@ import model.UserOperation;
 import model.Project;
 import model.CCAR;
 import model.Portfolio;
+import model.MarketDataUpdate;
+
 import view.Entitlement;
+
 import util.Util;
 import util.Config;
 import js.Browser;
@@ -136,6 +139,7 @@ class MBooks_im {
 			initializeElementStream(getGmailOauthButton() , "click");
 		oauthStream.then(performGmailOauth);
 		entitlements = new view.Entitlement();
+		marketDataStream = new Deferred<Dynamic>();
 		companyEntitlements = new view.CompanyEntitlement(entitlements, 
 			selectedCompanyStream);
 
@@ -424,6 +428,9 @@ class MBooks_im {
 			}
 			case QueryCompanyUsers : {
 				companyEntitlements.userListResponse.resolve(incomingMessage);
+			}
+			case MarketDataUpdate : {
+				marketDataStream.resolve(incomingMessage);
 			}
 			case Undefined : {
 				processUndefinedCommandType(incomingMessage);
@@ -920,6 +927,7 @@ class MBooks_im {
 	*/
 	public var activeCompanyStream(default, null) : Deferred<model.Company>;
 	public var assignCompanyStream (default, null) : Deferred<Dynamic>;
+	public var marketDataStream(default, null) : Deferred<Dynamic>;
 	//PortfolioQuery messages
 	public var portfolioListStream(default, null) : Deferred<PortfolioQuery>;
 	//ManagePortfolio messages.

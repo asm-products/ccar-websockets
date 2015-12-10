@@ -464,7 +464,7 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             roundLotSize Int -- 6
             UniqueEquitySymbol symbol
             deriving Show Eq
-        MarketData json 
+        MarketData 
             symbol Text 
             lastPrice Text 
             askSize Text 

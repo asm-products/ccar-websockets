@@ -29,6 +29,7 @@ import promhx.base.EventLoop;
 import model.Portfolio;
 import model.PortfolioSymbol;
 import model.Company;
+import model.MarketDataUpdate;
 import js.Lib.*;
 import util.*;
 import format.csv.*;
@@ -172,7 +173,8 @@ class PortfolioSymbol {
 		readStreamResponse.then(readResponse);
 		symbolQueryResponse = new Deferred<PortfolioSymbolQueryT>();
 		symbolQueryResponse.then(handleQueryResponse);
-
+		MBooks_im.getSingleton().marketDataStream.then(updateMarketData);
+		MBooks_im.getSingleton().portfolio.activePortfolioStream.then(processActivePortfolio);
 		var uploadPortfolioButtonStream : Stream<Dynamic> =
 				MBooks_im.getSingleton().initializeElementStream(
 					cast getUploadPortfolioButton()
@@ -242,6 +244,19 @@ class PortfolioSymbol {
 		}
 		return (payload.symbol + payload.side + payload.symbolType + payload.portfolioId);
 	}
+
+	private function processActivePortfolio(a : PortfolioT){
+		trace("Deleting all the existing rows as active portfolio changed " + a);
+		for(key in rowMap.keys()){
+			trace("Deleting key " + key);
+			var row : TableRowElement = 
+					cast rowMap.get(key);
+			var pSymbolTable : TableElement = getPortfolioSymbolTable();
+			pSymbolTable.deleteRow(row.rowIndex);
+		}	
+		rowMap = new StringMap<TableRowElement>();
+	}
+
 	private function deleteTableRowMap(payload : PortfolioSymbolT) {
 		trace("Deleting table row map " + payload);
 		var key : String = getKey(payload);
@@ -260,6 +275,10 @@ class PortfolioSymbol {
 	private function updateTableRowMap(payload : PortfolioSymbolT) {
 		var key : String = getKey(payload);
 		var row : TableRowElement = cast rowMap.get(key);
+		if(payload.portfolioId != MBooks_im.getSingleton().portfolio.activePortfolio.portfolioId){
+			trace("Throwing message " + payload);
+			return;
+		}
 		if(row == null){
 			var pSymbolTable = getPortfolioSymbolTable();
 			row = cast(pSymbolTable.insertRow(computeInsertIndex()));
@@ -275,14 +294,19 @@ class PortfolioSymbol {
 					case 1 : cellI.innerHTML = payload.side;
 					case 2 : cellI.innerHTML = payload.symbolType;
 					case 3 : cellI.innerHTML = payload.quantity;
-					case 4 : cellI.innerHTML = Date.now().toString();
+					case 4 : cellI.innerHTML = payload.value;
+					case 5 : cellI.innerHTML = Date.now().toString();
 				}
 			}
 		}
 	}
 
 	private function insertCells(aRow : TableRowElement, payload : PortfolioSymbolT) {
-		trace("Inserting cells from payload");
+		if(payload.portfolioId != MBooks_im.getSingleton().portfolio.activePortfolio.portfolioId){
+			trace("Throwing away payload " + payload);
+			return;
+		}
+		trace("Inserting cells from payload " + payload);
 		var newCell : TableCellElement = cast (aRow.insertCell(0));
 		newCell.innerHTML = payload.symbol;
 		newCell = cast aRow.insertCell(1);
@@ -292,22 +316,24 @@ class PortfolioSymbol {
 		newCell = cast aRow.insertCell(3);
 		newCell.innerHTML = payload.quantity;
 		newCell = cast aRow.insertCell(4);
+		newCell.innerHTML = payload.value;
+		newCell = cast aRow.insertCell(5);
 		newCell.innerHTML = Date.now().toString();
 	}
 	private function insertResponse(payload : PortfolioSymbolT) {
 		trace("Inserting view " + payload);
-		clearFields();
+		//clearFields();
 		updateTableRowMap(payload);
 	}
 
 	private function updateResponse(payload : PortfolioSymbolT){
 		trace("Updating view " + payload);
-		clearFields();
+		//clearFields();
 		updateTableRowMap(payload);
 	}
 	private function deleteResponse(payload : PortfolioSymbolT) {
 		trace("Deleting view "  + payload);
-		clearFields();
+		//clearFields();
 		deleteTableRowMap(payload);
 	}
 
@@ -315,7 +341,6 @@ class PortfolioSymbol {
 		trace("Reading view " + payload);
 		throw "Read response Not implemented";
 	}
-
 
 	private function getPortfolioId() {
 		if(model == null){
@@ -333,6 +358,7 @@ class PortfolioSymbol {
 			, quantity : quantity
 			, side : aSide
 			, symbolType : aSymbolType
+			, value : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -351,6 +377,7 @@ class PortfolioSymbol {
 			, quantity  : getQuantityValue()
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
+			, value : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -368,6 +395,7 @@ class PortfolioSymbol {
 			, quantity  : getQuantityValue()
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
+			, value : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -385,6 +413,7 @@ class PortfolioSymbol {
 			, quantity  : getQuantityValue()
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
+			, value : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -400,6 +429,7 @@ class PortfolioSymbol {
 			, quantity  : getQuantityValue()
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
+			, value :""
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -516,7 +546,11 @@ class PortfolioSymbol {
 		}
 
 	}
+	private function updateMarketData(incomingMessage: Dynamic){
+		trace("Inside update market data response " + incomingMessage);
+		//this.updateTableRowMap(incomingMessage);
 
+	}
 	//When we allow users to move columns around, 
 	//this dictionary needs to be updated.
 	private var columnIndexMap : ObjectMap<String, Int>;

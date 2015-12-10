@@ -146,6 +146,41 @@ insertOptionChain x = dbOps $ do
 		
 	return x	
 
+{-MarketData 
+    symbol Text 
+    lastPrice Text 
+    askSize Text 
+    askPrice Text 
+    bidSize Text 
+    bidPrice Text 
+    lastUpdateTime UTCTime default=CURRENT_TIMESTAMP
+    marketDataProvider MarketDataProviderId 
+-}
+
+instance ToJSON MarketData where 
+	toJSON (MarketData s l a aa b bb la m) = object [
+		"symbol"      .= s 
+		, "lastPrice" .= l 
+		, "askSize"   .=  a 
+		, "askPrice"  .=  aa  
+		, "bidSize"   .=  b  
+		, "bidPrice"  .=  bb  
+		, "lastUpdateTime" .= la
+		, "marketDataProvider" .= m 
+		, "commandType" .= ("MarketDataUpdate" :: String)] 
+
+instance FromJSON MarketData where 
+	parseJSON (Object v) = MarketData <$> 
+					v .: "symbol" <*> 
+					v .: "lastPrice" <*>
+					v .: "askSize" <*> 
+					v .: "askPrice" <*> 
+					v .: "bidSize" <*> 
+					v .: "bidPrice" <*> 
+					v .: "lastUpdateTime" <*> 
+					v .: "marketDataProvider"
+	parseJSON _ 	= Appl.empty 
+
 data QueryOptionChain = QueryOptionChain {
 	qNickName :: T.Text
 	, qCommandType :: T.Text
@@ -209,6 +244,8 @@ instance FromJSON OptionChainMarketData where
 	parseJSON _ 		 = Appl.empty
 instance ToJSON OptionChainMarketData
 						
+
+
 
 {-- | Returns the option expiration date for n months from now. --}
 expirationDate n = do 

@@ -2,8 +2,10 @@ module CCAR.Model.PortfolioSymbol (
 	manage
 	, readPortfolioSymbol
 	, manageSearch
+	, daoToDto
 	, testInsert
 	, testInsertNew 
+	, CRUD(..)
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -171,7 +173,7 @@ daoToDto crudType pUUID creator updator currentRequest
 			p@(PortfolioSymbol pID symbol quantity side symbolType value cB cT uB uT )  = 
 				Right $ PortfolioSymbolT crudType
 								managePortfolioSymbolCommand 
-								pUUID symbol (T.pack $ show quantity) side symbolType
+								pUUID symbol (quantity) side symbolType
 								value 
 								creator updator currentRequest
 
@@ -261,7 +263,7 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 								case (cr, up, req) of 
 									(Just (Entity crID crValue), Just (Entity upID upValue), Just (Entity reqID reqValue)) -> do 
 											n <- insert $ PortfolioSymbol pID symbol 
-														(read $ T.unpack quantity) 
+														(quantity) 
 														side symbolType 
 														"0.0"
 														crID currentTime upID currentTime

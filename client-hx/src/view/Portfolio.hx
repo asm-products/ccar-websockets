@@ -312,6 +312,6 @@ class Portfolio {
 
 
 	private var activeCompany : model.Company;
-	private var activePortfolio : PortfolioT;
+	public var activePortfolio(default, null) : PortfolioT;
 
 }	

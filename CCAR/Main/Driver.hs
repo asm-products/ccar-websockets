@@ -5,6 +5,8 @@ module CCAR.Main.Driver
     (driver)
 where 
 
+import Data.Set as Set 
+import Data.Map as Map
 import Data.Ratio
 import Yesod.Core
 import Yesod.WebSockets as YWS
@@ -454,7 +456,7 @@ countAllClients app@(App a c) = do
 getAllClients :: App -> T.Text -> STM [ClientState]
 getAllClients app@(App a c) nn = do
     nMap <- readTVar c 
-    return $ Prelude.filter (\x -> nn /= (nickName x)) $ elems nMap 
+    return $ Prelude.filter (\x -> nn /= (nickName x)) $ IMap.elems nMap 
 getClientState :: T.Text -> App -> STM [ClientState]
 getClientState nickName app@(App a c) = do
         nMap <- readTVar c
@@ -589,7 +591,7 @@ ccarApp = do
                                                 nickNameV False))
                                             b <- (A.async (liftIO $ readerThread app nickNameV False))
                                             c <- (A.async $ liftIO $ jobReaderThread app nickNameV False)
-                                            d <- (A.async $ liftIO $ runner TradierServer app nickNameV False)
+                                            d <- (A.async $ liftIO $ runner TradierServer app connection nickNameV False)
                                             labelThread (A.asyncThreadId a) 
                                                         ("Writer thread " ++ (T.unpack nickNameV))
                                             labelThread (A.asyncThreadId b) 
@@ -898,7 +900,7 @@ class MarketDataServer a where
     {-- | A polling interval to poll for data. Non real time threads.--}
     realtime :: a -> IO Bool 
     pollingInterval :: a -> IO Int 
-    runner :: a -> App -> T.Text -> Bool -> IO ()
+    runner :: a -> App -> WSConn.Connection -> T.Text -> Bool -> IO ()
 
 data TradierMarketDataServer = TradierServer 
 
@@ -912,12 +914,22 @@ instance MarketDataServer TradierMarketDataServer where
 
 
 computeValue :: MarketData -> PortfolioSymbol -> IO T.Text
-computeValue a b = return $ "Test" 
+computeValue a b = do 
+        m <- return $ T.unpack (marketDataLastPrice a )
+        q <- return $ T.unpack (portfolioSymbolQuantity b)
+        mD <- return $ (read m :: Double)
+        qD <- return $ (read q :: Double)
+        return $ T.pack $ show (mD * qD)
 -- Refactoring note: move this to market data api.
+-- The method is too complex. Need to fix it.
+-- High level: 
+-- Get all the symbols for the users portfolio,
+-- Send a portfolio update : query the portfolio object
+-- get the uuid and then map over it.
 tradierPollingInterval :: IO Int 
 tradierPollingInterval = return $ 10 * 10 ^ 6
-tradierRunner :: App -> T.Text -> Bool -> IO ()
-tradierRunner app nickName terminate = 
+tradierRunner :: App -> WSConn.Connection -> T.Text -> Bool -> IO ()
+tradierRunner app conn nickName terminate = 
     if(terminate == True) then do 
         Logger.infoM iModuleName "Market data thread exiting" 
         return ()
@@ -926,17 +938,33 @@ tradierRunner app nickName terminate =
         tradierPollingInterval >>= \x -> threadDelay x
         mySymbols <- Portfolio.queryUniqueSymbols nickName
         marketDataMap <- TradierApi.queryMarketData
+        portfolioIds <- mapM (\p -> return $ portfolioSymbolPortfolio p) mySymbols
+        pSet <- return $ Set.fromList portfolioIds
+        portfoliom  <- mapM (\x -> do 
+                        p <- dbOps $  DB.get x 
+                        case p of 
+                            Just x2 -> return (x, portfolioUuid x2)
+                            Nothing -> return (x, "INVALID PORTFOLIO")) 
+                        (Set.toList pSet)
+        portfolioMap <- return $ Map.fromList portfoliom
         upd <- mapM (\x -> do 
-                val <- return $ IMap.lookup (portfolioSymbolSymbol x) marketDataMap 
-                case val of 
-                    Just v -> do 
-                        c <- computeValue v x
-                        return $ x {portfolioSymbolValue = c}
-                    Nothing -> return x 
+                val <- return $ Map.lookup (portfolioSymbolSymbol x) marketDataMap 
+                ret <- case val of 
+                        Just v -> do 
+                            c <- computeValue v x
+                            return $ x {portfolioSymbolValue = c}
+                        Nothing -> return x 
+                x2 <- return $ Map.lookup (portfolioSymbolPortfolio x) portfolioMap 
+                pid <- case x2 of 
+                    Nothing -> return "INVALID PORTFOLIO" 
+                    Just y -> return y 
+                return $ daoToDto PortfolioSymbol.P_Update pid nickName nickName nickName ret 
             ) mySymbols
 
         mapM_  (\p -> do
-                liftIO $ Logger.debugM iModuleName ("test" `mappend` (show p))
+                liftIO $ Logger.debugM iModuleName ("test" `mappend` (show $ Util.serialize p))
+                liftIO $ threadDelay $ 1 * 10 ^ 6 
+                liftIO $ WSConn.sendTextData conn (Util.serialize p) 
                 return p 
                 ) upd 
-        tradierRunner app nickName False
+        tradierRunner app conn nickName False

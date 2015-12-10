@@ -115,6 +115,7 @@ var MBooks_im = function() {
 	var oauthStream = this.initializeElementStream(this.getGmailOauthButton(),"click");
 	oauthStream.then($bind(this,this.performGmailOauth));
 	this.entitlements = new view.Entitlement();
+	this.marketDataStream = new promhx.Deferred();
 	this.companyEntitlements = new view.CompanyEntitlement(this.entitlements,this.selectedCompanyStream);
 };
 MBooks_im.__name__ = ["MBooks_im"];
@@ -577,19 +578,22 @@ MBooks_im.prototype = {
 			console.log("Processing " + Std.string(incomingMessage));
 			this.portfolioSymbolView.manage(incomingMessage);
 			break;
-		case 33:
+		case 34:
 			console.log("Processing " + Std.string(incomingMessage));
 			this.portfolioSymbolView.symbolQueryResponse.resolve(incomingMessage);
 			break;
-		case 34:
+		case 35:
 			console.log("Processing " + Std.string(incomingMessage));
 			this.entitlements.modelResponseStream.resolve(incomingMessage);
 			break;
-		case 35:
+		case 36:
 			this.entitlements.queryEntitlementResponse.resolve(incomingMessage);
 			break;
-		case 36:
+		case 37:
 			this.companyEntitlements.userListResponse.resolve(incomingMessage);
+			break;
+		case 33:
+			this.marketDataStream.resolve(incomingMessage);
 			break;
 		case 13:
 			this.processUndefinedCommandType(incomingMessage);
@@ -2558,7 +2562,7 @@ model.Command.__name__ = ["model","Command"];
 model.Command.prototype = {
 	__class__: model.Command
 }
-model.CommandType = { __ename__ : true, __constructs__ : ["Login","SendMessage","ManageUser","CreateUserTerms","UpdateUserTerms","QueryUserTerms","DeleteUserTerms","CreateUserPreferences","UpdateUserPreferences","QueryUserPreferences","DeleteUserPreferences","CCARUpload","ParsedCCARText","Undefined","UserJoined","UserLeft","UserLoggedIn","UserBanned","ManageCompany","KeepAlive","SelectAllCompanies","SelectActiveProjects","ManageProject","QuerySupportedScripts","QueryActiveWorkbenches","ManageWorkbench","ExecuteWorkbench","AssignCompany","PortfolioSymbolTypesQuery","PortfolioSymbolSidesQuery","QueryPortfolios","ManagePortfolio","ManagePortfolioSymbol","QueryPortfolioSymbol","ManageEntitlements","QueryEntitlements","QueryCompanyUsers"] }
+model.CommandType = { __ename__ : true, __constructs__ : ["Login","SendMessage","ManageUser","CreateUserTerms","UpdateUserTerms","QueryUserTerms","DeleteUserTerms","CreateUserPreferences","UpdateUserPreferences","QueryUserPreferences","DeleteUserPreferences","CCARUpload","ParsedCCARText","Undefined","UserJoined","UserLeft","UserLoggedIn","UserBanned","ManageCompany","KeepAlive","SelectAllCompanies","SelectActiveProjects","ManageProject","QuerySupportedScripts","QueryActiveWorkbenches","ManageWorkbench","ExecuteWorkbench","AssignCompany","PortfolioSymbolTypesQuery","PortfolioSymbolSidesQuery","QueryPortfolios","ManagePortfolio","ManagePortfolioSymbol","MarketDataUpdate","QueryPortfolioSymbol","ManageEntitlements","QueryEntitlements","QueryCompanyUsers"] }
 model.CommandType.Login = ["Login",0];
 model.CommandType.Login.toString = $estr;
 model.CommandType.Login.__enum__ = model.CommandType;
@@ -2658,16 +2662,19 @@ model.CommandType.ManagePortfolio.__enum__ = model.CommandType;
 model.CommandType.ManagePortfolioSymbol = ["ManagePortfolioSymbol",32];
 model.CommandType.ManagePortfolioSymbol.toString = $estr;
 model.CommandType.ManagePortfolioSymbol.__enum__ = model.CommandType;
-model.CommandType.QueryPortfolioSymbol = ["QueryPortfolioSymbol",33];
+model.CommandType.MarketDataUpdate = ["MarketDataUpdate",33];
+model.CommandType.MarketDataUpdate.toString = $estr;
+model.CommandType.MarketDataUpdate.__enum__ = model.CommandType;
+model.CommandType.QueryPortfolioSymbol = ["QueryPortfolioSymbol",34];
 model.CommandType.QueryPortfolioSymbol.toString = $estr;
 model.CommandType.QueryPortfolioSymbol.__enum__ = model.CommandType;
-model.CommandType.ManageEntitlements = ["ManageEntitlements",34];
+model.CommandType.ManageEntitlements = ["ManageEntitlements",35];
 model.CommandType.ManageEntitlements.toString = $estr;
 model.CommandType.ManageEntitlements.__enum__ = model.CommandType;
-model.CommandType.QueryEntitlements = ["QueryEntitlements",35];
+model.CommandType.QueryEntitlements = ["QueryEntitlements",36];
 model.CommandType.QueryEntitlements.toString = $estr;
 model.CommandType.QueryEntitlements.__enum__ = model.CommandType;
-model.CommandType.QueryCompanyUsers = ["QueryCompanyUsers",36];
+model.CommandType.QueryCompanyUsers = ["QueryCompanyUsers",37];
 model.CommandType.QueryCompanyUsers.toString = $estr;
 model.CommandType.QueryCompanyUsers.__enum__ = model.CommandType;
 model.Company = function(n,cId,gM,ima) {
@@ -5018,7 +5025,10 @@ view.PortfolioSymbol = function(m) {
 };
 view.PortfolioSymbol.__name__ = ["view","PortfolioSymbol"];
 view.PortfolioSymbol.prototype = {
-	handleQueryResponse: function(incomingMessage) {
+	updateMarketData: function(incomingMessage) {
+		console.log("Inside update market data response " + Std.string(incomingMessage));
+	}
+	,handleQueryResponse: function(incomingMessage) {
 		console.log("Processing symbol query response " + Std.string(incomingMessage));
 		if(incomingMessage.Left != null) MBooks_im.getSingleton().applicationErrorStream.resolve(incomingMessage); else {
 			if(incomingMessage.Right.resultSet == null) {
@@ -5095,29 +5105,29 @@ view.PortfolioSymbol.prototype = {
 		}
 	}
 	,readPortfolio: function(someEvent) {
-		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : "getPortfolioId()", symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : "getPortfolioId()", symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.readStream.resolve(portfolioSymbolT);
 	}
 	,deletePortfolioSymbol: function(ev) {
 		console.log("Delete portfolio symbol " + Std.string(ev));
-		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.deleteStream.resolve(portfolioSymbolT);
 	}
 	,updatePortfolioSymbol: function(ev) {
 		console.log("Update portfolio symbol " + Std.string(ev));
-		var portfolioSymbolT = { crudType : "P_Update", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "P_Update", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.updateStream.resolve(portfolioSymbolT);
 	}
 	,insertPortfolioSymbol: function(ev) {
 		console.log("Insert portfolio symbol " + Std.string(ev));
 		console.log("Symbol side " + this.getSymbolSideValue());
 		console.log("Symbol type " + this.getSymbolTypeValue());
-		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.insertStream.resolve(portfolioSymbolT);
 	}
 	,insertPortfolioSymbolI: function(aSymbol,aSymbolType,aSide,quantity) {
 		console.log("Inserting portfolio symbol through upload ");
-		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : aSymbol, quantity : quantity, side : aSide, symbolType : aSymbolType, creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : aSymbol, quantity : quantity, side : aSide, symbolType : aSymbolType, value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.insertStream.resolve(portfolioSymbolT);
 	}
 	,getPortfolioId: function() {
@@ -5130,21 +5140,22 @@ view.PortfolioSymbol.prototype = {
 	}
 	,deleteResponse: function(payload) {
 		console.log("Deleting view " + Std.string(payload));
-		this.clearFields();
 		this.deleteTableRowMap(payload);
 	}
 	,updateResponse: function(payload) {
 		console.log("Updating view " + Std.string(payload));
-		this.clearFields();
 		this.updateTableRowMap(payload);
 	}
 	,insertResponse: function(payload) {
 		console.log("Inserting view " + Std.string(payload));
-		this.clearFields();
 		this.updateTableRowMap(payload);
 	}
 	,insertCells: function(aRow,payload) {
-		console.log("Inserting cells from payload");
+		if(payload.portfolioId != MBooks_im.getSingleton().portfolio.activePortfolio.portfolioId) {
+			console.log("Throwing away payload " + Std.string(payload));
+			return;
+		}
+		console.log("Inserting cells from payload " + Std.string(payload));
 		var newCell = aRow.insertCell(0);
 		newCell.innerHTML = payload.symbol;
 		newCell = aRow.insertCell(1);
@@ -5154,11 +5165,17 @@ view.PortfolioSymbol.prototype = {
 		newCell = aRow.insertCell(3);
 		newCell.innerHTML = payload.quantity;
 		newCell = aRow.insertCell(4);
+		newCell.innerHTML = payload.value;
+		newCell = aRow.insertCell(5);
 		newCell.innerHTML = HxOverrides.dateStr(new Date());
 	}
 	,updateTableRowMap: function(payload) {
 		var key = this.getKey(payload);
 		var row = this.rowMap.get(key);
+		if(payload.portfolioId != MBooks_im.getSingleton().portfolio.activePortfolio.portfolioId) {
+			console.log("Throwing message " + Std.string(payload));
+			return;
+		}
 		if(row == null) {
 			var pSymbolTable = this.getPortfolioSymbolTable();
 			row = pSymbolTable.insertRow(this.computeInsertIndex());
@@ -5186,6 +5203,9 @@ view.PortfolioSymbol.prototype = {
 					cellI.innerHTML = payload.quantity;
 					break;
 				case 4:
+					cellI.innerHTML = payload.value;
+					break;
+				case 5:
 					cellI.innerHTML = HxOverrides.dateStr(new Date());
 					break;
 				}
@@ -5204,6 +5224,18 @@ view.PortfolioSymbol.prototype = {
 		this.rowMap.remove(key);
 		var pSymbolTable = this.getPortfolioSymbolTable();
 		pSymbolTable.deleteRow(row.rowIndex);
+	}
+	,processActivePortfolio: function(a) {
+		console.log("Deleting all the existing rows as active portfolio changed " + Std.string(a));
+		var $it0 = this.rowMap.keys();
+		while( $it0.hasNext() ) {
+			var key = $it0.next();
+			console.log("Deleting key " + key);
+			var row = this.rowMap.get(key);
+			var pSymbolTable = this.getPortfolioSymbolTable();
+			pSymbolTable.deleteRow(row.rowIndex);
+		}
+		this.rowMap = new haxe.ds.StringMap();
 	}
 	,getKey: function(payload) {
 		if(payload == null) throw "Get failed. No payload";
@@ -5270,6 +5302,8 @@ view.PortfolioSymbol.prototype = {
 		this.readStreamResponse.then($bind(this,this.readResponse));
 		this.symbolQueryResponse = new promhx.Deferred();
 		this.symbolQueryResponse.then($bind(this,this.handleQueryResponse));
+		MBooks_im.getSingleton().marketDataStream.then($bind(this,this.updateMarketData));
+		MBooks_im.getSingleton().portfolio.activePortfolioStream.then($bind(this,this.processActivePortfolio));
 		var uploadPortfolioButtonStream = MBooks_im.getSingleton().initializeElementStream(this.getUploadPortfolioButton(),"click");
 		uploadPortfolioButtonStream.then($bind(this,this.uploadPortfolio));
 	}

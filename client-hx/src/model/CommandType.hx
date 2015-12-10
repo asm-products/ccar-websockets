@@ -34,6 +34,7 @@ enum CommandType {
 	QueryPortfolios;
 	ManagePortfolio;
 	ManagePortfolioSymbol;
+	MarketDataUpdate;
 	QueryPortfolioSymbol;
 	ManageEntitlements;
 	QueryEntitlements;
