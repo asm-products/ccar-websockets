@@ -6,6 +6,7 @@ module CCAR.Model.PortfolioSymbol (
 	, testInsert
 	, testInsertNew 
 	, CRUD(..)
+	, PortfolioSymbolT(..)
 	) where 
 import CCAR.Main.DBUtils
 import GHC.Generics
@@ -77,6 +78,7 @@ data PortfolioSymbolT = PortfolioSymbolT {
 	, side :: EnTypes.PortfolioSymbolSide 
 	, symbolType :: EnTypes.PortfolioSymbolType 
 	, value :: T.Text
+	, stressValue :: T.Text
 	, createdBy :: T.Text 
 	, updatedBy :: T.Text 
 	, pSTNickName :: T.Text
@@ -84,7 +86,8 @@ data PortfolioSymbolT = PortfolioSymbolT {
 
 
 instance ToJSON PortfolioSymbolT where 
-	toJSON pS1@(PortfolioSymbolT crType coType portId symbol quantity side symbolType value cr up nickName)= 
+	toJSON pS1@(PortfolioSymbolT crType coType portId symbol quantity side symbolType value 
+						sVal cr up nickName)= 
 			object [
 				"crudType" .= crType
 				, "commandType" .= coType 
@@ -94,6 +97,7 @@ instance ToJSON PortfolioSymbolT where
 				, "side" .= side 
 				, "symbolType" .= symbolType 
 				, "value" .= value
+				, "stressValue" .= sVal
 				, "creator" .= cr 
 				, "updator" .= up 
 				, "nickName" .= nickName
@@ -109,6 +113,7 @@ instance FromJSON PortfolioSymbolT where
 			a .: "side" <*> 
 			a .: "symbolType" <*>
 			a .: "value" <*>
+			a .: "stressValue" <*>
 			a .: "creator" <*> 
 			a .: "updator" <*>
 			a .: "nickName" 
@@ -160,7 +165,7 @@ queryPortfolioSymbol p@(PortfolioSymbolQueryT cType
 											(personNickName cr) 
 											(personNickName upd)
 											nickName
-											pS ) portfolioSymbolList
+											pS "0.0") portfolioSymbolList
 						return $ Right $ p {resultSet = portfolioSymbolListT}
 
 
@@ -168,13 +173,13 @@ dtoToDao :: PortfolioSymbolT -> IO PortfolioSymbol
 dtoToDao = undefined
 
 
-daoToDto :: CRUD -> T.Text -> T.Text -> T.Text -> T.Text -> PortfolioSymbol -> (Either T.Text PortfolioSymbolT) 
+daoToDto :: CRUD -> T.Text -> T.Text -> T.Text -> T.Text -> PortfolioSymbol -> T.Text -> (Either T.Text PortfolioSymbolT) 
 daoToDto crudType pUUID creator updator currentRequest 
-			p@(PortfolioSymbol pID symbol quantity side symbolType value cB cT uB uT )  = 
+			p@(PortfolioSymbol pID symbol quantity side symbolType value cB cT uB uT ) sVal = 
 				Right $ PortfolioSymbolT crudType
 								managePortfolioSymbolCommand 
 								pUUID symbol (quantity) side symbolType
-								value 
+								value sVal
 								creator updator currentRequest
 
 
@@ -204,7 +209,8 @@ manage aNickName aValue@(Object a) =
 							portfolioEntity <- dbOps $ get k 
 							case portfolioEntity of 
 								Just pEVa -> do 
-									res1 <- return $ daoToDto (crudType r) portfolioUUID creator updator aNickName pEVa 
+									res1 <- return $ daoToDto (crudType r) 
+										portfolioUUID creator updator aNickName pEVa "0.0"
 									case res1 of 
 										Right pT -> return (GC.Reply, serialize res1)
 										Left f -> do 
@@ -240,6 +246,7 @@ insertPortfolioSymbol a@(PortfolioSymbolT crType commandType
 								side 
 								symbolType
 								value
+								sVal 
 								creator
 								updator
 								requestor			
@@ -281,7 +288,8 @@ updatePortfolioSymbolI portfolioSymbol a@(PortfolioSymbolT crType commandType
 								quantity
 								side 
 								symbolType
-								value 
+								value
+								sVal  
 								creator
 								updator
 								requestor) = dbOps $ do 
@@ -302,7 +310,8 @@ updatePortfolioSymbol a@(PortfolioSymbolT crType commandType
 								quantity
 								side 
 								symbolType 
-								value 
+								value
+								sVal 
 								creator
 								updator
 								requestor) = dbOps $ do 
@@ -337,7 +346,8 @@ readPortfolioSymbol a@(PortfolioSymbolT crType commandType
 								quantity
 								side 
 								symbolType 
-								value 
+								value
+								sVal  
 								creator
 								updator
 								requestor) = dbOps $ do 
@@ -374,6 +384,7 @@ testInsert index portfolioID = dbOps $ do
 												EnTypes.Buy
 												EnTypes.Equity
 												"0.0"
+												"0.0"
 												(personNickName user)
 												(personNickName user)
 												(personNickName user)
@@ -403,6 +414,7 @@ testInsertNonM index portfolioID = dbOps $ do
 												"314.14"
 												EnTypes.Buy
 												EnTypes.Equity
+												"0.0"
 												"0.0"
 												(personNickName userFound)
 												(personNickName userFound)

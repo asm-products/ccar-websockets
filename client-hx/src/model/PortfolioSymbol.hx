@@ -14,6 +14,7 @@ typedef PortfolioSymbolT =  {
 	  var side : String;
 	  var symbolType : String;
 	  var value : String;
+	  var stressValue : String;
 	  var creator : String;
 	  var updator : String;
 	  var nickName : String;

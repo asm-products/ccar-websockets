@@ -942,7 +942,8 @@ instance MarketDataServer TradierMarketDataServer where
 toDouble :: StressValue -> Double 
 toDouble (Percentage Positive x) =  fromRational x 
 toDouble (Percentage Negative x) =  -1 * (fromRational x)
-_                                = 0.0
+_                                = 0.0 -- Need to model this better.
+
 
 computeValue :: MarketData -> PortfolioSymbol -> [Stress] -> IO T.Text
 computeValue a b stress = do 
@@ -988,16 +989,18 @@ tradierRunner app conn nickName terminate =
                 activeScenario <- liftIO $ atomically $ getActiveScenario app nickName 
                 Logger.infoM iModuleName $ " Active scenario " ++ (show activeScenario)
                 val <- return $ Map.lookup (portfolioSymbolSymbol x) marketDataMap 
-                ret <- case val of 
+                (stressValue, p) <- case val of 
                         Just v -> do 
                             c <- computeValue v x activeScenario
-                            return $ x {portfolioSymbolValue = c}
-                        Nothing -> return x 
+                            return (c, x {portfolioSymbolValue = marketDataLastPrice v}) 
+                        Nothing -> return ("0.0", x)
                 x2 <- return $ Map.lookup (portfolioSymbolPortfolio x) portfolioMap 
                 pid <- case x2 of 
                     Nothing -> return "INVALID PORTFOLIO" 
-                    Just y -> return y 
-                return $ daoToDto PortfolioSymbol.P_Update pid nickName nickName nickName ret 
+                    Just y -> return y                  
+                return $ daoToDto PortfolioSymbol.P_Update pid 
+                            nickName nickName nickName p stressValue
+
             ) mySymbols
 
         mapM_  (\p -> do

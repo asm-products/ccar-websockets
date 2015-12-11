@@ -134,13 +134,6 @@ class PortfolioSymbol {
 
 
 
-	private function setupColumnIndices() {
-		columnIndexMap = new ObjectMap<String, Int>();
-		columnIndexMap.set("Symbol", 0);
-		columnIndexMap.set("Side", 1);
-		columnIndexMap.set("SymbolType", 2);
-		columnIndexMap.set("Quantity", 3);
-	}
 
 	private function setupStreams() {
 		model.sideStream.then(updateSidesStream);
@@ -295,7 +288,8 @@ class PortfolioSymbol {
 					case 2 : cellI.innerHTML = payload.symbolType;
 					case 3 : cellI.innerHTML = payload.quantity;
 					case 4 : cellI.innerHTML = payload.value;
-					case 5 : cellI.innerHTML = Date.now().toString();
+					case 5 : cellI.innerHTML = payload.stressValue;
+					case 6 : cellI.innerHTML = Date.now().toString();
 				}
 			}
 		}
@@ -318,6 +312,8 @@ class PortfolioSymbol {
 		newCell = cast aRow.insertCell(4);
 		newCell.innerHTML = payload.value;
 		newCell = cast aRow.insertCell(5);
+		newCell.innerHTML = payload.stressValue;
+		newCell = cast aRow.insertCell(6);
 		newCell.innerHTML = Date.now().toString();
 	}
 	private function insertResponse(payload : PortfolioSymbolT) {
@@ -359,6 +355,7 @@ class PortfolioSymbol {
 			, side : aSide
 			, symbolType : aSymbolType
 			, value : "0.0"
+			, stressValue : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -378,6 +375,7 @@ class PortfolioSymbol {
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
 			, value : "0.0"
+			, stressValue : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -396,6 +394,7 @@ class PortfolioSymbol {
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
 			, value : "0.0"
+			, stressValue : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -414,6 +413,7 @@ class PortfolioSymbol {
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
 			, value : "0.0"
+			, "stressValue" : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()
@@ -430,6 +430,7 @@ class PortfolioSymbol {
 			, side : getSymbolSideValue()
 			, symbolType : getSymbolTypeValue()
 			, value :""
+			, stressValue : "0.0"
 			, creator : MBooks_im.getSingleton().getNickName()
 			, updator : MBooks_im.getSingleton().getNickName()
 			, nickName : MBooks_im.getSingleton().getNickName()

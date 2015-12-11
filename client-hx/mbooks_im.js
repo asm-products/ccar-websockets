@@ -1448,20 +1448,9 @@ haxe.Timer.prototype = {
 	,__class__: haxe.Timer
 }
 haxe.ds = {}
-haxe.ds.ObjectMap = function() {
-	this.h = { };
-	this.h.__keys__ = { };
-};
+haxe.ds.ObjectMap = function() { }
 haxe.ds.ObjectMap.__name__ = ["haxe","ds","ObjectMap"];
 haxe.ds.ObjectMap.__interfaces__ = [IMap];
-haxe.ds.ObjectMap.prototype = {
-	set: function(key,value) {
-		var id = key.__id__ != null?key.__id__:key.__id__ = ++haxe.ds.ObjectMap.count;
-		this.h[id] = value;
-		this.h.__keys__[id] = key;
-	}
-	,__class__: haxe.ds.ObjectMap
-}
 haxe.ds.Option = { __ename__ : true, __constructs__ : ["Some","None"] }
 haxe.ds.Option.Some = function(v) { var $x = ["Some",0,v]; $x.__enum__ = haxe.ds.Option; $x.toString = $estr; return $x; }
 haxe.ds.Option.None = ["None",1];
@@ -5105,29 +5094,29 @@ view.PortfolioSymbol.prototype = {
 		}
 	}
 	,readPortfolio: function(someEvent) {
-		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : "getPortfolioId()", symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : "getPortfolioId()", symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "", stressValue : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.readStream.resolve(portfolioSymbolT);
 	}
 	,deletePortfolioSymbol: function(ev) {
 		console.log("Delete portfolio symbol " + Std.string(ev));
-		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Delete", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", stressValue : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.deleteStream.resolve(portfolioSymbolT);
 	}
 	,updatePortfolioSymbol: function(ev) {
 		console.log("Update portfolio symbol " + Std.string(ev));
-		var portfolioSymbolT = { crudType : "P_Update", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "P_Update", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", stressValue : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.updateStream.resolve(portfolioSymbolT);
 	}
 	,insertPortfolioSymbol: function(ev) {
 		console.log("Insert portfolio symbol " + Std.string(ev));
 		console.log("Symbol side " + this.getSymbolSideValue());
 		console.log("Symbol type " + this.getSymbolTypeValue());
-		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : this.getSymbolIdValue(), quantity : this.getQuantityValue(), side : this.getSymbolSideValue(), symbolType : this.getSymbolTypeValue(), value : "0.0", stressValue : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.insertStream.resolve(portfolioSymbolT);
 	}
 	,insertPortfolioSymbolI: function(aSymbol,aSymbolType,aSide,quantity) {
 		console.log("Inserting portfolio symbol through upload ");
-		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : aSymbol, quantity : quantity, side : aSide, symbolType : aSymbolType, value : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
+		var portfolioSymbolT = { crudType : "Create", commandType : "ManagePortfolioSymbol", portfolioId : this.getPortfolioId(), symbol : aSymbol, quantity : quantity, side : aSide, symbolType : aSymbolType, value : "0.0", stressValue : "0.0", creator : MBooks_im.getSingleton().getNickName(), updator : MBooks_im.getSingleton().getNickName(), nickName : MBooks_im.getSingleton().getNickName()};
 		this.model.insertStream.resolve(portfolioSymbolT);
 	}
 	,getPortfolioId: function() {
@@ -5167,6 +5156,8 @@ view.PortfolioSymbol.prototype = {
 		newCell = aRow.insertCell(4);
 		newCell.innerHTML = payload.value;
 		newCell = aRow.insertCell(5);
+		newCell.innerHTML = payload.stressValue;
+		newCell = aRow.insertCell(6);
 		newCell.innerHTML = HxOverrides.dateStr(new Date());
 	}
 	,updateTableRowMap: function(payload) {
@@ -5206,6 +5197,9 @@ view.PortfolioSymbol.prototype = {
 					cellI.innerHTML = payload.value;
 					break;
 				case 5:
+					cellI.innerHTML = payload.stressValue;
+					break;
+				case 6:
 					cellI.innerHTML = HxOverrides.dateStr(new Date());
 					break;
 				}
@@ -5306,13 +5300,6 @@ view.PortfolioSymbol.prototype = {
 		MBooks_im.getSingleton().portfolio.activePortfolioStream.then($bind(this,this.processActivePortfolio));
 		var uploadPortfolioButtonStream = MBooks_im.getSingleton().initializeElementStream(this.getUploadPortfolioButton(),"click");
 		uploadPortfolioButtonStream.then($bind(this,this.uploadPortfolio));
-	}
-	,setupColumnIndices: function() {
-		this.columnIndexMap = new haxe.ds.ObjectMap();
-		this.columnIndexMap.set("Symbol",0);
-		this.columnIndexMap.set("Side",1);
-		this.columnIndexMap.set("SymbolType",2);
-		this.columnIndexMap.set("Quantity",3);
 	}
 	,getSymbolSideValue: function() {
 		var multiSelect = false;
@@ -5653,7 +5640,6 @@ MBooks_im.GOAUTH_URL = "gmail_oauthrequest";
 MBooks_im.SERVER_ERROR = "serverError";
 MBooks_im.APPLICATION_ERROR = "applicationError";
 format.csv.Reader.FETCH_SIZE = 4096;
-haxe.ds.ObjectMap.count = 0;
 js.Browser.document = typeof window != "undefined" ? window.document : null;
 js.Browser.location = typeof window != "undefined" ? window.location : null;
 js.d3._D3.InitPriority.important = "important";
