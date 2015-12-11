@@ -1,0 +1,15 @@
+Symbol ,  Symbol Type, Side, Quantity
+AAAP ,  Equity, Buy, 1
+AAL ,  Equity, Buy, 1
+AAME ,  Equity, Buy, 1
+AAOI ,  Equity, Buy, 1
+AAON ,  Equity, Buy, 1
+AAPC ,  Equity, Buy, 1
+AAPL ,  Equity, Buy, 1
+AAVL ,  Equity, Buy, 1
+AAWW ,  Equity, Buy, 1
+AAXJ ,  Equity, Buy, 1
+ABAC ,  Equity, Buy, 1
+ABAX ,  Equity, Buy, 1
+ABCB ,  Equity, Buy, 1
+ABCD ,  Equity, Buy, 1
