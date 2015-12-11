@@ -3,7 +3,7 @@ module CCAR.Model.CCAR
 (manage
  , parseCCMessage
  , CCARUpload
- , CCARText)
+ , CCARText(..))
 where
 import Control.Monad.IO.Class 
 import Control.Monad.Logger 
@@ -120,6 +120,7 @@ manageCCAR aNickName aValue = do
 		Error s -> return (GC.Reply, Left $ appError s)
 
 
+
 parseCCMessage nickName aValue = do  
 		case (AeTypes.parse parseJSON aValue :: Result CCARText) of
 			Success r -> return (GC.Reply, Right r)
@@ -156,7 +157,7 @@ deleteCCAR c = dbOps $ do
             return $ Just $ c {cCARDeleted = True} 
 
 
-createCCAR (CCARUpload a b (Just c) d) = do                 
+createCCAR (CCARUpload a b (Just c) d) = do    
     ccarId <- insertCCAR c
     Logger.infoM iModuleName $ show $ "CCAR created " 
     return $ (GC.Reply, Right $ CCARUpload a b (Just c) [])

@@ -40,6 +40,7 @@ import CCAR.Main.DBUtils
 import CCAR.Main.EnumeratedTypes as Et
 import CCAR.Command.ApplicationError
 import CCAR.Main.Util as Util
+import CCAR.Parser.CCARParsec
 
 {- 
 	The client needs to handle
@@ -63,6 +64,7 @@ data ClientState = ClientState {
             , jobReadChan :: TChan Value 
             , jobWriteChan :: TChan Value
             , workingDirectory :: FilePath
+            , activeScenario :: [Stress]
 	}
 
 createClientState nn aConn = do 
@@ -77,6 +79,7 @@ createClientState nn aConn = do
                         , jobWriteChan = jw 
                         , jobReadChan = jwr
                         , workingDirectory = ("." `mappend` (T.unpack nn))
+                        , activeScenario = []
         }
 
 instance Show ClientState where 

@@ -1,6 +1,6 @@
 {--License: license.txt --}
 module CCAR.Parser.CCARParsec 
-    (readExpr)
+    (readExpr, readExprTree, Stress)
 where
 
 import Import
@@ -11,6 +11,13 @@ import Control.Monad
 syntaxError i = CCARError $ Text.append "Invalid symbol " i 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_-"
+
+
+readExprTree :: Text -> [Stress] 
+readExprTree input = case parse parseStatements (Text.unpack $ msg $ syntaxError input)
+                            (Text.unpack input) of
+    Left err -> []
+    Right val -> val 
 
 readExpr :: Text -> Value
 readExpr input = case parse (parseStatements) (Text.unpack $ msg $ syntaxError input) (Text.unpack input) of 

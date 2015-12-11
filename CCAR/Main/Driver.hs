@@ -17,7 +17,8 @@ import Yesod.Static
 import Control.Exception hiding(Handler)
 import qualified GHC.Conc as GHCConc
 import CCAR.Parser.CCARParsec
-import Control.Monad (forever, void, when, liftM, filterM)
+import CCAR.Model.CcarDataTypes
+import Control.Monad (forever, void, when, liftM, filterM, foldM)
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Writer 
@@ -337,11 +338,19 @@ processCommandValue app nickName aValue@(Object a)   = do
                             >>= \(gc, either) -> 
                                 return (gc, Util.serialize 
                                         (either :: Either ApplicationError CCAR.CCARUpload)) 
-                String "ParsedCCARText" ->
-                        CCAR.parseCCMessage nickName aValue
-                            >>= \(gc, either) -> 
-                                return(gc, Util.serialize 
-                                        (either :: Either ApplicationError CCAR.CCARText))
+                String "ParsedCCARText" -> do 
+                        (gc, x) <- CCAR.parseCCMessage nickName aValue 
+                        case x of 
+                            Left x -> return (gc, Util.serialize x) 
+                            Right (CCAR.CCARText uploadedBy name y) -> do
+                                Logger.infoM iModuleName "Calling parsed ccar text..." 
+                                y2 <- return $ readExprTree y 
+                                Logger.debugM iModuleName $ "Scenarios " ++ (show y2)
+                                atomically $ updateActiveScenario app nickName y2
+                                cState <- atomically $ getClientState nickName app
+                                Logger.debugM iModuleName $ show cState
+                                return (gc, Util.serialize y)
+
                 String "UserBanned" -> do
                         c <- return $ (parse parseJSON aValue :: Result UserBanned)
                         case c of
@@ -428,6 +437,25 @@ processIncomingMessage app conn aNickName aCommand = do
                 --return $ (d, L.toStrict $ E.decodeUtf8 $ En.encode command)
                     
 
+
+getActiveScenario :: App -> T.Text -> STM [Stress]
+getActiveScenario app nn = do 
+    cMap <- readTVar $ nickNameMap app 
+    clientState <- return $ IMap.lookup nn cMap 
+    case clientState of 
+            Nothing -> return [] 
+            Just x1 -> return $ activeScenario x1
+
+updateActiveScenario :: App -> T.Text -> [Stress] -> STM()
+updateActiveScenario app nn x = do 
+    cMap <- readTVar $ nickNameMap app 
+    clientState <- return $ IMap.lookup nn cMap
+    case clientState of 
+            Nothing -> return () 
+            Just x1 -> do 
+                _ <- writeTVar (nickNameMap app) 
+                            (IMap.insert nn (x1 {activeScenario = x}) (cMap))
+                return ()
 
 deleteConnection :: App -> T.Text -> STM  () 
 deleteConnection app nn = do 
@@ -911,15 +939,24 @@ instance MarketDataServer TradierMarketDataServer where
     runner i a n t = tradierRunner a n t 
 
 
+toDouble :: StressValue -> Double 
+toDouble (Percentage Positive x) =  fromRational x 
+toDouble (Percentage Negative x) =  -1 * (fromRational x)
+_                                = 0.0
 
-
-computeValue :: MarketData -> PortfolioSymbol -> IO T.Text
-computeValue a b = do 
+computeValue :: MarketData -> PortfolioSymbol -> [Stress] -> IO T.Text
+computeValue a b stress = do 
         m <- return $ T.unpack (marketDataLastPrice a )
         q <- return $ T.unpack (portfolioSymbolQuantity b)
         mD <- return $ (read m :: Double)
         qD <- return $ (read q :: Double)
-        return $ T.pack $ show (mD * qD)
+        stressM <- return stress 
+        sVT <- foldM (\sValue s -> 
+                case s of 
+                    EquityStress (Equity s1) sV -> return $ sValue + (toDouble sV)
+                    _ -> return sValue) 0.0 stressM 
+        Logger.debugM iModuleName $ "Total stress " ++ (show sVT)
+        return $ T.pack $ show (mD * qD * (1 - sVT))
 -- Refactoring note: move this to market data api.
 -- The method is too complex. Need to fix it.
 -- High level: 
@@ -935,7 +972,7 @@ tradierRunner app conn nickName terminate =
         return ()
     else do 
         Logger.debugM iModuleName "Waiting for data"
-        tradierPollingInterval >>= \x -> threadDelay x
+        tradierPollingInterval >>= \x -> threadDelay x        
         mySymbols <- Portfolio.queryUniqueSymbols nickName
         marketDataMap <- TradierApi.queryMarketData
         portfolioIds <- mapM (\p -> return $ portfolioSymbolPortfolio p) mySymbols
@@ -948,10 +985,12 @@ tradierRunner app conn nickName terminate =
                         (Set.toList pSet)
         portfolioMap <- return $ Map.fromList portfoliom
         upd <- mapM (\x -> do 
+                activeScenario <- liftIO $ atomically $ getActiveScenario app nickName 
+                Logger.infoM iModuleName $ " Active scenario " ++ (show activeScenario)
                 val <- return $ Map.lookup (portfolioSymbolSymbol x) marketDataMap 
                 ret <- case val of 
                         Just v -> do 
-                            c <- computeValue v x
+                            c <- computeValue v x activeScenario
                             return $ x {portfolioSymbolValue = c}
                         Nothing -> return x 
                 x2 <- return $ Map.lookup (portfolioSymbolPortfolio x) portfolioMap 
@@ -963,7 +1002,7 @@ tradierRunner app conn nickName terminate =
 
         mapM_  (\p -> do
                 liftIO $ Logger.debugM iModuleName ("test" `mappend` (show $ Util.serialize p))
-                liftIO $ threadDelay $ 1 * 10 ^ 6 
+                liftIO $ threadDelay $ 1 * 10 ^ 4
                 liftIO $ WSConn.sendTextData conn (Util.serialize p) 
                 return p 
                 ) upd 
