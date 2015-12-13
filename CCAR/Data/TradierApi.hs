@@ -73,6 +73,8 @@ timeAndSales = "markets/timesales"
 optionChains = "markets/options/chains"
 provider = "Tradier"
 
+historicalMarketData = "markets/history"
+
 insertTradierProvider = 
 	dbOps $ do
 		get <- DB.getBy $ UniqueProvider provider 
@@ -81,6 +83,7 @@ insertTradierProvider =
 					DB.insert $ MarketDataProvider 
 							provider baseUrl "" timeAndSales optionChains 
 		return y 
+
 
 getMarketData url queryString = do 
 	authBearerToken <- getEnv("TRADIER_BEARER_TOKEN") >>= 
@@ -106,6 +109,16 @@ getQuotes = \x  -> getMarketData quotesUrl [("symbols", Just x)]
 
 getTimeAndSales y = \x -> getMarketData timeAndSales [("symbol", Just x)]
 
+
+getHistoricalData = \x -> do 
+	Object value <- getMarketData historicalMarketData [("symbol", Just x)]
+	history <- return $ M.lookup "history" value
+	case history of 
+		Just aValue -> do 
+			case aValue of 
+				a@(Array x) -> return $ Right $ fmap (\y -> fromJSON y :: Result MarketData) x 
+				_			-> return $ Left $ "Error processing " `mappend` (show aValue)
+
 getOptionChains = \x y -> do 
 	liftIO $ Logger.debugM iModuleName ("Inside option chains " `mappend` (show x) `mappend` (show y))
 	Object value <- getMarketData optionChains [("symbol", Just x), ("expiration", Just y )]
@@ -130,56 +143,26 @@ insertOptionChain x = dbOps $ do
 		Just (Entity kId providerEntity) <- 
 				lift $ DB.getBy $ UniqueProvider provider
 		liftIO $ Logger.debugM iModuleName $ "Entity  " `mappend` (show providerEntity)
-		liftIO $ Prelude.putStrLn (show providerEntity)
    		lift $ DB.insert $ OptionChain  
 				(symbol x)
-				(underlying x)
-				(optionType x)
-				(T.pack $ show $ strike x)
-				(expiration x)				
+				(T.pack $ show $ strike x)				
 				(T.pack $ show $ lastPrice x)
 				(T.pack $ show $ bidPrice x) 
 				(T.pack $ show $ askPrice x)
 				(T.pack $ show $ change x)
 				(T.pack $ show $ openInterest x)
+				(underlying x)
+				(expiration x)				
+				(optionType x)
 				(kId)
-		
 	return x	
 
-{-MarketData 
-    symbol Text 
-    lastPrice Text 
-    askSize Text 
-    askPrice Text 
-    bidSize Text 
-    bidPrice Text 
-    lastUpdateTime UTCTime default=CURRENT_TIMESTAMP
-    marketDataProvider MarketDataProviderId 
--}
+insertHistoricalPrice y = dbOps $ do 
+	x <- runMaybeT $ do 
+		Just (Entity kId providerEntity) <- lift $ DB.getBy $ UniqueProvider provider
+		lift $ DB.insert $ y {marketDataDataProvider = kId}
+	return x
 
-instance ToJSON MarketData where 
-	toJSON (MarketData s l a aa b bb la m) = object [
-		"symbol"      .= s 
-		, "lastPrice" .= l 
-		, "askSize"   .=  a 
-		, "askPrice"  .=  aa  
-		, "bidSize"   .=  b  
-		, "bidPrice"  .=  bb  
-		, "lastUpdateTime" .= la
-		, "marketDataProvider" .= m 
-		, "commandType" .= ("MarketDataUpdate" :: String)] 
-
-instance FromJSON MarketData where 
-	parseJSON (Object v) = MarketData <$> 
-					v .: "symbol" <*> 
-					v .: "lastPrice" <*>
-					v .: "askSize" <*> 
-					v .: "askPrice" <*> 
-					v .: "bidSize" <*> 
-					v .: "bidPrice" <*> 
-					v .: "lastUpdateTime" <*> 
-					v .: "marketDataProvider"
-	parseJSON _ 	= Appl.empty 
 
 data QueryOptionChain = QueryOptionChain {
 	qNickName :: T.Text
@@ -266,27 +249,42 @@ expirationDate n = do
 
 defaultExpirationDate = expirationDate 0
 
+
 insertDummyMarketData = dbOps $ do
 	time <- liftIO $ getCurrentTime 
 	y <- runMaybeT $ do 
 		x <- lift $ selectList [][Asc EquitySymbolSymbol]
 		Just (Entity kid providerEntity) <- 
 				lift $ DB.getBy $ UniqueProvider provider
-		y <- Control.Monad.mapM (\a @(Entity k val) -> 
+		y <- Control.Monad.mapM (\a @(Entity k val) -> do 
 				lift $ DB.insert $ MarketData (equitySymbolSymbol val) 
+									time 
 									"1.0"
 									"1.0"
 									"1.0"
 									"1.0"
 									"1.0"
 									time 
-									kid) x 
+									kid
+				newTime <- liftIO $ return $ addUTCTime (24 * 3600) time
+				lift $ DB.insert $ MarketData (equitySymbolSymbol val) 
+									newTime
+									"3.0"
+									"3.0"
+									"3.0"
+									"3.0"
+									"3.0"
+									time
+									kid
+									) x 
 
 		return () 
 	return y
+
 queryMarketData :: IO (Map T.Text MarketData)
 queryMarketData = dbOps $ do 
-		x <- selectList [][Asc MarketDataSymbol]
+		-- A bit of a hack. Sort by ascending market data date to replace with the latest element.
+		x <- selectList [][Asc MarketDataSymbol, Asc MarketDataDate]
 		y <- Control.Monad.mapM (\a@(Entity k val) -> return (marketDataSymbol val, val)) x 
 		return $ Data.Map.fromList y 
 --TODO: Exception handling needs to be robust.
@@ -338,6 +336,18 @@ saveSymbol = do
 			
 			saveSymbol
 
+saveHistoricalData :: (MonadIO m) => Conduit (Either T.Text T.Text) m (Either T.Text T.Text)
+saveHistoricalData = do 
+	client <- await 
+	case client of
+		Just (Right x) -> do 
+			_ <- liftIO $ insertHistoricalIntoDb (T.unpack x)
+			yield $ Right x
+			return $ Right x 
+		Nothing -> do 
+			yield $ Left $ T.pack $ "Nothing to save "
+			return $ Left $ "Nothing to save "
+	saveHistoricalData 
 
 
 queryOptionChain aNickName o = do 
@@ -361,7 +371,8 @@ saveOptionChains = do
 			case x of 
 				(Right aSymbol) -> do 
 					liftIO $ Logger.debugM iModuleName ("Inserting into db " `mappend` (show x))
-					i <- liftIO $ insertOptionChainsIntoDb (BS.pack $ T.unpack aSymbol) (BS.pack "2015-12-31")
+					d <- defaultExpirationDate
+					i <- liftIO $ insertOptionChainsIntoDb (BS.pack $ T.unpack aSymbol) d
 					yield $ BS.pack $ "Option chains for " `mappend` 
 									(T.unpack aSymbol) `mappend` " retrieved: "
 									`mappend` (show i)					
@@ -369,6 +380,23 @@ saveOptionChains = do
 			 		liftIO $ Logger.errorM iModuleName $ "Not parsing symbol"  `mappend` (show aSymbol)
 			 		yield $ BS.pack $ "Option chain not parsed for " `mappend` (show aSymbol)
 			saveOptionChains
+
+
+
+insertHistoricalIntoDb x = do 
+	x1 <- getHistoricalData (BS.pack x)
+	case x1 of 
+		Right x2 -> do 
+			x <- Data.Vector.forM x2 
+					(\x -> 
+					case x of 
+						Success y -> insertHistoricalPrice y)
+			return $ Right x
+		Left x2 -> do 
+			liftIO $ Logger.errorM iModuleName ("Error Historical price "  `mappend` (show x))
+			return $ Left x
+
+
 
 insertOptionChainsIntoDb x y = do 
 	Logger.debugM iModuleName ("Inserting " `mappend` show x `mappend` " " `mappend` show y)
@@ -387,6 +415,7 @@ insertOptionChainsIntoDb x y = do
 
 setupSymbols aFileName = runResourceT $ 
 			B.sourceFile aFileName $$ B.lines =$= parseSymbol =$= saveSymbol 
+					=$= saveHistoricalData
 					=$= saveOptionChains =$ consume
 
 

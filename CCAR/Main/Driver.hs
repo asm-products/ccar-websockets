@@ -947,7 +947,7 @@ _                                = 0.0 -- Need to model this better.
 
 computeValue :: MarketData -> PortfolioSymbol -> [Stress] -> IO T.Text
 computeValue a b stress = do 
-        m <- return $ T.unpack (marketDataLastPrice a )
+        m <- return $ T.unpack (marketDataClose a )
         q <- return $ T.unpack (portfolioSymbolQuantity b)
         mD <- return $ (read m :: Double)
         qD <- return $ (read q :: Double)
@@ -992,7 +992,7 @@ tradierRunner app conn nickName terminate =
                 (stressValue, p) <- case val of 
                         Just v -> do 
                             c <- computeValue v x activeScenario
-                            return (c, x {portfolioSymbolValue = marketDataLastPrice v}) 
+                            return (c, x {portfolioSymbolValue = marketDataClose v}) 
                         Nothing -> return ("0.0", x)
                 x2 <- return $ Map.lookup (portfolioSymbolPortfolio x) portfolioMap 
                 pid <- case x2 of 

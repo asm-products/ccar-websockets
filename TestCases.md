@@ -1,7 +1,7 @@
 #### Test cases
 
 Note: Everytime tests are run, the database is cleaned up so that there is no residual data for tests. Server needs 
-to prevent for such a function.
+to prevent for such a function. 
 ##### User login and password 
 User id exists and password test.
 
