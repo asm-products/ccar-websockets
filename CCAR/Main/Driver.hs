@@ -947,9 +947,8 @@ _                                = 0.0 -- Need to model this better.
 
 computeValue :: MarketData -> PortfolioSymbol -> [Stress] -> IO T.Text
 computeValue a b stress = do 
-        m <- return $ T.unpack (marketDataClose a )
+        m <- return $ (marketDataClose a )
         q <- return $ T.unpack (portfolioSymbolQuantity b)
-        mD <- return $ (read m :: Double)
         qD <- return $ (read q :: Double)
         stressM <- return stress 
         sVT <- foldM (\sValue s -> 
@@ -957,7 +956,7 @@ computeValue a b stress = do
                     EquityStress (Equity s1) sV -> return $ sValue + (toDouble sV)
                     _ -> return sValue) 0.0 stressM 
         Logger.debugM iModuleName $ "Total stress " ++ (show sVT)
-        return $ T.pack $ show (mD * qD * (1 - sVT))
+        return $ T.pack $ show (m * qD * (1 - sVT))
 -- Refactoring note: move this to market data api.
 -- The method is too complex. Need to fix it.
 -- High level: 
@@ -992,7 +991,7 @@ tradierRunner app conn nickName terminate =
                 (stressValue, p) <- case val of 
                         Just v -> do 
                             c <- computeValue v x activeScenario
-                            return (c, x {portfolioSymbolValue = marketDataClose v}) 
+                            return (c, x {portfolioSymbolValue = T.pack $ show $ marketDataClose v}) 
                         Nothing -> return ("0.0", x)
                 x2 <- return $ Map.lookup (portfolioSymbolPortfolio x) portfolioMap 
                 pid <- case x2 of 

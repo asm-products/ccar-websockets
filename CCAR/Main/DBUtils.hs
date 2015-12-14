@@ -464,14 +464,14 @@ share [mkPersist sqlSettings, mkMigrate "ccarModel"]
             roundLotSize Int -- 6
             UniqueEquitySymbol symbol
             deriving Show Eq
-        MarketData json -- TODO: Rename to HistoricalPrices 
+        MarketData  json -- TODO: Rename to HistoricalPrices 
             symbol Text
             date UTCTime default=CURRENT_TIMESTAMP
-            open Text default="0.0"
-            close Text default="0.0"
-            high Text default="0.0"
-            low Text default="0.0"
-            volume Text default="0.0"
+            open Double default=0.0
+            close Double default=0.0
+            high Double default=0.0
+            low Double default=0.0
+            volume Double default=0.0
             lastUpdateTime UTCTime default=CURRENT_TIMESTAMP
             dataProvider MarketDataProviderId 
             MarketDataIdentifier symbol date

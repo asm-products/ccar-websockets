@@ -1,0 +1,9 @@
+AAAP|Advanced Accelerator Applications S.A. - American Depositary Shares|Q|N|N|100
+AAL|American Airlines Group, Inc. - Common Stock|Q|N|N|100
+AAME|Atlantic American Corporation - Common Stock|G|N|N|100
+AAOI|Applied Optoelectronics, Inc. - Common Stock|G|N|N|100
+AAON|AAON, Inc. - Common Stock|Q|N|N|100
+AAPC|Atlantic Alliance Partnership Corp. - Ordinary Shares|S|N|N|100
+AAPL|Apple Inc. - Common Stock|Q|N|N|100
+AAVL|Avalanche Biotechnologies, Inc. - Common Stock|G|N|N|100
+AAWW|Atlas Air Worldwide Holdings - Common Stock|Q|N|N|100

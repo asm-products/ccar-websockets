@@ -1,4 +1,3 @@
-ACT Symbol|Security Name|Exchange|CQS Symbol|ETF|Round Lot Size|Test Issue|NASDAQ Symbol
 A|Agilent Technologies, Inc. Common Stock|N|A|N|100|N|A
 AA|Alcoa Inc. Common Stock|N|AA|N|100|N|AA
 AA$|Alcoa Inc. $3.75 Preferred Stock|A|AAp|N|100|N|AA-
