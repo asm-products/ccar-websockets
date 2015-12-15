@@ -949,11 +949,16 @@ computeValue :: MarketData -> PortfolioSymbol -> [Stress] -> IO T.Text
 computeValue a b stress = do 
         m <- return $ (marketDataClose a )
         q <- return $ T.unpack (portfolioSymbolQuantity b)
-        qD <- return $ (read q :: Double)
+        qD <- (return (read q :: Double))  `catch` (\x@(SomeException e) -> return 0.0)
         stressM <- return stress 
+        symbol <- return $ T.unpack $ portfolioSymbolSymbol b 
         sVT <- foldM (\sValue s -> 
                 case s of 
-                    EquityStress (Equity s1) sV -> return $ sValue + (toDouble sV)
+                    EquityStress (Equity sym) sV -> 
+                        if sym == symbol then 
+                            return $ sValue + (toDouble sV)
+                        else 
+                            return sValue
                     _ -> return sValue) 0.0 stressM 
         Logger.debugM iModuleName $ "Total stress " ++ (show sVT)
         return $ T.pack $ show (m * qD * (1 - sVT))
