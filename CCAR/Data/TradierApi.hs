@@ -77,14 +77,19 @@ provider = "Tradier"
 historicalMarketData = "markets/history"
 
 insertTradierProvider = 
-	dbOps $ do
+	(dbOps $ do
 		get <- DB.getBy $ UniqueProvider provider 
+		liftIO $ Logger.debugM iModuleName $ "Inserting tradier provider " `mappend` (show get)
 		y <- case get of 
-				Nothing -> do 
-					DB.insert $ MarketDataProvider 
-							provider baseUrl "" timeAndSales optionChains 
-		return y 
+				Nothing ->do 
+					x <- DB.insert $ MarketDataProvider 
+							provider baseUrl "" timeAndSales optionChains
+					return $ Right x
+				Just x -> return $ Left $ "Record exists. Not inserting" 
 
+		liftIO $ Logger.debugM iModuleName $ "Inserted provider " `mappend` (show y)
+	) `catch` (\x@(SomeException s) -> do
+		Logger.errorM iModuleName $ "Error inserting tradier" `mappend`	 (show x))
 
 getMarketData url queryString = do 
 	authBearerToken <- getEnv("TRADIER_BEARER_TOKEN") >>= 
@@ -301,14 +306,13 @@ instance FromJSON MarketDataTradier where
 
 {-- | Returns the option expiration date for n months from now. --}
 expirationDate n = do 
-
 	x <- liftIO $ getCurrentTime >>= \l 
 				-> return $ utctDay l
 	(yy, m, d) <- return $ toGregorian x
 	-- Compute the number of days
 	y <- Control.Monad.foldM (\a b -> 
 				return $ 
-					a + (gregorianMonthLength yy (m + b)))
+					a + (gregorianMonthLength yy (m + b)) - d)
 				0 [0..n]
 	x2 <- return $ addDays (toInteger y) x
 	(yy2, m2, d2) <- return $ toGregorian x2 
@@ -451,7 +455,7 @@ saveOptionChains = do
 				(Right aSymbol) -> do 
 					liftIO $ Logger.debugM iModuleName ("Inserting into db " `mappend` (show x))
 					d <- defaultExpirationDate
-					i <- liftIO $ insertOptionChainsIntoDb (BS.pack $ T.unpack aSymbol) "2015-12-31"
+					i <- liftIO $ insertOptionChainsIntoDb (BS.pack $ T.unpack aSymbol) d
 					yield $ BS.pack $ "Option chains for " `mappend` 
 									(T.unpack aSymbol) `mappend` " retrieved: "
 									`mappend` (show i)					
@@ -510,6 +514,7 @@ setupSymbols aFileName = do
 
 startup = do 
 	dataDirectory <- getEnv("DATA_DIRECTORY")
+	insertTradierProvider 
 	x <- return $ T.unpack $ T.intercalate "/" [(T.pack dataDirectory), "nasdaq_listed.txt"]
 	y <- return $ T.unpack $ T.intercalate "/" [(T.pack dataDirectory), "other_listed.txt"]
 	setupSymbols x 
@@ -519,6 +524,7 @@ startup = do
 
 startup_d = do 
 	dataDirectory <- getEnv("DATA_DIRECTORY")
+	_ <- insertTradierProvider 
 	x <- return $ T.unpack $ T.intercalate "/" [(T.pack dataDirectory), "nasdaq_10.txt"]
 	setupSymbols x 
 
