@@ -52,7 +52,23 @@ All scripts that run for a user need a form of review before they can run. Ensur
 
 ###### Test apply stress
 * Create stresses using the ui to add stresses, for example 
-"Create Equity Shock for TEVA pct 12 % 100;" (both with or without newline)
+	"Create Equity Shock for TEVA pct 12 % 100;" (both with or without newline)
+* Create stresses using the ui for the below symbols. This would require that the 
+test case has created a portfolio with the following symbols and then test the stresses.
+	Create Equity Shock for AAOI pct 12 % 100;
+	Create Equity Shock for AAME pct -12 % 100;
+	Create Equity Shock for AAL pct -12 % 100;
+	Create Equity Shock for AAAP pct -4 % 100;
+	Create Equity Shock for ABCD pct -4 % 100;
+	Create Equity Shock for ABCB pct -4 % 100;
+	Create Equity Shock for ABAX pct -4 % 100;
+	Create Equity Shock for ABAC pct -4 % 100;
+	Create Equity Shock for AAXJ pct -4 % 100;
+	Create Equity Shock for AAWW pct -4 % 100;
+	Create Equity Shock for AAVL pct -4 % 100;
+	Create Equity Shock for AAPL pct -4 % 100;
+	Create Equity Shock for AAON pct -4 % 100;
+
 * Test for a portfolio that has TEVA and see the stress change by the percentage in the stress above.
 * Test for a portfolio that doesnt have TEVA or any symbol of your choice and that the stress doesnt apply.
 * Check for the time interval between updates of the stress values. This time interval should be consistent
