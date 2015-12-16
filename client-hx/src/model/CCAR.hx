@@ -29,7 +29,13 @@ class CCAR {
 	private var crudType : String ;
 	// UI Accessors
 	private function getScenarioName() : String {
-		return getScenarioNameElement().value;
+		if(getScenarioNameElement() != null) {
+			return getScenarioNameElement().value;
+		}else {
+			trace("Element not defined ");
+			return "TBD";
+		}
+		
 	}
 	private function getScenarioNameElement() : InputElement {
 		return (cast Browser.document.getElementById(SCENARIO_NAME));
@@ -48,30 +54,27 @@ class CCAR {
 
 	public function new(name : String, text : String, cr : String) {
 		try {
-
+		trace("Creating ccar instance");
 		scenarioName = name;
 		scenarioText = text;
 		creator = cr;
 		deleted = false;	
-		var stream : Stream<Dynamic> = 
-			MBooks_im.getSingleton().initializeElementStream(
-				cast getScenarioNameElement()
-				, "keyup"
-			);
-		stream.then(checkScenarioExists);
+		}catch(err : Dynamic) {
+			trace("Exception creating ccar " + err);
+		}
+		trace("Created ccar instance successfully");
+
+	}
+
+	public function setupStreams() {
 		var saveStream : Stream<Dynamic> = 
 			MBooks_im.getSingleton().initializeElementStream(
 				cast getSaveScenarioElement()
 				, "click"
 				);
-			saveStream.then(sendPT);
-		}catch(err : Dynamic) {
-			trace("Exception creating ccar " + err);
-		}
+		saveStream.then(sendPT);
 
 	}
-
-
 	private function copyIncomingValues(aMessage) {
 		this.scenarioName = aMessage.ccarData.scenarioName;
 		this.scenarioText = aMessage.ccarData.scenarioText;
@@ -124,6 +127,7 @@ class CCAR {
 	}
 
 	private function sendPT(ev : Event){
+		trace("Processing event " + ev);
 		sendParsingRequest();
 	}
 	private function sendParsingRequest() {
@@ -134,6 +138,7 @@ class CCAR {
 			, ccarText : getScenarioText()
 			, commandType : "ParsedCCARText"
 		};
+		trace("Sending parsing request " + payload);
 		MBooks_im.getSingleton().doSendJSON(payload);
 	}
 

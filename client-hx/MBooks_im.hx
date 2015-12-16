@@ -172,12 +172,13 @@ class MBooks_im {
 			singleton.company = new view.Company();
 			singleton.project = new Project(singleton.company);
 			singleton.ccar = new CCAR("", "", "");
+			singleton.ccar.setupStreams();
 			singleton.portfolio = new Portfolio();
 			singleton.portfolioSymbolModel = new model.PortfolioSymbol();
 			singleton.portfolioSymbolView = 
 				new view.PortfolioSymbol(singleton.portfolioSymbolModel);		
 		}else {
-			trace("A new user loddeg in " + loginEvent);
+			trace("A new user logged in " + loginEvent);
 		}
 	}
 	// Connection details
@@ -942,6 +943,7 @@ class MBooks_im {
 	
 	private function setupStreams() {
 		//to deal with circular dependencies
+		//singleton.ccar.setupStreams();
 	}
 	private function authenticationChecks(incoming : Dynamic){
 		//Get user entitlements

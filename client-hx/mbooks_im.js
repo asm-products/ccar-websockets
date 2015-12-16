@@ -680,10 +680,11 @@ MBooks_im.prototype = {
 			MBooks_im.singleton.company = new view.Company();
 			MBooks_im.singleton.project = new model.Project(MBooks_im.singleton.company);
 			MBooks_im.singleton.ccar = new model.CCAR("","","");
+			MBooks_im.singleton.ccar.setupStreams();
 			MBooks_im.singleton.portfolio = new view.Portfolio();
 			MBooks_im.singleton.portfolioSymbolModel = new model.PortfolioSymbol();
 			MBooks_im.singleton.portfolioSymbolView = new view.PortfolioSymbol(MBooks_im.singleton.portfolioSymbolModel);
-		} else console.log("A new user loddeg in " + Std.string(loginEvent));
+		} else console.log("A new user logged in " + Std.string(loginEvent));
 	}
 	,getGmailOauthButton: function() {
 		return js.Browser.document.getElementById(MBooks_im.SETUP_GMAIL);
@@ -2449,17 +2450,15 @@ massive.munit.util.Timer.prototype = {
 var model = {}
 model.CCAR = function(name,text,cr) {
 	try {
+		console.log("Creating ccar instance");
 		this.scenarioName = name;
 		this.scenarioText = text;
 		this.creator = cr;
 		this.deleted = false;
-		var stream = MBooks_im.getSingleton().initializeElementStream(this.getScenarioNameElement(),"keyup");
-		stream.then($bind(this,this.checkScenarioExists));
-		var saveStream = MBooks_im.getSingleton().initializeElementStream(this.getSaveScenarioElement(),"click");
-		saveStream.then($bind(this,this.sendPT));
 	} catch( err ) {
 		console.log("Exception creating ccar " + Std.string(err));
 	}
+	console.log("Created ccar instance successfully");
 };
 model.CCAR.__name__ = ["model","CCAR"];
 model.CCAR.prototype = {
@@ -2495,9 +2494,11 @@ model.CCAR.prototype = {
 	}
 	,sendParsingRequest: function() {
 		var payload = { nickName : MBooks_im.getSingleton().getNickName(), uploadedBy : MBooks_im.getSingleton().getNickName(), scenarioName : this.getScenarioName(), ccarText : this.getScenarioText(), commandType : "ParsedCCARText"};
+		console.log("Sending parsing request " + Std.string(payload));
 		MBooks_im.getSingleton().doSendJSON(payload);
 	}
 	,sendPT: function(ev) {
+		console.log("Processing event " + Std.string(ev));
 		this.sendParsingRequest();
 	}
 	,checkScenarioExists: function(ev) {
@@ -2526,6 +2527,10 @@ model.CCAR.prototype = {
 		this.creator = aMessage.ccarData.createdBy;
 		this.deleted = aMessage.ccarData.deleted;
 	}
+	,setupStreams: function() {
+		var saveStream = MBooks_im.getSingleton().initializeElementStream(this.getSaveScenarioElement(),"click");
+		saveStream.then($bind(this,this.sendPT));
+	}
 	,getSaveScenarioElement: function() {
 		return js.Browser.document.getElementById(model.CCAR.SAVE_SCENARIO);
 	}
@@ -2539,7 +2544,10 @@ model.CCAR.prototype = {
 		return js.Browser.document.getElementById(model.CCAR.SCENARIO_NAME);
 	}
 	,getScenarioName: function() {
-		return this.getScenarioNameElement().value;
+		if(this.getScenarioNameElement() != null) return this.getScenarioNameElement().value; else {
+			console.log("Element not defined ");
+			return "TBD";
+		}
 	}
 	,__class__: model.CCAR
 }

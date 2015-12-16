@@ -36,19 +36,11 @@
  -->
 </head>
 <body>
-	<h3 align="center"> R2 Online (Beta)</h3>
-		
-
-
+	<h4 align="center"> CCAR (Comprehensive Capital Analysis and Review - Beta) </h4>
 	<div class="grid flex" class="callout clearfix">
-		<div class="col_12" style="margin-top:10px;">
-			<h4 class="center"><p><i class="fa fa-fire"></i>
-				</p id="support_title">Query/manage pbdR scripts</h4>
-
-		</div>
 		<div class="col_4">
 		<p> Note: If this is the first time, enter your nickname or an email id and 
-			hit the tab key to follow the prompt.  </p>
+			hit the tab key to follow the prompts.  </p>
 		<p> For returning users, please enter your nickname and <tab> out to 
 			follow the prompt </p>	
 		<form class="vertical">
@@ -107,41 +99,14 @@
 
 	</ul>
 
-	<div id="workbench-messaging" class="tab-content col_12">
-			<div class="col_12">
-				<div class="col_2">
-					<label for="usersOnline">Users Online</label>
-					<select id="usersOnline" multiple="multiple" class="fancy" style="width:180px;height:400px" >
-					<option value="0">-- Users online --</option>
-					</select>
-				</div>
-				<div class="col_10">
-				<div class="col_12">
-					<label for="messageHistory">Conv</label>
-					<textarea id="messageHistory" rows="20" style="width:800px; height:400px"></textarea>
-				</div>			
-
-				<div class="col_12">
-						<label for="messageInput">Chat</label>
-						<input id="messageInput" style="width:800px;fontSize=large"></input>
-				</div>
-				<div class="col_12" id ="kickUserDiv">
-						<label for="kickUser">Kick User</label>
-						<input id="kickUser" style="width:400px"></input>
-
-				</div>
-				</div>
-			</div>
-	</div>
-
 	<div id="workbench-portfolio" class="tab-content col_12">
-		<p align="center">
+<!-- 		<p align="center">
 			Add symbols to a portfolio. Each portfolio lists
 			a set of symbols, direction and size. 
 			Allow users to perform symbol analysis from list of available
 			analysis snippets available to the user.
 		</p>
-		<form class="vertical" id="portfolio">
+ -->		<form class="vertical" id="portfolio">
 			<div class="col_4">
 				<label for="portfolioList"> Portfolios </label>
 				<select id="portfolioList">
@@ -159,10 +124,10 @@
 		<form class="vertical" id="symbol">
 			<div class="col_8">
                <label for"scenarioText"> Scenario </label>
-               <textarea id="scenarioText" rows="2">
+               <textarea id="scenarioText" rows="4">
                </textarea>				
-               <label for="saveScenario"/>
-               <button id="saveScenario"> Apply Stress</button>
+               	<label for="saveScenario"/>
+               	<button id="saveScenario" type="button"> Apply Stress</button>
 				<label for="symbolID"> Symbol </label>
 				<input id="symbolID" type="text" placeholder="teva"/>
 				<label for="symbolSideID"> Side </label>
@@ -208,6 +173,35 @@
 		 </div>
 	    </div>
 	 </div>
+
+	<div id="workbench-messaging" class="tab-content col_12">
+			<div class="col_12">
+				<div class="col_2">
+					<label for="usersOnline">Users Online</label>
+					<select id="usersOnline" multiple="multiple" class="fancy" style="width:180px;height:200px" >
+					<option value="0">-- Users online --</option>
+					</select>
+				</div>
+				<div class="col_10">
+				<div class="col_12">
+					<label for="messageHistory">Conv</label>
+					<textarea id="messageHistory" rows="20" style="width:800px; height:200px"></textarea>
+				</div>			
+
+				<div class="col_12">
+						<label for="messageInput">Chat</label>
+						<input id="messageInput" style="width:800px;fontSize=large"></input>
+				</div>
+				<div class="col_12" id ="kickUserDiv">
+						<label for="kickUser">Kick User</label>
+						<input id="kickUser" style="width:400px"></input>
+
+				</div>
+				</div>
+			</div>
+	</div>
+
+
 
 	<div id="workbench-general" class="tab-content col_12"> 
 			<h3 align="center">
@@ -261,18 +255,6 @@
 			</form>
 		</div>
 	</div>
-
-   <div id="workbench-ccar" class="tab-content col_12">
-                   <form class="vertical" id="scenarioForm">
-                           <div class="col_6">
-                                   <!-- Placeholder Text -->
-                                   <label for="scenarioName">Name </label>
-                                   <input id="scenarioName" type="text" />
-                                   <textarea id="parsedScenario" rows="20">
-                                   </textarea>
-                           </div>
-                   </form>
-    </div>
 
 	<div id="workbench-project" class="tab-content col_12">
 		<div class="col_6">
@@ -352,50 +334,6 @@
 		</div>
 
 		<div id="workbench-security" class="tab-content col_12">
-				<div id="usage_stuff" class="callout">
-					<h3 align="center">
-						What can you do on this site: 
-					</h3>
-					<ul class="tabs-content">
-						<li> Create and save R (using pbdR) scripts to run computations </li>
-						<li> Create CCAR scenarios to test risks if you are so inclined </li>
-						<li> Realtime graphs  </li>
-						<li> Gift/share scripts with other users. </li>
-						<li> Share results with other users </li>
-						<li> Private conversations with other users if you allow them to </li>
-						<li> Create and publish surveys </li>
-						<li> Create and manage projects of various kinds including 3d models </li>
-						<li> Create a market place for products </li>
-						<li> Create bids, trades for products </li>
-						<li> Send us feature requsets </li>
-						<li> Send us bug requests </li>
-						<li> View source </li>
-						<li> More to follow or less to offer ...depends on you </li>
-					</ul>
-					<ul class="tabl-content">
-						<p> We plan to integrate the site with Persona to keep your identity safe. The rest of the site will still be secure so your data, and algorithms, scripts are always safe. I am not a big fan of outh/oauth2 as they run the risk of become central stores of personal information, although, if you feel inclined, we do plan on adding support to commonly available oauth providers starting with google and facebook.
-						</p>
-					</ul>
-				</div>
-				
-			<div id="project_notes">
-				<h4 align="center"> Notes/Instructions </h4>
-				<p align="center">
-					<ul> 
-						<li>You can save all your scripts under your company's user id. </li>
-						<li>All your jobs that are run for R will have an id and you can request for a webhook </li>
-						<li>If you are uploadinrg larger data sets, let us help you setup your cloud: either AWS.</li>
-						<li>Feature requests or bug requests can be entered here (implement href) </li>
-						<li>
-							Naming conventions need to be fixed: Save => Insert 
-							at times or save or updated. In most cases a call to 
-							save will do a simple insert. 
-							Update will fail if the record is not found.
-							Delete should work as expected.
-						</li>
-					</ul>
-				</p>
-			</div>
 		</div>
 
 

@@ -1,0 +1,4 @@
+Create Equity Shock for AAOI pct 12 % 100;
+Create Equity Shock for AAME pct -12 % 100;
+Create Equity Shock for AAL pct -12 % 100;
+Create Equity Shock for AAAP pct -4 % 100;
